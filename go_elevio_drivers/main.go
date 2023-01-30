@@ -1,34 +1,62 @@
 package main
 
 import "Driver-go/elevio"
-import "fmt"
 
+func main() {
+	numFloors := 4
+    elevio.Init("localhost:15657", numFloors)
+    
+    drv_buttons := make(chan elevio.ButtonEvent)
+    drv_floors  := make(chan int)
+    drv_obstr   := make(chan bool)
+    drv_stop    := make(chan bool)
+
+    go elevio.PollButtons(drv_buttons)
+    go elevio.PollFloorSensor(drv_floors)
+    go elevio.PollObstructionSwitch(drv_obstr)
+    go elevio.PollStopButton(drv_stop)
+
+    for {
+        select {
+        case button := <- drv_buttons:
+            
+            // Legger til funksjoner som Simen har skrevet anngående requests
+        }
+
+        case sensorReading := <- drv_floors:
+            // Legge inn logikk på om vi skal stoppe i denne etasjen eller ikke
+
+        
+        case 
+    }
+}
+
+/*
 func main(){
 
     numFloors := 4
 
     elevio.Init("localhost:15657", numFloors)
-    
+
     var d elevio.MotorDirection = elevio.MD_Up
     //elevio.SetMotorDirection(d)
-    
+
     drv_buttons := make(chan elevio.ButtonEvent)
     drv_floors  := make(chan int)
     drv_obstr   := make(chan bool)
-    drv_stop    := make(chan bool)    
-    
+    drv_stop    := make(chan bool)
+
     go elevio.PollButtons(drv_buttons)
     go elevio.PollFloorSensor(drv_floors)
     go elevio.PollObstructionSwitch(drv_obstr)
     go elevio.PollStopButton(drv_stop)
-    
-    
+
     for {
         select {
         case a := <- drv_buttons:
             fmt.Printf("%+v\n", a)
             elevio.SetButtonLamp(a.Button, a.Floor, true)
-            
+
         case a := <- drv_floors:
             fmt.Printf("%+v\n", a)
             if a == numFloors-1 {
@@ -37,8 +65,8 @@ func main(){
                 d = elevio.MD_Up
             }
             elevio.SetMotorDirection(d)
-            
-            
+
+
         case a := <- drv_obstr:
             fmt.Printf("%+v\n", a)
             if a {
@@ -46,7 +74,7 @@ func main(){
             } else {
                 elevio.SetMotorDirection(d)
             }
-            
+
         case a := <- drv_stop:
             fmt.Printf("%+v\n", a)
             for f := 0; f < numFloors; f++ {
@@ -55,5 +83,6 @@ func main(){
                 }
             }
         }
-    }    
+    }
 }
+*/

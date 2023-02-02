@@ -1,10 +1,13 @@
-package elevio
+package elevio_driver
 
 import "time"
 import "sync"
 import "net"
 import "fmt"
 
+func StupidFunction() string {
+	return "WELL DONE!"
+}
 
 
 const _pollRate = 20 * time.Millisecond

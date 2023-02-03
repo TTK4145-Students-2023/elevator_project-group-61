@@ -37,5 +37,5 @@ func main(){
 		}
 	}()
 	
-	FinalStateMachine(drv_buttons, drv_floors, ch_time)
+	// FinalStateMachine(drv_buttons, drv_floors, ch_time)
 }

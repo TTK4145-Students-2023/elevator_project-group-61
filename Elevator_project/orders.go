@@ -2,6 +2,7 @@ package main
 
 import (
 	"ElevatorProject/elevio"
+	"fmt"
 )
 
 // 
@@ -34,11 +35,12 @@ func CheckIfAnyOrders() bool{
 			return true
 		}
 	}
+	fmt.Println("No orders found in CheckIfAnyOrders")
 	return false
 }	
 
 func OrdersBelow(floor int) bool {
-	if floor <= 0 {
+	if floor <= 0 || floor > 3{
 		return false
 	}
 	for i := floor ; i > -1 ; i-- {
@@ -50,7 +52,7 @@ func OrdersBelow(floor int) bool {
 }
 
 func OrdersAbove(floor int) bool {
-	if floor >= 0 {
+	if floor >= 3 || floor < 0{
 		return false
 	}
 	for i := floor ; i < 4 ; i++ {
@@ -82,4 +84,29 @@ func UpdateOrders(button_press elevio.ButtonEvent) {
 	case elevio.BT_HallUp:
 		Current_orders.Up_orders[button_press.Floor] = true
 	}
+}
+
+func InitLamps() {
+	for i := 0 ; i < 4 ; i++ {
+		for j := 0 ; j < 3 ; j++ {
+			elevio.SetButtonLamp(elevio.ButtonType(j), i, false)
+		}
+	}
+}
+
+func NoOrdersPastFloor(floor int, lastdir elevio.MotorDirection) bool {
+	if lastdir == elevio.MD_Up {
+		for i := floor ; i < 4 ; i++ {
+			if Current_orders.Cab_orders[i] || Current_orders.Down_orders[i] || Current_orders.Up_orders[i] {
+				return false
+			}
+		}
+	} else if lastdir == elevio.MD_Down {
+		for i := floor ; i > -1 ; i-- {
+			if Current_orders.Cab_orders[i] || Current_orders.Down_orders[i] || Current_orders.Up_orders[i] {
+				return false
+			}
+		}
+	}
+	return true
 }

@@ -18,14 +18,14 @@ func main(){
     
     drv_buttons := make(chan elevio.ButtonEvent)
     drv_floors  := make(chan int)
-    // drv_obstr   := make(chan bool)
+    drv_obstr   := make(chan bool)
     // drv_stop    := make(chan bool)    
 
 	ch_time := make(chan int)
     
     go elevio.PollButtons(drv_buttons)
     go elevio.PollFloorSensor(drv_floors)
-    // go elevio.PollObstructionSwitch(drv_obstr)
+    go elevio.PollObstructionSwitch(drv_obstr)
     // go elevio.PollStopButton(drv_stop)
 
 	go func() {
@@ -36,5 +36,4 @@ func main(){
 	}()
 	
     Fsm_elevator(drv_buttons, drv_floors, ch_time)
-	// FinalStateMachine(drv_buttons, drv_floors, ch_time)
 }

@@ -20,9 +20,9 @@ import (
 type States struct {
 	// If this is changed, remember to change:
 	// - InitStates()
-	last_floor     int
+	last_floor int
 	last_direction elevio.MotorDirection
-	door_open      bool
+	door_open bool
 }
 
 var Elevator_states States
@@ -229,6 +229,12 @@ func HandleNewOrder(new_order elevio.ButtonEvent) {
 }
 
 func HandleDoorClosing() {
+	// Dette er også det eneste stedet jeg tar hensyn til obstruksjon
+	// Dersom det er obstruksjon, restart timer og return
+	if elevio.GetObstruction() {
+		door_timer.StartTimer()
+		return
+	}
 	// Må stenge dører og alt med det å gjøre:
 	elevio.SetDoorOpenLamp(false)
 	Elevator_states.door_open = false

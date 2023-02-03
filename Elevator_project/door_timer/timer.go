@@ -1,18 +1,21 @@
 package door_timer
 
 import "time"
-import "fmt"
 
 const StandardDoorWait = 3000
 
-var TimeCounter int64
+var TimeCounter int64 = -1
 
 func StartTimer() {
 	TimeCounter = time.Now().UnixMilli()
 }
 
-func CheckTimer() bool {
-	DiffTime := time.Now().UnixMilli() - TimeCounter
-	fmt.Println("timediff:", DiffTime)
-	return DiffTime > StandardDoorWait // Milliseconds, so need to be 3000
+func CheckTimer(ch_timer chan int) {
+	if TimeCounter == -1 {
+		return
+	}
+	if time.Now().UnixMilli()-TimeCounter > StandardDoorWait {
+		ch_timer <- 1
+		TimeCounter = -1
+	}
 }

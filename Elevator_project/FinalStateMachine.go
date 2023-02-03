@@ -17,24 +17,23 @@ import (
 // TYPES AND VARIABLES
 // ####################
 
-type States struct { 
-	// If this is changed, remember to change: 
+type States struct {
+	// If this is changed, remember to change:
 	// - InitStates()
-	last_floor int
+	last_floor     int
 	last_direction elevio.MotorDirection
-	door_open bool
+	door_open      bool
 }
 
 var Elevator_states States
 
 type Orders struct {
-	Up_orders [4]bool
+	Up_orders   [4]bool
 	Down_orders [4]bool
-	Cab_orders [4]bool
+	Cab_orders  [4]bool
 }
 
 var Current_orders Orders
-
 
 // ####################
 // FUNCTIONS
@@ -54,8 +53,8 @@ func InitOrders() {
 
 func InitLamps() {
 	elevio.SetDoorOpenLamp(false)
-	for i := 0 ; i < 4 ; i++ {
-		for j := 0 ; j < 3 ; j++ {
+	for i := 0; i < 4; i++ {
+		for j := 0; j < 3; j++ {
 			elevio.SetButtonLamp(elevio.ButtonType(j), i, false)
 		}
 	}
@@ -83,23 +82,23 @@ func init_elevator() {
 }
 
 // MINI FUNCTIONS START ################### MINI FUNCTIONS START ###################
-func any_orders() bool{
-	for i := 0 ; i < 4 ; i++ {
+func any_orders() bool {
+	for i := 0; i < 4; i++ {
 		if Current_orders.Cab_orders[i] || Current_orders.Down_orders[i] || Current_orders.Up_orders[i] {
 			return true
 		}
 	}
 	return false
-}	
+}
 
-func any_orders_past_this_floor_in_direction(floor int, dir elevio.MotorDirection) bool{
+func any_orders_past_this_floor_in_direction(floor int, dir elevio.MotorDirection) bool {
 	switch dir {
 	case elevio.MD_Up:
 		// Det er ingen ordre forbi hvis dette er maks etasjen
 		if floor == 3 {
 			return false
 		}
-		for i := floor + 1 ; i < 4 ; i++ {
+		for i := floor + 1; i < 4; i++ {
 			if Current_orders.Cab_orders[i] || Current_orders.Down_orders[i] || Current_orders.Up_orders[i] {
 				return true
 			}
@@ -110,19 +109,18 @@ func any_orders_past_this_floor_in_direction(floor int, dir elevio.MotorDirectio
 		if floor == 0 {
 			return false
 		}
-		for i := floor - 1 ; i > -1 ; i-- {
+		for i := floor - 1; i > -1; i-- {
 			if Current_orders.Cab_orders[i] || Current_orders.Down_orders[i] || Current_orders.Up_orders[i] {
 				return true
 			}
-		}	
+		}
 		return false
 	}
 	fmt.Println("Dette skal ikke skje, da har any orders past blitt kallet med elevator_last_direction som stop.")
 	return false
 }
 
-
-func elevator_should_stop_after_sensing_floor(floor int) bool{
+func elevator_should_stop_after_sensing_floor(floor int) bool {
 	// Antatt at Elevator_states.last_direction er opp eller ned, ikke stille
 	// Det er antatt at heisen er i en etasje
 	// det er antatt at heisen nettopp er kommet til en etasje (skal brukes i floor_sensored)
@@ -139,13 +137,13 @@ func elevator_should_stop_after_sensing_floor(floor int) bool{
 	case elevio.MD_Up:
 		// hvis heisen gikk opp, og det ikke er ordre videre i denne retningen etter floor, eller
 		// ordren i denne etasjen faktisk er en "opp-ordre", stopp
-		if Current_orders.Up_orders[floor] || any_orders_past_this_floor_in_direction(floor, elevio.MD_Up){
+		if Current_orders.Up_orders[floor] || !any_orders_past_this_floor_in_direction(floor, elevio.MD_Up) {
 			return true
 		}
 		return false
 	case elevio.MD_Down:
 		// tilsvarende med ned
-		if Current_orders.Down_orders[floor] || any_orders_past_this_floor_in_direction(floor, elevio.MD_Down){
+		if Current_orders.Down_orders[floor] || !any_orders_past_this_floor_in_direction(floor, elevio.MD_Down) {
 			return true
 		}
 		return false
@@ -177,7 +175,6 @@ func add_order_to_system(btn elevio.ButtonEvent) {
 		Current_orders.Down_orders[btn.Floor] = true
 	}
 }
-
 
 // MINI FUNCTIONS STOP  ################### MINI FUNCTIONS STOP  ###################
 
@@ -215,7 +212,7 @@ func HandleNewOrder(new_order elevio.ButtonEvent) {
 	switch Elevator_states.door_open {
 	case false:
 		add_order_to_system(new_order)
-		if new_order.Floor - elevio.GetFloor() > 0 {
+		if new_order.Floor-elevio.GetFloor() > 0 {
 			elevio.SetMotorDirection(elevio.MD_Up)
 			Elevator_states.last_direction = elevio.MD_Up
 		} else {
@@ -261,20 +258,23 @@ func HandleDoorClosing() {
 	// motsatt
 	elevio.SetMotorDirection(elevio.MD_Up)
 	Elevator_states.last_direction = elevio.MD_Up
-	return
+	// return
 }
 
 func Fsm_elevator(ch_order chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int) {
 	// Iniate elevator
 	init_elevator()
-	
+
 	for {
 		select {
 		case floor := <-ch_floor:
+			fmt.Println("HandleFloorSensor")
 			HandleFloorSensor(floor)
 		case new_order := <-ch_order:
+			fmt.Println("HandleNewOrder")
 			HandleNewOrder(new_order)
 		case <-ch_door:
+			fmt.Println("HandleDoorClosing")
 			HandleDoorClosing()
 		}
 	}

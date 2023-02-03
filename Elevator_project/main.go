@@ -13,8 +13,8 @@ func main(){
 
     elevio.Init("localhost:15657", numFloors)
     
-    var d elevio.MotorDirection = elevio.MD_Up
-    elevio.SetMotorDirection(d)
+    // var d elevio.MotorDirection = elevio.MD_Up
+    // elevio.SetMotorDirection(d)
     
     drv_buttons := make(chan elevio.ButtonEvent)
     drv_floors  := make(chan int)
@@ -35,5 +35,6 @@ func main(){
 		}
 	}()
 	
+    Fsm_elevator(drv_buttons, drv_floors, ch_time)
 	// FinalStateMachine(drv_buttons, drv_floors, ch_time)
 }

@@ -9,8 +9,6 @@ import (
 
 func main(){
 
-	TestFunction()
-
     numFloors := 4
 
     elevio.Init("localhost:15657", numFloors)

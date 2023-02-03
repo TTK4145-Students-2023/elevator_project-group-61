@@ -1,4 +1,4 @@
-// package main
+package main
 
 // import (
 // 	"ElevatorProject/door_timer"

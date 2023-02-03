@@ -3,7 +3,7 @@ package door_timer
 import "time"
 import "fmt"
 
-const StandardDoorWait = 3
+const StandardDoorWait = 3000
 
 var TimeCounter int64
 
@@ -14,5 +14,5 @@ func StartTimer() {
 func CheckTimer() bool {
 	DiffTime := time.Now().UnixMilli() - TimeCounter
 	fmt.Println("timediff:", DiffTime)
-	return DiffTime > 3000 // Milliseconds, so need to be 3000
+	return DiffTime > StandardDoorWait // Milliseconds, so need to be 3000
 }

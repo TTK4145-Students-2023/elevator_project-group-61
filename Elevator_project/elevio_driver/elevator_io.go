@@ -5,6 +5,10 @@ import "sync"
 import "net"
 import "fmt"
 
+func JustATest() {
+	fmt.Println("JustATest successfully called! Hey there!")
+}
+
 const _pollRate = 20 * time.Millisecond
 
 var _initialized bool = false

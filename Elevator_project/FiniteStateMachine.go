@@ -9,6 +9,8 @@ import (
 // ####################
 // TYPES AND VARIABLES
 // ####################
+var n_floors int = 4
+
 type States struct {
 	// If this is changed, remember to change:
 	// - InitStates()
@@ -20,9 +22,9 @@ type States struct {
 var Elevator_states States
 
 type Orders struct {
-	Up_orders   [4]bool
-	Down_orders [4]bool
-	Cab_orders  [4]bool
+	Up_orders   []bool
+	Down_orders []bool
+	Cab_orders  []bool
 }
 
 var Current_orders Orders
@@ -38,15 +40,19 @@ func InitStates() {
 }
 
 func InitOrders() {
-	Current_orders = Orders{
-		[4]bool{false, false, false, false},
-		[4]bool{false, false, false, false},
-		[4]bool{false, false, false, false}}
+	Current_orders.Cab_orders = make([]bool, n_floors)
+	Current_orders.Up_orders = make([]bool, n_floors)
+	Current_orders.Down_orders = make([]bool, n_floors)
+	for i := 0; i < n_floors; i++ {
+		Current_orders.Cab_orders[i] = false
+		Current_orders.Up_orders[i] = false
+		Current_orders.Down_orders[i] = false
+	}
 }
 
 func InitLamps() {
 	elevio.SetDoorOpenLamp(false)
-	for i := 0; i < 4; i++ {
+	for i := 0; i < n_floors; i++ {
 		for j := 0; j < 3; j++ {
 			elevio.SetButtonLamp(elevio.ButtonType(j), i, false)
 		}
@@ -68,7 +74,7 @@ func init_elevator() {
 
 // MINI FUNCTIONS START ################### MINI FUNCTIONS START ###################
 func any_orders() bool {
-	for i := 0; i < 4; i++ {
+	for i := 0; i < n_floors; i++ {
 		if Current_orders.Cab_orders[i] || Current_orders.Down_orders[i] || Current_orders.Up_orders[i] {
 			return true
 		}
@@ -79,10 +85,10 @@ func any_orders() bool {
 func any_orders_past_this_floor_in_direction(floor int, dir elevio.MotorDirection) bool {
 	switch dir {
 	case elevio.MD_Up:
-		if floor == 3 {
+		if floor == n_floors - 1 {
 			return false
 		}
-		for i := floor + 1; i < 4; i++ {
+		for i := floor + 1; i < n_floors; i++ {
 			if Current_orders.Cab_orders[i] || Current_orders.Down_orders[i] || Current_orders.Up_orders[i] {
 				return true
 			}

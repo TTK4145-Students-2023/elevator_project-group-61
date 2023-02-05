@@ -56,7 +56,7 @@ func InitLamps() {
 
 func InitStates() {
 	Elevator_states.last_floor = -1
-	Elevator_states.last_direction = elevio.MD_Stop // NOT REALLY USING TODO: CHANGE THAT?
+	Elevator_states.last_direction = elevio.MD_Stop
 	Elevator_states.door_open = false
 	Elevator_states.moving = false
 }
@@ -71,7 +71,6 @@ func init_elevator() {
 		Elevator_states.last_direction = elevio.MD_Up
 		Elevator_states.moving = true
 	} else {
-		// Any problems last_direction not being set? Currently investigating ...
 		Elevator_states.last_floor = elevio.GetFloor()
 		elevio.SetFloorIndicator(Elevator_states.last_floor)
 	}
@@ -133,10 +132,6 @@ func elevator_should_stop_after_sensing_floor(floor int) bool {
 		}
 		return false
 	}
-	// If elevator was moving, then last_dir is set,
-	// in other words, this can only happen
-	// if elevator is already still.
-	// I don't think we need to stop then, of course
 	fmt.Println("elevator_should_stop_after_sensing_floor with dir = MD_Stop")
 	return false
 }
@@ -179,7 +174,6 @@ func find_closest_floor_order(floor int) int {
 	}
 	return closest_order
 }
-
 // MINI FUNCTIONS STOP  ################### MINI FUNCTIONS STOP  ###################
 
 func HandleFloorSensor(floor int) {

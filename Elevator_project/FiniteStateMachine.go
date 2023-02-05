@@ -207,21 +207,31 @@ func HandleDoorClosing() {
 	}
 	orders_up := any_orders_past_this_floor_in_direction(Elevator_states.last_floor, elevio.MD_Up)
 	orders_down := any_orders_past_this_floor_in_direction(Elevator_states.last_floor, elevio.MD_Down)
-	if Elevator_states.last_direction == elevio.MD_Up && orders_up {
+	if (Elevator_states.last_direction == elevio.MD_Up && orders_up) || !orders_down {
 		elevio.SetMotorDirection(elevio.MD_Up)
+		Elevator_states.last_direction = elevio.MD_Up
 		return
 	}
-	if Elevator_states.last_direction == elevio.MD_Down && orders_down {
-		elevio.SetMotorDirection(elevio.MD_Down)
-		return
-	}
-	if Elevator_states.last_direction == elevio.MD_Up {
+	if (Elevator_states.last_direction == elevio.MD_Down && orders_down) || !orders_up {
 		elevio.SetMotorDirection(elevio.MD_Down)
 		Elevator_states.last_direction = elevio.MD_Down
 		return
 	}
-	elevio.SetMotorDirection(elevio.MD_Up)
-	Elevator_states.last_direction = elevio.MD_Up
+	// Point from here on was that 
+	// - There are orders
+	// - But not in the direction of last_direction, MAYBE because that last_direction = MD.stop from init
+	// And so then my thought is that this means there are orders in the opposite of the last moving dir
+	// But I think it MIGHT occur that last_direction == elevio.MD_Stop here
+	// And so what should be done then is to move just in the direction of the order, which would have
+	// Been the case either way!
+	// THEREFORE I AM REMOVING THIS: (and added logic above that I think will work.)
+	// if Elevator_states.last_direction == elevio.MD_Up {
+	// 	elevio.SetMotorDirection(elevio.MD_Down)
+	// 	Elevator_states.last_direction = elevio.MD_Down
+	// 	return
+	// }
+	// elevio.SetMotorDirection(elevio.MD_Up)
+	// Elevator_states.last_direction = elevio.MD_Up
 }
 
 func Fsm_elevator(ch_order chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int) {

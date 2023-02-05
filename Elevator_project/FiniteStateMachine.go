@@ -17,6 +17,7 @@ type States struct {
 	last_floor int
 	last_direction elevio.MotorDirection
 	door_open bool
+	moving bool
 }
 
 var Elevator_states States
@@ -54,9 +55,10 @@ func InitLamps() {
 }
 
 func InitStates() {
-	Elevator_states.last_floor = -1
-	Elevator_states.last_direction = elevio.MD_Stop
+	Elevator_states.last_floor = -1 // NOT REALLY USING ANY WHERE TODO: CHANGE THAT?
+	Elevator_states.last_direction = elevio.MD_Stop // NOT REALLY USING TODO: CHANGE THAT?
 	Elevator_states.door_open = false
+	Elevator_states.moving = false
 }
 
 func init_elevator() {
@@ -66,9 +68,11 @@ func init_elevator() {
 	if elevio.GetFloor() == -1 {
 		elevio.SetMotorDirection(elevio.MD_Up)
 		Elevator_states.last_direction = elevio.MD_Up
-	} else {
+		Elevator_states.moving = true
+	} else { 
 		Elevator_states.last_floor = elevio.GetFloor()
 		elevio.SetFloorIndicator(Elevator_states.last_floor)
+		//TODO FIRSTTTTT CHANGE THIS TO NOT JUST CHOOSE A DIRECTION, UGLY GRR
 		if Elevator_states.last_floor == 0 {
 			Elevator_states.last_direction = elevio.MD_Down
 		} else {
@@ -165,6 +169,7 @@ func HandleFloorSensor(floor int) {
 	Elevator_states.last_floor = floor
 	if elevator_should_stop_after_sensing_floor(floor) {
 		elevio.SetMotorDirection(elevio.MD_Stop)
+		Elevator_states.moving = false
 		elevio.SetDoorOpenLamp(true)
 		Elevator_states.door_open = true
 		door_timer.StartTimer()
@@ -173,30 +178,29 @@ func HandleFloorSensor(floor int) {
 }
 
 func HandleNewOrder(new_order elevio.ButtonEvent) {
-	if elevio.GetFloor() == -1 {
+	if Elevator_states.moving {
 		add_order_to_system(new_order)
 		return
 	}
-	if new_order.Floor == elevio.GetFloor() {
+	if new_order.Floor == Elevator_states.last_floor {
 		elevio.SetDoorOpenLamp(true)
 		Elevator_states.door_open = true
 		door_timer.StartTimer()
 		return
+	} 
+	if Elevator_states.door_open {
+		add_order_to_system(new_order)
+		return
 	}
-	switch Elevator_states.door_open {
-	case false:
-		add_order_to_system(new_order)
-		if new_order.Floor-elevio.GetFloor() > 0 {
-			elevio.SetMotorDirection(elevio.MD_Up)
-			Elevator_states.last_direction = elevio.MD_Up
-		} else {
-			elevio.SetMotorDirection(elevio.MD_Down)
-			Elevator_states.last_direction = elevio.MD_Down
-		}
-		return
-	case true:
-		add_order_to_system(new_order)
-		return
+	add_order_to_system(new_order)
+	if new_order.Floor-elevio.GetFloor() > 0 {
+		elevio.SetMotorDirection(elevio.MD_Up)
+		Elevator_states.last_direction = elevio.MD_Up
+		Elevator_states.moving = true
+	} else {
+		elevio.SetMotorDirection(elevio.MD_Down)
+		Elevator_states.last_direction = elevio.MD_Down
+		Elevator_states.moving = true
 	}
 }
 
@@ -215,11 +219,13 @@ func HandleDoorClosing() {
 	if (Elevator_states.last_direction == elevio.MD_Up && orders_up) || !orders_down {
 		elevio.SetMotorDirection(elevio.MD_Up)
 		Elevator_states.last_direction = elevio.MD_Up
+		Elevator_states.moving = true
 		return
 	}
 	if (Elevator_states.last_direction == elevio.MD_Down && orders_down) || !orders_up {
 		elevio.SetMotorDirection(elevio.MD_Down)
 		Elevator_states.last_direction = elevio.MD_Down
+		Elevator_states.moving = true
 		return
 	}
 	// TODO: 

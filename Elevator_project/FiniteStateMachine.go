@@ -67,9 +67,6 @@ func init_elevator() {
 		elevio.SetMotorDirection(elevio.MD_Up)
 		Elevator_states.last_direction = elevio.MD_Up
 	} else {
-		// Since I haven't added logic for last_direction == MD_Stop,
-		// I will set it to MD_Up or MD_Down depending on the floor.
-		// Here we are in a floor.
 		Elevator_states.last_floor = elevio.GetFloor()
 		elevio.SetFloorIndicator(Elevator_states.last_floor)
 		if Elevator_states.last_floor == 0 {

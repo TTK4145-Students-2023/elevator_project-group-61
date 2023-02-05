@@ -33,12 +33,6 @@ var Current_orders Orders
 // ####################
 // FUNCTIONS
 // ####################
-func InitStates() {
-	Elevator_states.last_floor = -1
-	Elevator_states.last_direction = elevio.MD_Stop
-	Elevator_states.door_open = false
-}
-
 func InitOrders() {
 	Current_orders.Cab_orders = make([]bool, n_floors)
 	Current_orders.Up_orders = make([]bool, n_floors)
@@ -59,6 +53,12 @@ func InitLamps() {
 	}
 }
 
+func InitStates() {
+	Elevator_states.last_floor = -1
+	Elevator_states.last_direction = elevio.MD_Stop
+	Elevator_states.door_open = false
+}
+
 func init_elevator() {
 	InitOrders()
 	InitLamps()
@@ -67,8 +67,16 @@ func init_elevator() {
 		elevio.SetMotorDirection(elevio.MD_Up)
 		Elevator_states.last_direction = elevio.MD_Up
 	} else {
+		// Since I haven't added logic for last_direction == MD_Stop,
+		// I will set it to MD_Up or MD_Down depending on the floor.
+		// Here we are in a floor.
 		Elevator_states.last_floor = elevio.GetFloor()
 		elevio.SetFloorIndicator(Elevator_states.last_floor)
+		if Elevator_states.last_floor == 0 {
+			Elevator_states.last_direction = elevio.MD_Down
+		} else {
+			Elevator_states.last_direction = elevio.MD_Up
+		}
 	}
 }
 

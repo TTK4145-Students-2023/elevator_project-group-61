@@ -229,11 +229,27 @@ func HandleNewOrder(new_order elevio.ButtonEvent) {
 			elevio.SetDoorOpenLamp(true)
 			Elevator_states.door_open = true
 			door_timer.StartTimer()
+			order_dir := btn_type_to_direction(new_order.Button)
+			// Hvis denne bestillingen ikke er Cab, endre last_direction. HELT ENIG MED DENNE NÅ! GIR MENING FØLER JEG!
+			if order_dir != elevio.MD_Stop {
+				Elevator_states.last_direction = btn_type_to_direction(new_order.Button)
+			}
 		}
 	}
-	// Her er døren åpen
+	// TODO: Hvis døren er åpen og det ikke er noen andre cab calls fra før og det kommer cab call, så er det
+	// denne som setter retningen tenker jeg!
+
+	// ########################## Her er DØREN ÅPEN #######################################################
 	// Hvis bestillingen er i en annen etasje, bare legg til bestillingen
 	if new_order.Floor != Elevator_states.last_floor {
+		// Hvis det ikke er noen retning fra før, og ingen ordre fra før, sett retning? Ja kan være enig
+		if !any_orders() && Elevator_states.last_direction == elevio.MD_Stop {
+			if new_order.Floor > Elevator_states.last_floor {
+				Elevator_states.last_direction = elevio.MD_Up
+			} else {
+				Elevator_states.last_direction = elevio.MD_Down
+			}
+		}
 		add_order_to_system(new_order)
 		return
 	}
@@ -246,10 +262,9 @@ func HandleNewOrder(new_order elevio.ButtonEvent) {
 		door_timer.StartTimer()
 		return
 	}
-	// Altså er bestillingen ikke Cab, og enten er den i motsatt retning av last_direction, eller så er
-	// last_direction satt fortsatt MD_Stop. 
-	// Må huske at døren er åpen. Det vil si at dersom det er i motsatt retning av last_direction, skal den 
-	// bare legges til
+
+	// Info som gjelder nå: Dør åpen, bestilling i denne etasjen, ikke cab
+	// Kan være motsatt av last_direction eller elevio.MD_stop som last_direction
 	if Elevator_states.last_direction != elevio.MD_Stop {
 		add_order_to_system(new_order)
 		return

@@ -189,6 +189,20 @@ func remove_order_direction(floor int, dir elevio.MotorDirection) {
 		elevio.SetButtonLamp(elevio.BT_Cab, floor, false)
 	}
 }
+
+func last_direction_equal_order_type(btn_type elevio.ButtonType) bool {
+	switch Elevator_states.last_direction {
+	case elevio.MD_Up:
+		if btn_type == elevio.BT_HallUp {
+			return true
+		}
+	case elevio.MD_Down:
+		if btn_type == elevio.BT_HallDown {
+			return true
+		}
+	}
+	return false
+}
 // MINI FUNCTIONS STOP  ################### MINI FUNCTIONS STOP  ###################
 
 func HandleFloorSensor(floor int) {
@@ -209,7 +223,7 @@ func HandleNewOrder(new_order elevio.ButtonEvent) {
 		add_order_to_system(new_order)
 		return
 	}
-	if new_order.Floor == Elevator_states.last_floor {
+	if new_order.Floor == Elevator_states.last_floor && (new_order.Button == elevio.BT_Cab || last_direction_equal_order_type(new_order.Button)) {
 		elevio.SetDoorOpenLamp(true)
 		Elevator_states.door_open = true
 		door_timer.StartTimer()

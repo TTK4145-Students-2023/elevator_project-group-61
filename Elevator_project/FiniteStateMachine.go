@@ -212,7 +212,6 @@ func HandleNewOrder(new_order elevio.ButtonEvent) {
 		return
 	}
 	// Heisen står altså stille!
-// New code start
 	if !Elevator_states.door_open {
 		// Hvis døren er lukket er det ingen bestillinger i systemet. 
 		if new_order.Floor > Elevator_states.last_floor {
@@ -230,24 +229,11 @@ func HandleNewOrder(new_order elevio.ButtonEvent) {
 			elevio.SetDoorOpenLamp(true)
 			Elevator_states.door_open = true
 			door_timer.StartTimer()
-			order_dir := btn_type_to_direction(new_order.Button)
-			// Hvis denne bestillingen ikke er Cab, endre last_direction
-			if order_dir != elevio.MD_Stop {
-				Elevator_states.last_direction = btn_type_to_direction(new_order.Button)
-			}
 		}
 	}
 	// Her er døren åpen
 	// Hvis bestillingen er i en annen etasje, bare legg til bestillingen
 	if new_order.Floor != Elevator_states.last_floor {
-		// Hvis det ikke er noen retning fra før, og ingen ordre fra før, sett retning?
-		if !any_orders() && Elevator_states.last_direction == elevio.MD_Stop {
-			if new_order.Floor > Elevator_states.last_floor {
-				Elevator_states.last_direction = elevio.MD_Up
-			} else {
-				Elevator_states.last_direction = elevio.MD_Down
-			}
-		}
 		add_order_to_system(new_order)
 		return
 	}
@@ -285,49 +271,6 @@ func HandleNewOrder(new_order elevio.ButtonEvent) {
 	}
 	// Hvis det finnes ordre (er det mulig? JA)
 
-
-// New code end
-
-	// Hvis den nye ordren er i denne etasjen
-	if new_order.Floor == Elevator_states.last_floor {
-		// Hvis den er Cab, eller hvis den er i samme retning som heisen gikk, ikke legg til, men bare åpne dører
-		if (new_order.Button == elevio.BT_Cab || btn_type_to_direction(new_order.Button) == Elevator_states.last_direction) {
-			elevio.SetDoorOpenLamp(true)
-			Elevator_states.door_open = true
-			door_timer.StartTimer()
-			return
-		}
-		// Hvis last_direction ikke er satt
-		// Det kan vel være at folk er i heisen og har bestilt opp eller ned? Fordi dørene kan være åpne...
-		if Elevator_states.last_direction == elevio.MD_Stop {
-			elevio.SetDoorOpenLamp(true)
-			Elevator_states.door_open = true
-			door_timer.StartTimer()
-			Elevator_states.last_direction = btn_type_to_direction(new_order.Button)
-			return
-		}
-	}
-	if Elevator_states.door_open {
-		add_order_to_system(new_order)
-		return
-	}
-	// Here, since doors are closed, there are no orders in the system from before
-	if new_order.Floor > Elevator_states.last_floor {
-		add_order_to_system(new_order)
-		elevio.SetMotorDirection(elevio.MD_Up)
-		Elevator_states.last_direction = elevio.MD_Up
-		Elevator_states.moving = true
-	} else if new_order.Floor < Elevator_states.last_floor {
-		add_order_to_system(new_order)
-		elevio.SetMotorDirection(elevio.MD_Down)
-		Elevator_states.last_direction = elevio.MD_Down
-		Elevator_states.moving = true
-	} else {
-		elevio.SetDoorOpenLamp(true)
-		Elevator_states.door_open = true
-		door_timer.StartTimer()
-		Elevator_states.last_direction = btn_type_to_direction(new_order.Button)
-	}
 }
 
 func HandleDoorClosing() {

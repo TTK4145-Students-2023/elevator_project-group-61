@@ -7,6 +7,8 @@ import (
 	"math"
 )
 
+// TODO: Maybe add more class like structure and methods to structs and types! Like Morten said!
+
 // ####################
 // TYPES AND VARIABLES
 // ####################

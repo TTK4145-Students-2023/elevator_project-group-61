@@ -174,6 +174,21 @@ func find_closest_floor_order(floor int) int {
 	}
 	return closest_order
 }
+
+func remove_order_direction(floor int, dir elevio.MotorDirection) {
+	if dir == elevio.MD_Up && Current_orders.Up_orders[floor] {
+		Current_orders.Up_orders[floor] = false
+		elevio.SetButtonLamp(elevio.BT_HallUp, floor, false)
+	} 
+	if dir == elevio.MD_Down && Current_orders.Down_orders[floor] {
+		Current_orders.Down_orders[floor] = false
+		elevio.SetButtonLamp(elevio.BT_HallDown, floor, false)
+	}
+	if dir == elevio.MD_Stop && Current_orders.Cab_orders[floor] {
+		Current_orders.Cab_orders[floor] = false
+		elevio.SetButtonLamp(elevio.BT_Cab, floor, false)
+	}
+}
 // MINI FUNCTIONS STOP  ################### MINI FUNCTIONS STOP  ###################
 
 func HandleFloorSensor(floor int) {
@@ -185,7 +200,7 @@ func HandleFloorSensor(floor int) {
 		elevio.SetDoorOpenLamp(true)
 		Elevator_states.door_open = true
 		door_timer.StartTimer()
-		remove_orders_and_btn_lights(floor)
+		remove_order_direction(floor, Elevator_states.last_direction)
 	}
 }
 

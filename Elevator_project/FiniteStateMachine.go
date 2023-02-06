@@ -207,6 +207,12 @@ func HandleFloorSensor(floor int) {
 		door_timer.StartTimer()
 		remove_order_direction(floor, elevio.MD_Stop)
 		remove_order_direction(floor, Elevator_states.last_direction)
+		if floor == 0 {
+			remove_order_direction(0, elevio.MD_Up)
+		}
+		if floor == n_floors - 1 {
+			remove_order_direction(n_floors - 1, elevio.MD_Down)
+		}	
 	}
 }
 

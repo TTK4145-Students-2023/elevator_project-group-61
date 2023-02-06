@@ -203,6 +203,16 @@ func last_direction_equal_order_type(btn_type elevio.ButtonType) bool {
 	}
 	return false
 }
+
+func btn_type_to_direction(btn_type elevio.ButtonType) elevio.MotorDirection {
+	switch btn_type {
+	case elevio.BT_HallUp:
+		return elevio.MD_Up
+	case elevio.BT_HallDown:
+		return elevio.MD_Down
+	}
+	return elevio.MD_Stop
+}
 // MINI FUNCTIONS STOP  ################### MINI FUNCTIONS STOP  ###################
 
 func HandleFloorSensor(floor int) {
@@ -215,6 +225,8 @@ func HandleFloorSensor(floor int) {
 		Elevator_states.door_open = true
 		door_timer.StartTimer()
 		remove_order_direction(floor, Elevator_states.last_direction)
+		// Hvis ordre fjernes her, så betyr det at heisen announcer at den skal gå opp eller ned.
+		// Altså kan jeg sette last_direction? Vet ikke om det er til noen hensyn men...
 	}
 }
 
@@ -223,24 +235,38 @@ func HandleNewOrder(new_order elevio.ButtonEvent) {
 		add_order_to_system(new_order)
 		return
 	}
-	if new_order.Floor == Elevator_states.last_floor && (new_order.Button == elevio.BT_Cab || last_direction_equal_order_type(new_order.Button)) {
+	if new_order.Floor == Elevator_states.last_floor && (new_order.Button == elevio.BT_Cab || btn_type_to_direction(new_order.Button) == Elevator_states.last_direction) {
 		elevio.SetDoorOpenLamp(true)
 		Elevator_states.door_open = true
 		door_timer.StartTimer()
 		return
 	}
-	add_order_to_system(new_order)
 	if Elevator_states.door_open {
+		add_order_to_system(new_order)
 		return
 	}
-	if new_order.Floor-elevio.GetFloor() > 0 {
+	// Here the doors are closed, this means that there are no previous orders in system.
+	if new_order.Floor > Elevator_states.last_floor {
+		add_order_to_system(new_order)
 		elevio.SetMotorDirection(elevio.MD_Up)
 		Elevator_states.last_direction = elevio.MD_Up
 		Elevator_states.moving = true
-	} else {
+	} else if new_order.Floor < Elevator_states.last_floor {
+		add_order_to_system(new_order)
 		elevio.SetMotorDirection(elevio.MD_Down)
 		Elevator_states.last_direction = elevio.MD_Down
 		Elevator_states.moving = true
+	} else {
+		// This means that the new order is in this floor, and it was not a cab call,
+		// it was also not a call in the direction of last_direction.
+		// Therefore the doors should be reopened and last_direction should be changed (sort of an announcement).
+		elevio.SetDoorOpenLamp(true)
+		Elevator_states.door_open = true
+		door_timer.StartTimer()
+		// Announce by:
+		// - Remove order that was just added
+		// - change last_direction for realistic logic (person should cab call upwards)
+		Elevator_states.last_direction = btn_type_to_direction(new_order.Button)
 	}
 }
 

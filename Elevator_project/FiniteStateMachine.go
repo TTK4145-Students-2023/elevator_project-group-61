@@ -223,6 +223,41 @@ func HandleNewOrder2(new_order elevio.ButtonEvent) {
 	if Elevator_states.moving {
 		return
 	}
+	if new_order.Floor != Elevator_states.last_floor {
+		// Ordren er i annen estasje enn heisen er i
+		if !Elevator_states.door_open {
+			// Døren er lukket, ingen ordre fra før altså
+			if new_order.Floor > Elevator_states.last_floor {
+				elevio.SetMotorDirection(elevio.MD_Up)
+				Elevator_states.last_direction = elevio.MD_Up
+				Elevator_states.moving = true
+			} else {
+				elevio.SetMotorDirection(elevio.MD_Down)
+				Elevator_states.last_direction = elevio.MD_Down
+				Elevator_states.moving = true
+			}	
+		}
+		// Døren er åpen, ordren er i annen etasje enn heisen er i
+		return
+	}
+	// ##### Ordren er i samme etasje som heisen er i #####
+	if (new_order.Button == elevio.BT_Cab || btn_type_to_direction(new_order.Button) == Elevator_states.last_direction) {
+		// Cab eller samme retning som heisen kjørte sist
+		elevio.SetDoorOpenLamp(true)
+		Elevator_states.door_open = true
+		door_timer.StartTimer()
+		remove_order_direction(new_order.Floor, btn_type_to_direction(new_order.Button))
+		return
+	}
+	if Elevator_states.last_direction != elevio.MD_Stop {
+		return
+	}
+	// ##### Ordre i samme etasje | last_direction == MD_Stop || Ordren er opp eller ned #####
+	elevio.SetDoorOpenLamp(true)
+	Elevator_states.door_open = true
+	door_timer.StartTimer()
+	remove_order_direction(new_order.Floor, btn_type_to_direction(new_order.Button))
+
 }
 
 func HandleNewOrder(new_order elevio.ButtonEvent) {

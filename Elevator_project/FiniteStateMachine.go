@@ -148,6 +148,18 @@ func add_order_to_system(btn elevio.ButtonEvent) {
 	}
 }
 
+func remove_order_from_system(btn elevio.ButtonEvent) {
+	elevio.SetButtonLamp(btn.Button, btn.Floor, false)
+	switch btn.Button {
+	case elevio.BT_HallUp:
+		Current_orders.Up_orders[btn.Floor] = false
+	case elevio.BT_Cab:
+		Current_orders.Cab_orders[btn.Floor] = false
+	case elevio.BT_HallDown:
+		Current_orders.Down_orders[btn.Floor] = false
+	}	
+}
+
 func find_closest_floor_order(floor int) int {
 	closest_order := -1
 	shortest_diff := n_floors
@@ -206,50 +218,40 @@ func HandleFloorSensor(floor int) {
 	}
 }
 
+func HandleNewOrder2(new_order elevio.ButtonEvent) {
+	add_order_to_system(new_order)
+	if Elevator_states.moving {
+		return
+	}
+}
+
 func HandleNewOrder(new_order elevio.ButtonEvent) {
 	add_order_to_system(new_order)
 	if Elevator_states.moving {
 		return
 	}
-	// ¤ Could I get here with orders and last_dir = Stop? Yes
-	// Heisen står altså stille!
 	if !Elevator_states.door_open {
-		// Hvis døren er lukket er det ingen bestillinger i systemet. 
 		if new_order.Floor > Elevator_states.last_floor {
 			elevio.SetMotorDirection(elevio.MD_Up)
 			Elevator_states.last_direction = elevio.MD_Up
 			Elevator_states.moving = true
-			// ¤ Could I get here with orders and last_dir = Stop? No
 		} else if new_order.Floor < Elevator_states.last_floor {
 			elevio.SetMotorDirection(elevio.MD_Down)
 			Elevator_states.last_direction = elevio.MD_Down
 			Elevator_states.moving = true
-			// ¤ Could I get here with orders and last_dir = Stop? No
 		} else {
-			// Bestillingen er i denne etasjen
 			elevio.SetDoorOpenLamp(true)
 			Elevator_states.door_open = true
 			door_timer.StartTimer()
 			order_dir := btn_type_to_direction(new_order.Button)
-			// Hvis denne bestillingen ikke er Cab, endre last_direction. HELT ENIG MED DENNE NÅ! GIR MENING FØLER JEG!
 			if order_dir != elevio.MD_Stop {
 				Elevator_states.last_direction = btn_type_to_direction(new_order.Button)
 			}
-			// Then this order is completed, so remove it
 			remove_order_direction(new_order.Floor, btn_type_to_direction(new_order.Button))
-			// ¤ Could I get here with orders and last_dir = Stop? No
 		}
 		return
-		// ¤ Could I get here with orders and last_dir = Stop? No
 	}
-	// ¤ Could I get here with orders and last_dir = Stop? Yes
-	// TODO: Hvis døren er åpen og det ikke er noen andre cab calls fra før og det kommer cab call, så er det
-	// denne som setter retningen tenker jeg!
-
-	// ########################## Her er DØREN ÅPEN #######################################################
-	// Hvis bestillingen er i en annen etasje, bare legg til bestillingen
 	if new_order.Floor != Elevator_states.last_floor {
-		// Hvis det ikke er noen retning fra før, og ingen ordre fra før, sett retning? Ja kan være enig
 		if !any_orders() {
 			if new_order.Floor > Elevator_states.last_floor {
 				Elevator_states.last_direction = elevio.MD_Up
@@ -257,12 +259,8 @@ func HandleNewOrder(new_order elevio.ButtonEvent) {
 				Elevator_states.last_direction = elevio.MD_Down
 			}
 		}
-		// ¤ Could I get here with orders and last_dir = Stop? No
 		return
 	}
-	// Her er altså døren åpen, og bestillingen er i samme etasje, det er absolutt mulig at det finnes mange 
-	// bestillinger i systemet.
-	// Hvis ordren er Cab eller i samme retning som last dir, bare åpne døren, ikke legg til bestillingen.
 	if (new_order.Button == elevio.BT_Cab || btn_type_to_direction(new_order.Button) == Elevator_states.last_direction) {
 		elevio.SetDoorOpenLamp(true)
 		Elevator_states.door_open = true
@@ -270,16 +268,9 @@ func HandleNewOrder(new_order elevio.ButtonEvent) {
 		remove_order_direction(new_order.Floor, btn_type_to_direction(new_order.Button))
 		return
 	}
-
-	// Info som gjelder nå: Dør åpen, bestilling i denne etasjen, ikke cab
-	// Kan være motsatt av last_direction eller elevio.MD_stop som last_direction
 	if Elevator_states.last_direction != elevio.MD_Stop {
 		return
 	}
-	// Dermed er MD_Stop, er det kanskje noen muligheter.
-	// Igjen, døren er åpen så det kan være andre bestillinger i systemet eller ikke,
-	// denne bestillingen er nå i denne etasjen og er enten opp eller ned:
-	// - Hvis det ikke er noen andre bestillinger i systemet, skal døren åpnes og retning settes
 	if any_orders() || Elevator_states.last_direction == elevio.MD_Stop {
 		panic("There can be orders and last_dir = MD_Stop? In HandleNewOrder")
 	}

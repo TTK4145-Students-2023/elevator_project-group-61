@@ -87,9 +87,6 @@ func any_orders() bool {
 }
 
 func any_orders_past_this_floor_in_direction(floor int, dir elevio.MotorDirection) bool {
-	if dir == elevio.MD_Stop {
-		panic("any_orders_past_this_floor_in_direction: dir == MD_Stop")
-	}
 	switch dir {
 	case elevio.MD_Up:
 		if floor == n_floors-1 {
@@ -202,6 +199,13 @@ func btn_type_to_direction(btn_type elevio.ButtonType) elevio.MotorDirection {
 	}
 	return elevio.MD_Stop
 }
+
+func order_in_floor(floor int) bool {
+	if Current_orders.Up_orders[floor] || Current_orders.Down_orders[floor] || Current_orders.Cab_orders[floor] {
+		return true
+	}
+	return false
+}
 // MINI FUNCTIONS STOP  ################### MINI FUNCTIONS STOP  ###################
 
 func HandleFloorSensor(floor int) {
@@ -213,19 +217,20 @@ func HandleFloorSensor(floor int) {
 		elevio.SetDoorOpenLamp(true)
 		Elevator_states.door_open = true
 		door_timer.StartTimer()
+		remove_order_direction(floor, elevio.MD_Stop)
 		remove_order_direction(floor, Elevator_states.last_direction)
 		// Should I really not set last_direction here somewhere? PROBABLY! TODO: Do this!
 	}
 }
 
-func HandleNewOrder2(new_order elevio.ButtonEvent) {
+func HandleNewOrder(new_order elevio.ButtonEvent) {
 	add_order_to_system(new_order)
 	if Elevator_states.moving {
 		return
 	}
 	if new_order.Floor != Elevator_states.last_floor {
 		// Ordren er i annen estasje enn heisen er i
-		if !Elevator_states.door_open {
+		if !Elevator_states.door_open { 
 			// Døren er lukket, ingen ordre fra før altså
 			if new_order.Floor > Elevator_states.last_floor {
 				elevio.SetMotorDirection(elevio.MD_Up)
@@ -257,58 +262,6 @@ func HandleNewOrder2(new_order elevio.ButtonEvent) {
 	Elevator_states.door_open = true
 	door_timer.StartTimer()
 	remove_order_direction(new_order.Floor, btn_type_to_direction(new_order.Button))
-
-}
-
-func HandleNewOrder(new_order elevio.ButtonEvent) {
-	add_order_to_system(new_order)
-	if Elevator_states.moving {
-		return
-	}
-	if !Elevator_states.door_open {
-		if new_order.Floor > Elevator_states.last_floor {
-			elevio.SetMotorDirection(elevio.MD_Up)
-			Elevator_states.last_direction = elevio.MD_Up
-			Elevator_states.moving = true
-		} else if new_order.Floor < Elevator_states.last_floor {
-			elevio.SetMotorDirection(elevio.MD_Down)
-			Elevator_states.last_direction = elevio.MD_Down
-			Elevator_states.moving = true
-		} else {
-			elevio.SetDoorOpenLamp(true)
-			Elevator_states.door_open = true
-			door_timer.StartTimer()
-			order_dir := btn_type_to_direction(new_order.Button)
-			if order_dir != elevio.MD_Stop {
-				Elevator_states.last_direction = btn_type_to_direction(new_order.Button)
-			}
-			remove_order_direction(new_order.Floor, btn_type_to_direction(new_order.Button))
-		}
-		return
-	}
-	if new_order.Floor != Elevator_states.last_floor {
-		if !any_orders() {
-			if new_order.Floor > Elevator_states.last_floor {
-				Elevator_states.last_direction = elevio.MD_Up
-			} else {
-				Elevator_states.last_direction = elevio.MD_Down
-			}
-		}
-		return
-	}
-	if (new_order.Button == elevio.BT_Cab || btn_type_to_direction(new_order.Button) == Elevator_states.last_direction) {
-		elevio.SetDoorOpenLamp(true)
-		Elevator_states.door_open = true
-		door_timer.StartTimer()
-		remove_order_direction(new_order.Floor, btn_type_to_direction(new_order.Button))
-		return
-	}
-	if Elevator_states.last_direction != elevio.MD_Stop {
-		return
-	}
-	if any_orders() || Elevator_states.last_direction == elevio.MD_Stop {
-		panic("There can be orders and last_dir = MD_Stop? In HandleNewOrder")
-	}
 }
 
 func HandleDoorClosing() {
@@ -321,26 +274,27 @@ func HandleDoorClosing() {
 		Elevator_states.door_open = false
 		return
 	}
-	// But there could an order in this floor,
-	// But it can't be in the direction last direction, 
-	// because then HandleNewOrder would have fixed that.
-
-	// So if the case is that the order is in this floor and there are no orders in the direction last direction,
-	// then door_timer should be reset and we remove this order.
-	if !any_orders_past_this_floor_in_direction(Elevator_states.last_floor, Elevator_states.last_direction) {
-		if Current_orders.Down_orders[Elevator_states.last_floor] {
-
+	if order_in_floor(Elevator_states.last_floor) && !any_orders_past_this_floor_in_direction(Elevator_states.last_floor, Elevator_states.last_direction) {
+		// Then this order should be handled and door should be reopened as in specification
+		if Elevator_states.last_direction == elevio.MD_Stop {
+			panic("last_direction is MD_Stop, but there is an order in this floor. This should not happen! (HandleDoorClosing2)")
 		}
+		elevio.SetDoorOpenLamp(true)
+		Elevator_states.door_open = true
+		door_timer.StartTimer()
+		if Elevator_states.last_direction == elevio.MD_Up {
+			remove_order_direction(Elevator_states.last_floor, elevio.MD_Down)
+		} else {
+			remove_order_direction(Elevator_states.last_floor, elevio.MD_Up)
+		}
+		return
 	}
-
-
-	// Under here the elevator is going to be set to move
-
+	// If there are no orders in this floor, then we should check if there are orders in the direction of last_direction
 	if Elevator_states.last_direction == elevio.MD_Stop {
 		fmt.Println("HandleDoorsClosing with dir = MD_Stop")
 		closest_order := find_closest_floor_order(Elevator_states.last_floor)
 		if closest_order == Elevator_states.last_floor {
-			// There can possibly be two orders in this floor, both up and down.
+			panic("closest_order == last_floor, but there are no orders in this floor. This should not happen! (HandleDoorClosing2)")
 		}
 		if closest_order > Elevator_states.last_floor {
 			elevio.SetMotorDirection(elevio.MD_Up)
@@ -354,6 +308,7 @@ func HandleDoorClosing() {
 			return
 		}
 	}
+	// Here there are orders, but not in the current floor, and last_direction is not MD_Stop
 	orders_up_bool := any_orders_past_this_floor_in_direction(Elevator_states.last_floor, elevio.MD_Up)
 	orders_down_bool := any_orders_past_this_floor_in_direction(Elevator_states.last_floor, elevio.MD_Down)
 	if (Elevator_states.last_direction == elevio.MD_Up && orders_up_bool) || !orders_down_bool {
@@ -368,13 +323,6 @@ func HandleDoorClosing() {
 		Elevator_states.moving = true
 		return
 	}
-
-	// TODO:
-	// Change logic of when orders are removed from the system if that is what is needed from
-	// specification requirements. In other words:
-	// Cab orders can be removed when opening the door.
-	// Up and Down orders can only be removed if moving in that direction happens. So change some
-	// removing orders logic and change where and when they are removed in the code.
 }
 
 func Fsm_elevator(ch_order chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int) {

@@ -36,7 +36,7 @@ var Current_orders Orders
 // ####################
 // FUNCTIONS
 // ####################
-func InitOrders() {
+func InitOrders() { // RECREATED
 	Current_orders.Cab_orders = make([]bool, n_floors)
 	Current_orders.Up_orders = make([]bool, n_floors)
 	Current_orders.Down_orders = make([]bool, n_floors)
@@ -79,7 +79,7 @@ func init_elevator() {
 }
 
 // MINI FUNCTIONS START ################### MINI FUNCTIONS START ###################
-func any_orders() bool {
+func any_orders() bool { //RECREATED
 	for i := 0; i < n_floors; i++ {
 		if Current_orders.Cab_orders[i] || Current_orders.Down_orders[i] || Current_orders.Up_orders[i] {
 			return true
@@ -88,7 +88,7 @@ func any_orders() bool {
 	return false
 }
 
-func any_orders_past_this_floor_in_direction(floor int, dir elevio.MotorDirection) bool {
+func any_orders_past_this_floor_in_direction(floor int, dir elevio.MotorDirection) bool { //RECREATED
 	switch dir {
 	case elevio.MD_Up:
 		if floor == n_floors-1 {

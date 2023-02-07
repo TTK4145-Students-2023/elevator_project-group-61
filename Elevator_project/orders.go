@@ -53,3 +53,5 @@ func (orders Orders) AnyOrderPastFloorInDir(floor int, dir elevio.MotorDirection
 	}
 	return false
 }
+
+func (orders *Orders) AddOrder(btn )

@@ -147,7 +147,7 @@ func HandleDoorClosing() {
 		door_timer.StartTimer()
 		return
 	}
-	if  Active_orders.AnyOrder() {
+	if  !Active_orders.AnyOrder() {
 		elevio.SetDoorOpenLamp(false)
 		Elevator_states.door_open = false
 		return

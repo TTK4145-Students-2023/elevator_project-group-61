@@ -12,7 +12,6 @@ type Orders struct {
 }
 
 // ### METHODS ###
-
 func (orders *Orders) InitOrders() {
 	orders.Cab_orders = make([]bool, n_floors)
 	orders.Up_orders = make([]bool, n_floors)
@@ -22,6 +21,18 @@ func (orders *Orders) InitOrders() {
 		orders.Up_orders[i] = false
 		orders.Down_orders[i] = false
 	}
+}
+
+func (orders Orders) GetSpecificOrder(floor int, btn elevio.ButtonType) bool {
+	switch btn {
+	case elevio.BT_HallUp:
+		return orders.Up_orders[floor]
+	case elevio.BT_HallDown:
+		return orders.Down_orders[floor]
+	case elevio.BT_Cab:
+		return orders.Cab_orders[floor]
+	}
+	return false
 }
 
 func (orders Orders) AnyOrder() bool {
@@ -110,7 +121,6 @@ func (orders Orders) OrderInFloor(floor int) bool {
 }
 
 // ### FUNCTIONS ###
-
 func BtnTypeToDir(btn_type elevio.ButtonType) elevio.MotorDirection {
 	switch btn_type {
 	case elevio.BT_HallUp:

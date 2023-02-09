@@ -114,24 +114,14 @@ func HandleDoorClosing() {
 		return
 	}
 	if Active_orders.OrderInFloor(Elev_states.GetLastFloor()) && !Active_orders.AnyOrderPastFloorInDir(Elev_states.GetLastFloor(), Elev_states.GetLastDirection()) {
-		if Elev_states.GetLastDirection() == elevio.MD_Stop {
-			panic("last_direction is MD_Stop, but there is an order in this floor. This should not happen! (HandleDoorClosing)")
-		}
-		Elev_states.SetDoorOpen(true)
 		door_timer.StartTimer()
-		if Elev_states.GetLastDirection() == elevio.MD_Up {
-			Active_orders.RemoveOrderDirection(Elev_states.last_floor, elevio.MD_Down)
-		} else {
-			Active_orders.RemoveOrderDirection(Elev_states.last_floor, elevio.MD_Up)
-		}
+		Active_orders.RemoveOrderDirection(Elev_states.last_floor, elevio.MD_Down)
+		Active_orders.RemoveOrderDirection(Elev_states.last_floor, elevio.MD_Up)
 		return
 	}
+	Elev_states.SetDoorOpen(false)
 	if Elev_states.GetLastDirection() == elevio.MD_Stop {
-		fmt.Println("HandleDoorsClosing with dir = MD_Stop")
 		closest_order := Active_orders.FindClosestOrder(Elev_states.GetLastFloor())
-		if closest_order == Elev_states.GetLastFloor() {
-			panic("closest_order == last_floor, but there are no orders in this floor. This should not happen! (HandleDoorClosing2)")
-		}
 		if closest_order > Elev_states.GetLastFloor() {
 			Elev_states.SetDirection(elevio.MD_Up)
 			return

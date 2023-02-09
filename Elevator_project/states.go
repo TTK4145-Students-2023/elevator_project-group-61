@@ -14,7 +14,7 @@ type States struct {
 // Methods
 func (states *States) InitStates() {
 	states.last_floor = -1
-	states.last_direction = elevio.MD_Stop
+	states.last_direction = elevio.MD_Up
 	states.door_open = false
 	states.moving = false
 }

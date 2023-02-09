@@ -21,7 +21,6 @@ func InitElevator() {
 	if elevio.GetFloor() == -1 {
 		Elev_states.SetDirection(elevio.MD_Up)
 	} else {
-
 		Elev_states.SetLastFloor(elevio.GetFloor())
 	}
 }
@@ -97,12 +96,6 @@ func HandleNewOrder(new_order elevio.ButtonEvent) {
 		Active_orders.RemoveOrderDirection(new_order.Floor, BtnTypeToDir(new_order.Button))
 		return
 	}
-	if Elev_states.GetLastDirection() != elevio.MD_Stop {
-		return
-	}
-	Elev_states.SetDoorOpen(true)
-	door_timer.StartTimer()
-	Active_orders.RemoveOrderDirection(new_order.Floor, BtnTypeToDir(new_order.Button))
 }
 
 func HandleDoorClosing() {
@@ -121,23 +114,13 @@ func HandleDoorClosing() {
 		return
 	}
 	Elev_states.SetDoorOpen(false)
-	if Elev_states.GetLastDirection() == elevio.MD_Stop {
-		closest_order := Active_orders.FindClosestOrder(Elev_states.GetLastFloor())
-		if closest_order > Elev_states.GetLastFloor() {
-			Elev_states.SetDirection(elevio.MD_Up)
-			return
-		} else if closest_order < Elev_states.GetLastFloor() {
-			Elev_states.SetDirection(elevio.MD_Down)
-			return
-		}
-	}
 	orders_up_bool := Active_orders.AnyOrderPastFloorInDir(Elev_states.GetLastFloor(), elevio.MD_Up)
 	orders_down_bool := Active_orders.AnyOrderPastFloorInDir(Elev_states.GetLastFloor(), elevio.MD_Down)
 	if (Elev_states.GetLastDirection() == elevio.MD_Up && orders_up_bool) || !orders_down_bool {
 		Elev_states.SetDirection(elevio.MD_Up)
 		return
 	}
-	if (Elev_states.last_direction == elevio.MD_Down && orders_down_bool) || !orders_up_bool {
+	if (Elev_states.GetLastDirection() == elevio.MD_Down && orders_down_bool) || !orders_up_bool {
 		Elev_states.SetDirection(elevio.MD_Down)
 		return
 	}

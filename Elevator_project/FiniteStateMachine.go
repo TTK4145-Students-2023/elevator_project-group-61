@@ -90,7 +90,7 @@ func HandleNewOrder(new_order elevio.ButtonEvent) {
 		}
 		return
 	}
-	if new_order.Button == elevio.BT_Cab || BtnTypeToDir(new_order.Button) == Elev_states.GetLastDirection() {
+	if new_order.Button == elevio.BT_Cab || BtnTypeToDir(new_order.Button) == Elev_states.GetLastDirection() || Elev_states.GetLastFloor() == 0 || Elev_states.GetLastFloor() == n_floors-1 {
 		Elev_states.SetDoorOpen(true)
 		door_timer.StartTimer()
 		Active_orders.RemoveOrderDirection(new_order.Floor, BtnTypeToDir(new_order.Button))

@@ -21,6 +21,7 @@ func InitElevator() {
 	if elevio.GetFloor() == -1 {
 		Elev_states.SetDirection(elevio.MD_Up)
 	} else {
+
 		Elev_states.SetLastFloor(elevio.GetFloor())
 	}
 }
@@ -65,7 +66,7 @@ func HandleFloorSensor(floor int) {
 		Elev_states.SetDoorOpen(true)
 		door_timer.StartTimer()
 		Active_orders.RemoveOrderDirection(floor, elevio.MD_Stop)
-		Active_orders.RemoveOrderDirection(floor, Elev_states.last_direction)
+		Active_orders.RemoveOrderDirection(floor, Elev_states.GetLastDirection())
 		if floor == 0 {
 			Active_orders.RemoveOrderDirection(0, elevio.MD_Up)
 		}
@@ -115,8 +116,8 @@ func HandleDoorClosing() {
 	}
 	if Active_orders.OrderInFloor(Elev_states.GetLastFloor()) && !Active_orders.AnyOrderPastFloorInDir(Elev_states.GetLastFloor(), Elev_states.GetLastDirection()) {
 		door_timer.StartTimer()
-		Active_orders.RemoveOrderDirection(Elev_states.last_floor, elevio.MD_Down)
-		Active_orders.RemoveOrderDirection(Elev_states.last_floor, elevio.MD_Up)
+		Active_orders.RemoveOrderDirection(Elev_states.GetLastFloor(), elevio.MD_Down)
+		Active_orders.RemoveOrderDirection(Elev_states.GetLastFloor(), elevio.MD_Up)
 		return
 	}
 	Elev_states.SetDoorOpen(false)

@@ -64,18 +64,19 @@ func HandleFloorSensor(floor int) {
 		Elev_states.SetDirection(elevio.MD_Stop)
 		Elev_states.SetDoorOpen(true)
 		door_timer.StartTimer()
-		Active_orders.RemoveOrderDirection(floor, elevio.MD_Stop)
-		Active_orders.RemoveOrderDirection(floor, Elev_states.GetLastDirection())
+		Active_orders.RemoveOrderDirection(floor, elevio.MD_Stop) // HER MÅ NOE GJØRES
+		Active_orders.RemoveOrderDirection(floor, Elev_states.GetLastDirection()) // HER MÅ NOE GJØRES
 		if floor == 0 {
-			Active_orders.RemoveOrderDirection(0, elevio.MD_Up)
+			Active_orders.RemoveOrderDirection(floor, elevio.MD_Up) // HER MÅ NOE GJØRES
 		}
 		if floor == n_floors-1 {
-			Active_orders.RemoveOrderDirection(n_floors-1, elevio.MD_Down)
+			Active_orders.RemoveOrderDirection(floor, elevio.MD_Down) // HER MÅ NOE GJØRES
 		}
 	}
 }
 
-func HandleNewOrder(new_order elevio.ButtonEvent) {
+// Denne skal håndtere når denne heisen får en bekreftet ny ordre
+func HandleNewOrder(new_order elevio.ButtonEvent) { 
 	Active_orders.AddOrder(new_order)
 	if Elev_states.GetMoving() {
 		return

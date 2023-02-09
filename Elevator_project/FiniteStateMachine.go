@@ -109,7 +109,7 @@ func HandleDoorClosing() {
 		door_timer.StartTimer()
 		return
 	}
-	if  !Active_orders.AnyOrder() {
+	if !Active_orders.AnyOrder() {
 		Elev_states.SetDoorOpen(false)
 		return
 	}

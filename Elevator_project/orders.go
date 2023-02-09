@@ -2,6 +2,7 @@ package main
 
 import (
 	"ElevatorProject/elevio"
+	"math"
 )
 
 type Orders struct {
@@ -9,6 +10,8 @@ type Orders struct {
 	Down_orders []bool
 	Cab_orders  []bool
 }
+
+// ### METHODS ###
 
 func (orders *Orders) InitOrders() {
 	orders.Cab_orders = make([]bool, n_floors)
@@ -54,4 +57,66 @@ func (orders Orders) AnyOrderPastFloorInDir(floor int, dir elevio.MotorDirection
 	return false
 }
 
-func (orders *Orders) AddOrder(btn )
+func (orders *Orders) AddOrder(btn elevio.ButtonEvent) {
+	elevio.SetButtonLamp(btn.Button, btn.Floor, true)
+	switch btn.Button {
+	case elevio.BT_HallUp:
+		orders.Up_orders[btn.Floor] = true
+	case elevio.BT_HallDown:
+		orders.Down_orders[btn.Floor] = true
+	case elevio.BT_Cab:
+		orders.Cab_orders[btn.Floor] = true
+	}
+}
+
+func (orders Orders) FindClosestOrder(floor int) int {
+	closest_order := -1
+	shortest_diff := n_floors
+	for i := 0; i < n_floors; i++ {
+		if orders.Cab_orders[i] || orders.Down_orders[i] || orders.Up_orders[i] {
+			diff := math.Abs(float64(floor - i))
+			if diff < float64(shortest_diff) {
+				shortest_diff = int(diff)
+				closest_order = i
+			}
+		}
+	}
+	if closest_order == -1 {
+		panic("find_closest_floor_order returns -1, ie there are no orders.")
+	}
+	return closest_order
+}
+
+func (orders *Orders) RemoveOrderDirection(floor int, dir elevio.MotorDirection) {
+	if dir == elevio.MD_Up && Active_orders.Up_orders[floor] {
+		Active_orders.Up_orders[floor] = false
+		elevio.SetButtonLamp(elevio.BT_HallUp, floor, false)
+	}
+	if dir == elevio.MD_Down && Active_orders.Down_orders[floor] {
+		Active_orders.Down_orders[floor] = false
+		elevio.SetButtonLamp(elevio.BT_HallDown, floor, false)
+	}
+	if dir == elevio.MD_Stop && Active_orders.Cab_orders[floor] {
+		Active_orders.Cab_orders[floor] = false
+		elevio.SetButtonLamp(elevio.BT_Cab, floor, false)
+	}
+}
+
+func (orders Orders) OrderInFloor(floor int) bool {
+	if orders.Up_orders[floor] || orders.Down_orders[floor] || orders.Cab_orders[floor] {
+		return true
+	}
+	return false
+}
+
+// ### FUNCTIONS ###
+
+func BtnTypeToDir(btn_type elevio.ButtonType) elevio.MotorDirection {
+	switch btn_type {
+	case elevio.BT_HallUp:
+		return elevio.MD_Up
+	case elevio.BT_HallDown:
+		return elevio.MD_Down
+	}
+	return elevio.MD_Stop
+}

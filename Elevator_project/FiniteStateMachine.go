@@ -142,14 +142,15 @@ func HandleButtonEvent(btn elevio.ButtonEvent) {
 	}
 }
 
-// TODO: elevator(ch_order chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int) {
+// TODO: elevator(ch_order chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int) 
+func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int, ch_new_order chan elevio.ButtonEvent) {
 	InitElevator()
 	for {
 		select {
 		case floor := <-ch_floor:
 			fmt.Println("HandleFloorSensor")
 			HandleFloorSensor(floor)
-		case btn_press := <-ch_order:
+		case btn_press := <-ch_btn:
 			fmt.Println("HandleButtonEvent")
 			HandleButtonEvent(btn_press)
 		case <-ch_door:

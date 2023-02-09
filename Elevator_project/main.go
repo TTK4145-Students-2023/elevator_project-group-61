@@ -24,6 +24,10 @@ func main(){
     go elevio.PollObstructionSwitch(drv_obstr)
     // go elevio.PollStopButton(drv_stop)
 
+    // New routine for checking delegated orders
+    ch_delegated_order := make(chan elevio.ButtonEvent)
+    
+
 	go func() {
 		for {
 			door_timer.CheckTimer(ch_time)

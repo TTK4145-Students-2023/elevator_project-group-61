@@ -127,20 +127,37 @@ func HandleDoorClosing() {
 	}
 }
 
-// Finite state machine
-func Fsm_elevator(ch_order chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int) {
+func HandleButtonEvent(btn elevio.ButtonEvent) { 
+	if btn.Button == elevio.BT_Cab {
+		HandleNewOrder(btn)
+		return
+	}
+	if Elev_states.GetMoving() || btn.Floor != Elev_states.GetLastFloor(){
+		DelegateOrder(btn)
+		return
+	}
+	if BtnTypeToDir(btn.Button) == Elev_states.GetLastDirection() || Elev_states.GetLastFloor() == 0 || Elev_states.GetLastFloor() == n_floors-1 {
+		HandleNewOrder(btn)
+		return
+	}
+}
+
+// TODO: elevator(ch_order chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int) {
 	InitElevator()
 	for {
 		select {
 		case floor := <-ch_floor:
 			fmt.Println("HandleFloorSensor")
 			HandleFloorSensor(floor)
-		case new_order := <-ch_order:
-			fmt.Println("HandleNewOrder")
-			HandleNewOrder(new_order)
+		case btn_press := <-ch_order:
+			fmt.Println("HandleButtonEvent")
+			HandleButtonEvent(btn_press)
 		case <-ch_door:
 			fmt.Println("HandleDoorClosing")
 			HandleDoorClosing()
+		case new_order := <-ch_new_order: // Fix this case and add something
+			fmt.Println("HandleNewOrder")
+			HandleNewOrder(new_order)
 		}
 	}
 }

@@ -11,7 +11,7 @@ type Orders struct {
 	Cab_orders  []bool
 }
 
-// ### METHODS ###
+// Methods
 func (orders *Orders) InitOrders() {
 	orders.Cab_orders = make([]bool, n_floors)
 	orders.Up_orders = make([]bool, n_floors)
@@ -120,13 +120,3 @@ func (orders Orders) OrderInFloor(floor int) bool {
 	return false
 }
 
-// ### FUNCTIONS ###
-func BtnTypeToDir(btn_type elevio.ButtonType) elevio.MotorDirection {
-	switch btn_type {
-	case elevio.BT_HallUp:
-		return elevio.MD_Up
-	case elevio.BT_HallDown:
-		return elevio.MD_Down
-	}
-	return elevio.MD_Stop
-}

@@ -4,16 +4,14 @@ import (
 	"ElevatorProject/elevio"
 )
 
-// States struct and methods
 type States struct {
-	// If this is changed, remember to change:
-	// - InitStates()
 	last_floor     int
 	last_direction elevio.MotorDirection
 	door_open      bool
 	moving         bool
 }
 
+// Methods
 func (states *States) InitStates() {
 	states.last_floor = -1
 	states.last_direction = elevio.MD_Stop

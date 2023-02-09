@@ -14,7 +14,7 @@ var Active_orders Orders
 var Elev_states States
 
 // Functions
-func init_elevator() {
+func InitElevator() {
 	InitLamps()
 	Active_orders.InitOrders()
 	Elev_states.InitStates()
@@ -25,7 +25,7 @@ func init_elevator() {
 	}
 }
 
-func elevator_should_stop_after_sensing_floor(floor int) bool {
+func StopAfterSensingFloor(floor int) bool {
 	if !Active_orders.AnyOrder() {
 		return true
 	}
@@ -47,10 +47,20 @@ func elevator_should_stop_after_sensing_floor(floor int) bool {
 	return false
 }
 
+func BtnTypeToDir(btn_type elevio.ButtonType) elevio.MotorDirection {
+	switch btn_type {
+	case elevio.BT_HallUp:
+		return elevio.MD_Up
+	case elevio.BT_HallDown:
+		return elevio.MD_Down
+	}
+	return elevio.MD_Stop
+}
+
 // Functions for handling events
 func HandleFloorSensor(floor int) {
 	Elev_states.SetLastFloor(floor)
-	if elevator_should_stop_after_sensing_floor(floor) {
+	if StopAfterSensingFloor(floor) {
 		Elev_states.SetDirection(elevio.MD_Stop)
 		Elev_states.SetDoorOpen(true)
 		door_timer.StartTimer()
@@ -144,7 +154,7 @@ func HandleDoorClosing() {
 
 // Finite state machine
 func Fsm_elevator(ch_order chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int) {
-	init_elevator()
+	InitElevator()
 	for {
 		select {
 		case floor := <-ch_floor:

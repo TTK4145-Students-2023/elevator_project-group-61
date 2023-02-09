@@ -7,6 +7,8 @@ import (
 )
 
 // Global variables
+var id = 1
+
 var n_floors int = 4
 
 var Active_orders Orders
@@ -26,6 +28,9 @@ func InitElevator() {
 }
 
 func StopAfterSensingFloor(floor int) bool {
+	if floor == 0 || floor == n_floors-1 {
+		return true
+	}
 	if !Active_orders.AnyOrder() {
 		return true
 	}
@@ -64,18 +69,17 @@ func HandleFloorSensor(floor int) {
 		Elev_states.SetDirection(elevio.MD_Stop)
 		Elev_states.SetDoorOpen(true)
 		door_timer.StartTimer()
-		Active_orders.RemoveOrderDirection(floor, elevio.MD_Stop) // HER MÅ NOE GJØRES
-		Active_orders.RemoveOrderDirection(floor, Elev_states.GetLastDirection()) // HER MÅ NOE GJØRES
+		HandleFinishedOrder(floor, elevio.MD_Stop)
+		HandleFinishedOrder(floor, Elev_states.GetLastDirection())
 		if floor == 0 {
-			Active_orders.RemoveOrderDirection(floor, elevio.MD_Up) // HER MÅ NOE GJØRES
+			HandleFinishedOrder(floor, elevio.MD_Up)
 		}
 		if floor == n_floors-1 {
-			Active_orders.RemoveOrderDirection(floor, elevio.MD_Down) // HER MÅ NOE GJØRES
+			HandleFinishedOrder(floor, elevio.MD_Down)
 		}
 	}
 }
 
-// Denne skal håndtere når denne heisen får en bekreftet ny ordre
 func HandleNewOrder(new_order elevio.ButtonEvent) { 
 	Active_orders.AddOrder(new_order)
 	if Elev_states.GetMoving() {
@@ -110,8 +114,11 @@ func HandleDoorClosing() {
 	}
 	if Active_orders.OrderInFloor(Elev_states.GetLastFloor()) && !Active_orders.AnyOrderPastFloorInDir(Elev_states.GetLastFloor(), Elev_states.GetLastDirection()) {
 		door_timer.StartTimer()
-		Active_orders.RemoveOrderDirection(Elev_states.GetLastFloor(), elevio.MD_Down)
-		Active_orders.RemoveOrderDirection(Elev_states.GetLastFloor(), elevio.MD_Up)
+		if Elev_states.GetLastDirection() == elevio.MD_Up {
+			HandleFinishedOrder(Elev_states.GetLastFloor(), elevio.MD_Down)
+		} else {
+			HandleFinishedOrder(Elev_states.GetLastFloor(), elevio.MD_Up)
+		}
 		return
 	}
 	Elev_states.SetDoorOpen(false)
@@ -133,16 +140,25 @@ func HandleButtonEvent(btn elevio.ButtonEvent) {
 		return
 	}
 	if Elev_states.GetMoving() || btn.Floor != Elev_states.GetLastFloor(){
-		DelegateOrder(btn)
+		DelegateNewOrder(btn)
 		return
 	}
 	if BtnTypeToDir(btn.Button) == Elev_states.GetLastDirection() || Elev_states.GetLastFloor() == 0 || Elev_states.GetLastFloor() == n_floors-1 {
 		HandleNewOrder(btn)
 		return
 	}
+	DelegateNewOrder(btn)
 }
 
-// TODO: elevator(ch_order chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int) 
+func HandleFinishedOrder(floor int, dir elevio.MotorDirection) {
+	if dir == elevio.MD_Stop {
+		Active_orders.RemoveOrderDirection(floor, dir)
+		return
+	}
+	Active_orders.RemoveOrderDirection(floor, dir)
+	DelegateFinishedOrders(floor, dir)
+}
+
 func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int, ch_new_order chan elevio.ButtonEvent) {
 	InitElevator()
 	for {
@@ -150,15 +166,15 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 		case floor := <-ch_floor:
 			fmt.Println("HandleFloorSensor")
 			HandleFloorSensor(floor)
-		case btn_press := <-ch_btn:
-			fmt.Println("HandleButtonEvent")
-			HandleButtonEvent(btn_press)
+		case new_order := <-ch_new_order: 
+			fmt.Println("HandleNewOrder")
+			HandleNewOrder(new_order)
 		case <-ch_door:
 			fmt.Println("HandleDoorClosing")
 			HandleDoorClosing()
-		case new_order := <-ch_new_order: // Fix this case and add something
-			fmt.Println("HandleNewOrder")
-			HandleNewOrder(new_order)
+		case btn_press := <-ch_btn:
+			fmt.Println("HandleButtonEvent")
+			HandleButtonEvent(btn_press)
 		}
 	}
 }

@@ -6,9 +6,15 @@ import (
 	"io/ioutil"
 )
 
-// Save and load to and from file functionality
 var elevator_orders_filename = "elevator_orders_backup.json"
 
+type Orders struct {
+	Up_orders   []bool
+	Down_orders []bool
+	Cab_orders  []bool
+}
+
+// Save and load to and from file functionality
 func SaveElevatorOrdersToFile(orders Orders) error {
     data, err := json.MarshalIndent(orders, "", "    ")
     if err != nil {
@@ -32,13 +38,6 @@ func LoadElevatorOrdersFromFile() (Orders, error) {
         return orders, err
     }
     return orders, nil
-}
-
-// Orders struct 
-type Orders struct {
-	Up_orders   []bool
-	Down_orders []bool
-	Cab_orders  []bool
 }
 
 // Methods

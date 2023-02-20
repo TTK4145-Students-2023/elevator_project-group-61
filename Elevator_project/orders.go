@@ -2,9 +2,39 @@ package main
 
 import (
 	"ElevatorProject/elevio"
-	"math"
+	"encoding/json"
+	"io/ioutil"
 )
 
+// Save and load to and from file functionality
+var elevator_orders_filename = "elevator_orders_backup.json"
+
+func SaveElevatorOrdersToFile(orders Orders) error {
+    data, err := json.MarshalIndent(orders, "", "    ")
+    if err != nil {
+        return err
+    }
+    err = ioutil.WriteFile(elevator_orders_filename, data, 0644)
+    if err != nil {
+        return err
+    }
+    return nil
+}
+
+func LoadElevatorOrdersFromFile() (Orders, error) {
+    var orders Orders
+    data, err := ioutil.ReadFile(elevator_orders_filename)
+    if err != nil {
+        return orders, err
+    }
+    err = json.Unmarshal(data, &orders)
+    if err != nil {
+        return orders, err
+    }
+    return orders, nil
+}
+
+// Orders struct 
 type Orders struct {
 	Up_orders   []bool
 	Down_orders []bool
@@ -16,6 +46,12 @@ func (orders *Orders) InitOrders() {
 	orders.Cab_orders = make([]bool, n_floors)
 	orders.Up_orders = make([]bool, n_floors)
 	orders.Down_orders = make([]bool, n_floors)
+	// Try to load old orders from file
+	some_orders, err := LoadElevatorOrdersFromFile()
+	if err == nil {
+		orders = &some_orders
+		return
+	}
 	for i := 0; i < n_floors; i++ {
 		orders.Cab_orders[i] = false
 		orders.Up_orders[i] = false
@@ -78,24 +114,7 @@ func (orders *Orders) AddOrder(btn elevio.ButtonEvent) {
 	case elevio.BT_Cab:
 		orders.Cab_orders[btn.Floor] = true
 	}
-}
-
-func (orders Orders) FindClosestOrder(floor int) int {
-	closest_order := -1
-	shortest_diff := n_floors
-	for i := 0; i < n_floors; i++ {
-		if orders.Cab_orders[i] || orders.Down_orders[i] || orders.Up_orders[i] {
-			diff := math.Abs(float64(floor - i))
-			if diff < float64(shortest_diff) {
-				shortest_diff = int(diff)
-				closest_order = i
-			}
-		}
-	}
-	if closest_order == -1 {
-		panic("find_closest_floor_order returns -1, ie there are no orders.")
-	}
-	return closest_order
+	SaveElevatorOrdersToFile(*orders)
 }
 
 func (orders *Orders) RemoveOrderDirection(floor int, dir elevio.MotorDirection) {
@@ -111,6 +130,7 @@ func (orders *Orders) RemoveOrderDirection(floor int, dir elevio.MotorDirection)
 		Active_orders.Cab_orders[floor] = false
 		elevio.SetButtonLamp(elevio.BT_Cab, floor, false)
 	}
+	SaveElevatorOrdersToFile(*orders)
 }
 
 func (orders Orders) OrderInFloor(floor int) bool {
@@ -119,4 +139,5 @@ func (orders Orders) OrderInFloor(floor int) bool {
 	}
 	return false
 }
+
 

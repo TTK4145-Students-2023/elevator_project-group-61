@@ -11,11 +11,14 @@ func StartTimer() {
 }
 
 func CheckTimer(ch_timer chan int) {
-	if TimeCounter == -1 {
-		return
-	}
-	if time.Now().UnixMilli()-TimeCounter > StandardDoorWait {
-		ch_timer <- 1
-		TimeCounter = -1
+	for {
+		if TimeCounter == -1 {
+			return
+		}
+		if time.Now().UnixMilli()-TimeCounter > StandardDoorWait {
+			ch_timer <- 1
+			TimeCounter = -1
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }

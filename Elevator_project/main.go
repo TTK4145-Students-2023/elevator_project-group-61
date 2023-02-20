@@ -3,7 +3,6 @@ package main
 import (
 	"ElevatorProject/door_timer"
 	"ElevatorProject/elevio"
-	"time"
 )
 
 func main(){
@@ -16,7 +15,6 @@ func main(){
     drv_floors  := make(chan int)
     drv_obstr   := make(chan bool)
     // drv_stop    := make(chan bool)    
-
 	ch_time := make(chan int)
     
     go elevio.PollButtons(drv_buttons)
@@ -28,12 +26,7 @@ func main(){
     ch_delegated_order := make(chan elevio.ButtonEvent)
     
 
-	go func() {
-		for {
-			door_timer.CheckTimer(ch_time)
-			time.Sleep(10 * time.Millisecond)
-		}
-	}()
+    go door_timer.CheckTimer(ch_time)
 	
-    Fsm_elevator(drv_buttons, drv_floors, ch_time)
+    Fsm_elevator(drv_buttons, drv_floors, ch_time, ch_delegated_order)
 }

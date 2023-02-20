@@ -6,45 +6,29 @@ import (
 	"fmt"
 )
 
-// Global variables
-var id = 1
+// Constants
+const id = 1
+const n_floors int = 4
 
-var n_floors int = 4
-
-var Active_orders Orders
-
-var Elev_states States
-
-// Functions
-func InitElevator() {
-	InitLamps()
-	Active_orders.InitOrders()
-	Elev_states.InitStates()
-	if elevio.GetFloor() == -1 {
-		Elev_states.SetDirection(elevio.MD_Up)
-	} else {
-		Elev_states.SetLastFloor(elevio.GetFloor())
-	}
-}
-
-func StopAfterSensingFloor(floor int) bool {
+// Helper functions
+func StopAfterSensingFloor(floor int, elev_states States, active_orders Orders) bool {
 	if floor == 0 || floor == n_floors-1 {
 		return true
 	}
-	if !Active_orders.AnyOrder() {
+	if !active_orders.AnyOrder() {
 		return true
 	}
-	if Active_orders.GetSpecificOrder(floor, elevio.BT_Cab) {
+	if active_orders.GetSpecificOrder(floor, elevio.BT_Cab) {
 		return true
 	}
-	switch Elev_states.GetLastDirection() {
+	switch elev_states.GetLastDirection() {
 	case elevio.MD_Up:
-		if Active_orders.GetSpecificOrder(floor, elevio.BT_HallUp) || !Active_orders.AnyOrderPastFloorInDir(floor, elevio.MD_Up) {
+		if active_orders.GetSpecificOrder(floor, elevio.BT_HallUp) || !active_orders.AnyOrderPastFloorInDir(floor, elevio.MD_Up) {
 			return true
 		}
 		return false
 	case elevio.MD_Down:
-		if Active_orders.GetSpecificOrder(floor, elevio.BT_HallDown) || !Active_orders.AnyOrderPastFloorInDir(floor, elevio.MD_Down) {
+		if active_orders.GetSpecificOrder(floor, elevio.BT_HallDown) || !active_orders.AnyOrderPastFloorInDir(floor, elevio.MD_Down) {
 			return true
 		}
 		return false
@@ -63,14 +47,14 @@ func BtnTypeToDir(btn_type elevio.ButtonType) elevio.MotorDirection {
 }
 
 // Functions for handling events
-func HandleFloorSensor(floor int) {
-	Elev_states.SetLastFloor(floor)
-	if StopAfterSensingFloor(floor) {
-		Elev_states.SetDirection(elevio.MD_Stop)
-		Elev_states.SetDoorOpen(true)
+func HandleFloorSensor(floor int, elev_states States, active_orders Orders) {
+	elev_states.SetLastFloor(floor)
+	if StopAfterSensingFloor(floor, elev_states, active_orders) {
+		elev_states.SetDirection(elevio.MD_Stop)
+		elev_states.SetDoorOpen(true)
 		door_timer.StartTimer()
 		HandleFinishedOrder(floor, elevio.MD_Stop)
-		HandleFinishedOrder(floor, Elev_states.GetLastDirection())
+		HandleFinishedOrder(floor, elev_states.GetLastDirection())
 		if floor == 0 {
 			HandleFinishedOrder(floor, elevio.MD_Up)
 		}
@@ -160,7 +144,20 @@ func HandleFinishedOrder(floor int, dir elevio.MotorDirection) {
 }
 
 func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int, ch_new_order chan elevio.ButtonEvent) {
-	InitElevator()
+	// Initiate elevator
+	var Active_orders Orders
+	var Elev_states States
+
+	Active_orders.InitOrders()
+	InitLamps(Active_orders)
+	Elev_states.InitStates()
+	if elevio.GetFloor() == -1 {
+		Elev_states.SetDirection(elevio.MD_Up)
+	} else {
+		Elev_states.SetLastFloor(elevio.GetFloor())
+	}
+
+	// Finite State Machine
 	for {
 		select {
 		case floor := <-ch_floor:

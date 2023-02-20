@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 )
 
-var elevator_orders_filename = "elevator_orders_backup.json"
+const elevator_orders_filename = "elevator_orders_backup.json"
 
 type Orders struct {
 	Up_orders   []bool
@@ -46,9 +46,9 @@ func (orders *Orders) InitOrders() {
 	orders.Up_orders = make([]bool, n_floors)
 	orders.Down_orders = make([]bool, n_floors)
 	// Try to load old orders from file
-	some_orders, err := LoadElevatorOrdersFromFile()
+	loaded_orders, err := LoadElevatorOrdersFromFile()
 	if err == nil {
-		orders = &some_orders
+		*orders = loaded_orders
 		return
 	}
 	for i := 0; i < n_floors; i++ {
@@ -104,7 +104,6 @@ func (orders Orders) AnyOrderPastFloorInDir(floor int, dir elevio.MotorDirection
 }
 
 func (orders *Orders) AddOrder(btn elevio.ButtonEvent) {
-	elevio.SetButtonLamp(btn.Button, btn.Floor, true)
 	switch btn.Button {
 	case elevio.BT_HallUp:
 		orders.Up_orders[btn.Floor] = true
@@ -117,17 +116,14 @@ func (orders *Orders) AddOrder(btn elevio.ButtonEvent) {
 }
 
 func (orders *Orders) RemoveOrderDirection(floor int, dir elevio.MotorDirection) {
-	if dir == elevio.MD_Up && Active_orders.Up_orders[floor] {
-		Active_orders.Up_orders[floor] = false
-		elevio.SetButtonLamp(elevio.BT_HallUp, floor, false)
+	if dir == elevio.MD_Up && orders.Up_orders[floor] {
+		orders.Up_orders[floor] = false
 	}
-	if dir == elevio.MD_Down && Active_orders.Down_orders[floor] {
-		Active_orders.Down_orders[floor] = false
-		elevio.SetButtonLamp(elevio.BT_HallDown, floor, false)
+	if dir == elevio.MD_Down && orders.Down_orders[floor] {
+		orders.Down_orders[floor] = false
 	}
-	if dir == elevio.MD_Stop && Active_orders.Cab_orders[floor] {
-		Active_orders.Cab_orders[floor] = false
-		elevio.SetButtonLamp(elevio.BT_Cab, floor, false)
+	if dir == elevio.MD_Stop && orders.Cab_orders[floor] {
+		orders.Cab_orders[floor] = false
 	}
 	SaveElevatorOrdersToFile(*orders)
 }

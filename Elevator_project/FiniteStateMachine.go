@@ -132,7 +132,7 @@ func HandleDoorClosing(elev_states States, active_orders Orders) (States, Orders
 }
 
 // TODO: Change the parameters to use arrows
-func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int) { //, ch_new_order chan elevio.ButtonEvent
+func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int, ch_new_order chan elevio.ButtonEvent) {
 	var Elev_states States
 	var Active_orders Orders
 
@@ -166,7 +166,7 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 				door_timer.StartTimer() // maybe change to use golang timer
 			}
 			fmt.Println("Finished handling floorsensor")
-		case new_order := <-ch_btn: 
+		case new_order := <-ch_new_order: 
 			fmt.Println("HandleNewOrder")
 			var set_direction_bool, open_door_bool bool
 			Elev_states, Active_orders, set_direction_bool, open_door_bool = HandleNewOrder(new_order, Elev_states, Active_orders)
@@ -196,24 +196,62 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 			} else {
 				elevio.SetDoorOpenLamp(false)
 			}
-
-		// case btn_press := <-ch_btn:
-			//TODO: Finish this one, (done the others I think)
-			// fmt.Println("HandleButtonEvent")
-			// ch_new_order <- btn_press
-			// if btn_press.Button == elevio.BT_Cab {
-			// 	ch_new_order <- btn_press
-			// 	break
-			// }
-			// if Elev_states.GetElevatorBehaviour() == "Moving" || btn_press.Floor != Elev_states.GetLastFloor() {
-			// 	// Should really delegate here
-			// 	// TODO: Make delegation
-			// 	break
-			// }
-			// if BtnTypeToDir(btn_press.Button) == Elev_states.GetLastDirection() || Elev_states.GetLastFloor() == 0 || Elev_states.GetLastFloor() == n_floors-1 {
-			// 	ch_new_order <- btn_press
-			// }
-			// // TODO: Make delegation
+		case btn_press := <-ch_btn:
+			fmt.Println("HandleButtonEvent")
+			if btn_press.Button == elevio.BT_Cab {
+				var set_direction_bool, open_door_bool bool
+				Elev_states, Active_orders, set_direction_bool, open_door_bool = HandleNewOrder(btn_press, Elev_states, Active_orders)
+				UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
+				if set_direction_bool {
+					elevio.SetMotorDirection(Elev_states.GetLastDirection())
+				}
+				if open_door_bool {
+					elevio.SetDoorOpenLamp(true)
+					door_timer.StartTimer()
+				}
+				break
+			}
+			if Elev_states.GetElevatorBehaviour() == "Moving" || btn_press.Floor != Elev_states.GetLastFloor() {
+				// Should really delegate here
+				// TODO: Make delegation
+				// For now just add order
+				var set_direction_bool, open_door_bool bool
+				Elev_states, Active_orders, set_direction_bool, open_door_bool = HandleNewOrder(btn_press, Elev_states, Active_orders)
+				UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
+				if set_direction_bool {
+					elevio.SetMotorDirection(Elev_states.GetLastDirection())
+				}
+				if open_door_bool {
+					elevio.SetDoorOpenLamp(true)
+					door_timer.StartTimer()
+				}
+				break
+			}
+			if BtnTypeToDir(btn_press.Button) == Elev_states.GetLastDirection() || Elev_states.GetLastFloor() == 0 || Elev_states.GetLastFloor() == n_floors-1 {
+				var set_direction_bool, open_door_bool bool
+				Elev_states, Active_orders, set_direction_bool, open_door_bool = HandleNewOrder(btn_press, Elev_states, Active_orders)
+				UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
+				if set_direction_bool {
+					elevio.SetMotorDirection(Elev_states.GetLastDirection())
+				}
+				if open_door_bool {
+					elevio.SetDoorOpenLamp(true)
+					door_timer.StartTimer()
+				}
+				break
+			}
+			// TODO: Make delegation
+			// For now just add order
+			var set_direction_bool, open_door_bool bool
+				Elev_states, Active_orders, set_direction_bool, open_door_bool = HandleNewOrder(btn_press, Elev_states, Active_orders)
+				UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
+				if set_direction_bool {
+					elevio.SetMotorDirection(Elev_states.GetLastDirection())
+				}
+				if open_door_bool {
+					elevio.SetDoorOpenLamp(true)
+					door_timer.StartTimer()
+				}
 		}
 	}
 }

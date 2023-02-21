@@ -207,7 +207,6 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 			}
 			if BtnTypeToDir(btn_press.Button) == Elev_states.GetLastDirection() || Elev_states.GetLastFloor() == 0 || Elev_states.GetLastFloor() == n_floors-1 {
 				ch_new_order <- btn_press
-				break
 			}
 			// TODO: Make delegation
 		}

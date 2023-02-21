@@ -14,32 +14,6 @@ type Orders struct {
 	Cab_orders  []bool
 }
 
-// Save and load to and from file functionality
-func SaveElevatorOrdersToFile(orders Orders) error {
-    data, err := json.MarshalIndent(orders, "", "    ")
-    if err != nil {
-        return err
-    }
-    err = ioutil.WriteFile(elevator_orders_filename, data, 0644)
-    if err != nil {
-        return err
-    }
-    return nil
-}
-
-func LoadElevatorOrdersFromFile() (Orders, error) {
-    var orders Orders
-    data, err := ioutil.ReadFile(elevator_orders_filename)
-    if err != nil {
-        return orders, err
-    }
-    err = json.Unmarshal(data, &orders)
-    if err != nil {
-        return orders, err
-    }
-    return orders, nil
-}
-
 // Methods
 func (orders *Orders) InitOrders() {
 	orders.Cab_orders = make([]bool, n_floors)
@@ -135,4 +109,28 @@ func (orders Orders) OrderInFloor(floor int) bool {
 	return false
 }
 
+// Save and load to and from file functionality
+func SaveElevatorOrdersToFile(orders Orders) error {
+    data, err := json.MarshalIndent(orders, "", "    ")
+    if err != nil {
+        return err
+    }
+    err = ioutil.WriteFile(elevator_orders_filename, data, 0644)
+    if err != nil {
+        return err
+    }
+    return nil
+}
 
+func LoadElevatorOrdersFromFile() (Orders, error) {
+    var orders Orders
+    data, err := ioutil.ReadFile(elevator_orders_filename)
+    if err != nil {
+        return orders, err
+    }
+    err = json.Unmarshal(data, &orders)
+    if err != nil {
+        return orders, err
+    }
+    return orders, nil
+}

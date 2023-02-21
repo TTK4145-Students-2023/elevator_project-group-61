@@ -47,24 +47,24 @@ func BtnTypeToDir(btn_type elevio.ButtonType) elevio.MotorDirection {
 }
 
 // Functions for handling events
-func HandleFloorSensor(floor int, elev_states States, active_orders Orders) {
-	elev_states.SetLastFloor(floor)
-	if StopAfterSensingFloor(floor, elev_states, active_orders) {
-		elev_states.SetDirection(elevio.MD_Stop)
-		elev_states.SetDoorOpen(true)
-		door_timer.StartTimer()
-		HandleFinishedOrder(floor, elevio.MD_Stop)
-		HandleFinishedOrder(floor, elev_states.GetLastDirection())
-		if floor == 0 {
-			HandleFinishedOrder(floor, elevio.MD_Up)
-		}
-		if floor == n_floors-1 {
-			HandleFinishedOrder(floor, elevio.MD_Down)
-		}
-	}
-}
+// func HandleFloorSensor(floor int, elev_states States, active_orders Orders) { 
+// 	elev_states.SetLastFloor(floor) 
+// 	if StopAfterSensingFloor(floor, elev_states, active_orders) {
+// 		elev_states.SetDirection(elevio.MD_Stop)
+// 		elev_states.SetDoorOpen(true)
+// 		door_timer.StartTimer()
+// 		HandleFinishedOrder(floor, elevio.MD_Stop)
+// 		HandleFinishedOrder(floor, elev_states.GetLastDirection())
+// 		if floor == 0 {
+// 			HandleFinishedOrder(floor, elevio.MD_Up)
+// 		}
+// 		if floor == n_floors-1 {
+// 			HandleFinishedOrder(floor, elevio.MD_Down)
+// 		}
+// 	}
+// }
 
-func HandleNewOrder(new_order elevio.ButtonEvent) { 
+func HandleNewOrder(new_order elevio.ButtonEvent, elev_states States, active_orders Orders) elevio.MotorDirection { 
 	Active_orders.AddOrder(new_order)
 	if Elev_states.GetMoving() {
 		return
@@ -134,14 +134,14 @@ func HandleButtonEvent(btn elevio.ButtonEvent) {
 	DelegateNewOrder(btn)
 }
 
-func HandleFinishedOrder(floor int, dir elevio.MotorDirection) {
-	if dir == elevio.MD_Stop {
-		Active_orders.RemoveOrderDirection(floor, dir)
-		return
-	}
-	Active_orders.RemoveOrderDirection(floor, dir)
-	DelegateFinishedOrders(floor, dir)
-}
+// func HandleFinishedOrder(floor int, dir elevio.MotorDirection) {
+// 	if dir == elevio.MD_Stop {
+// 		Active_orders.RemoveOrderDirection(floor, dir)
+// 		return
+// 	}
+// 	Active_orders.RemoveOrderDirection(floor, dir)
+// 	DelegateFinishedOrders(floor, dir) 
+// }
 
 func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int, ch_new_order chan elevio.ButtonEvent) {
 	// Initiate elevator
@@ -162,10 +162,45 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 		select {
 		case floor := <-ch_floor:
 			fmt.Println("HandleFloorSensor")
-			HandleFloorSensor(floor)
+			Elev_states.SetLastFloor(floor)
+			if StopAfterSensingFloor(floor, Elev_states, Active_orders) {
+				Elev_states.SetDirection(elevio.MD_Stop)
+				Elev_states.SetDoorOpen(true)
+				door_timer.StartTimer()
+				Active_orders.RemoveOrderDirection(floor, elevio.MD_Stop)
+				Active_orders.RemoveOrderDirection(floor, Elev_states.GetLastDirection())
+				// TODO: Delegate orders to other elevators (update global orders or similar)
+				if floor == 0 {
+					Active_orders.RemoveOrderDirection(floor, elevio.MD_Up)
+					// TODO: Delegate orders to other elevators (update global orders or similar)
+				}
+				if floor == n_floors-1 {
+					Active_orders.RemoveOrderDirection(floor, elevio.MD_Down)
+					// TODO: Delegate orders to other elevators (update global orders or similar)
+				}
+			}
 		case new_order := <-ch_new_order: 
 			fmt.Println("HandleNewOrder")
-			HandleNewOrder(new_order)
+			Active_orders.AddOrder(new_order)
+			if Elev_states.GetMoving() {
+				return
+			}
+			if new_order.Floor != Elev_states.GetLastFloor() {
+				if !Elev_states.GetDoorOpen() {
+					if new_order.Floor > Elev_states.GetLastFloor() {
+						Elev_states.SetDirection(elevio.MD_Up)
+					} else {
+						Elev_states.SetDirection(elevio.MD_Down)
+					}
+				}
+				return
+			}
+			if new_order.Button == elevio.BT_Cab || BtnTypeToDir(new_order.Button) == Elev_states.GetLastDirection() || Elev_states.GetLastFloor() == 0 || Elev_states.GetLastFloor() == n_floors-1 {
+				Elev_states.SetDoorOpen(true)
+				door_timer.StartTimer()
+				Active_orders.RemoveOrderDirection(new_order.Floor, BtnTypeToDir(new_order.Button))
+				return
+			}
 		case <-ch_door:
 			fmt.Println("HandleDoorClosing")
 			HandleDoorClosing()

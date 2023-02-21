@@ -4,6 +4,8 @@ import (
 	"ElevatorProject/door_timer"
 	"ElevatorProject/elevio"
 	"fmt"
+
+	"golang.org/x/text/cases"
 )
 
 // Constants
@@ -68,27 +70,95 @@ func HandleFloorSensor(floor int, elev_states States, active_orders Orders) (Sta
 	return elev_states, active_orders, stop_bool
 }
 
-func HandleNewOrder(new_order elevio.ButtonEvent, elev_states States, active_orders Orders) elevio.MotorDirection { 
-	Active_orders.AddOrder(new_order)
-	if Elev_states.GetMoving() {
-		return
+func HandleNewOrder(new_order elevio.ButtonEvent, elev_states States, active_orders Orders) (States, Orders, elevio.MotorDirection, bool) { 
+	open_door_bool := false
+	active_orders.AddOrder(new_order)
+	if elev_states.GetElevatorBehaviour() == "Moving" {
+		return elev_states, active_orders, elev_states.GetLastDirection(), open_door_bool
 	}
-	if new_order.Floor != Elev_states.GetLastFloor() {
-		if !Elev_states.GetDoorOpen() {
-			if new_order.Floor > Elev_states.GetLastFloor() {
-				Elev_states.SetDirection(elevio.MD_Up)
+	if new_order.Floor != elev_states.GetLastFloor() {
+		if elev_states.GetElevatorBehaviour() == "Idle" {
+			if new_order.Floor > elev_states.GetLastFloor() {
+				return elev_states, active_orders, elevio.MD_Up, open_door_bool
 			} else {
-				Elev_states.SetDirection(elevio.MD_Down)
+				return elev_states, active_orders, elevio.MD_Down, open_door_bool
 			}
 		}
-		return
+		return elev_states, active_orders, elev_states.GetLastDirection(), open_door_bool
 	}
-	if new_order.Button == elevio.BT_Cab || BtnTypeToDir(new_order.Button) == Elev_states.GetLastDirection() || Elev_states.GetLastFloor() == 0 || Elev_states.GetLastFloor() == n_floors-1 {
-		Elev_states.SetDoorOpen(true)
-		door_timer.StartTimer()
-		Active_orders.RemoveOrderDirection(new_order.Floor, BtnTypeToDir(new_order.Button))
-		return
+	if new_order.Button == elevio.BT_Cab || BtnTypeToDir(new_order.Button) == elev_states.GetLastDirection() || elev_states.GetLastFloor() == 0 || elev_states.GetLastFloor() == n_floors-1 {
+		elev_states.SetElevatorBehaviour("DoorOpen")
+		open_door_bool = true
+		active_orders.RemoveOrderDirection(new_order.Floor, BtnTypeToDir(new_order.Button))
+		return elev_states, active_orders, elev_states.GetLastDirection(), open_door_bool
 	}
+}
+
+func HandleNewOrder2(new_order elevio.ButtonEvent, elev_states States, active_orders Orders) (States, Orders, elevio.MotorDirection, bool) { 
+	open_door_bool := false
+	active_orders.AddOrder(new_order) // One or the other
+	switch(elev_states.GetElevatorBehaviour()) {
+	case "Moving":
+		return elev_states, active_orders, elev_states.GetLastDirection(), open_door_bool
+	case "DoorOpen":
+		if new_order.Floor != elev_states.GetLastFloor() {
+			return elev_states, active_orders, elev_states.GetLastDirection(), open_door_bool
+		}
+		if new_order.Button == elevio.BT_Cab || 
+		BtnTypeToDir(new_order.Button) == elev_states.GetLastDirection() || 
+		elev_states.GetLastFloor() == 0 || 
+		elev_states.GetLastFloor() == n_floors-1 {
+			open_door_bool = true
+			active_orders.RemoveOrderDirection(new_order.Floor, BtnTypeToDir(new_order.Button))
+			return elev_states, active_orders, elev_states.GetLastDirection(), open_door_bool
+		}
+	case "Idle":
+		if new_order.Floor != elev_states.GetLastFloor() {
+			if new_order.Floor > elev_states.GetLastFloor() {
+				return elev_states, active_orders, elevio.MD_Up, open_door_bool
+			} else {
+				return elev_states, active_orders, elevio.MD_Down, open_door_bool
+			}
+		}
+		open_door_bool = true
+		active_orders.RemoveOrderDirection(new_order.Floor, BtnTypeToDir(new_order.Button))
+		return elev_states, active_orders, elev_states.GetLastDirection(), open_door_bool
+	}
+}
+
+func HandleNewOrder3(new_order elevio.ButtonEvent, elev_states States, active_orders Orders) (States, Orders, bool, bool) { 
+	set_direction_bool := false
+	open_door_bool := false
+	active_orders.AddOrder(new_order)
+	switch(elev_states.GetElevatorBehaviour()){
+	case Moving:
+		return elev_states, active_orders, set_direction_bool, open_door_bool
+	case DoorOpen:
+		if new_order.Floor == elev_states.GetLastFloor() &&
+		(new_order.Button == elevio.BT_Cab || 
+		BtnTypeToDir(new_order.Button) == elev_states.GetLastDirection() || 
+		elev_states.GetLastFloor() == 0 || 
+		elev_states.GetLastFloor() == n_floors-1) {
+			open_door_bool = true
+			active_orders.RemoveOrderDirection(new_order.Floor, BtnTypeToDir(new_order.Button))
+		}
+	case Idle:
+		if new_order.Floor != elev_states.GetLastFloor() {
+			set_direction_bool = true
+			if new_order.Floor > elev_states.GetLastFloor() {
+				elev_states.SetDirection(elevio.MD_Up)
+				elev_states.SetElevatorBehaviour("Moving")
+			} else {
+				elev_states.SetDirection(elevio.MD_Down)
+				elev_states.SetElevatorBehaviour("Moving")
+			}
+		} else {
+			open_door_bool = true
+			elev_states.SetElevatorBehaviour("DoorOpen")
+			active_orders.RemoveOrderDirection(new_order.Floor, BtnTypeToDir(new_order.Button))
+		}
+	}
+	return elev_states, active_orders, set_direction_bool, open_door_bool
 }
 
 func HandleDoorClosing() {
@@ -148,10 +218,10 @@ func HandleFinishedOrder(floor int, dir elevio.MotorDirection) {
 }
 
 func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int, ch_new_order chan elevio.ButtonEvent) {
-	// Initiate elevator
 	var Elev_states States
 	var Active_orders Orders
 
+	// Initiate elevator
 	Active_orders.InitOrders()
 	InitLamps(Active_orders)
 	Elev_states.InitStates()
@@ -161,7 +231,8 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 		Elev_states.SetLastFloor(elevio.GetFloor())
 	}
 
-	// Finite State Machine
+	// Finite state machine
+	// TODO: Add order lights functionality for all events
 	for {
 		select {
 		case floor := <-ch_floor:
@@ -175,13 +246,14 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 			}
 		case new_order := <-ch_new_order: 
 			fmt.Println("HandleNewOrder")
-			Active_orders.AddOrder(new_order)
-			switch(Elev_states.GetElevatorBehaviour()){
-			case Moving:
-			case Idle:
-
+			Elev_states, Active_orders, set_direction_bool, open_door_bool := HandleNewOrder3(new_order, Elev_states, Active_orders)
+			if set_direction_bool {
+				elevio.SetMotorDirection(Elev_states.GetLastDirection())
 			}
-
+			if open_door_bool {
+				elevio.SetDoorOpenLamp(true)
+				door_timer.StartTimer()
+			}
 		case <-ch_door:
 			fmt.Println("HandleDoorClosing")
 			HandleDoorClosing()

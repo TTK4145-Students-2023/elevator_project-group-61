@@ -157,6 +157,7 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 			elevio.SetFloorIndicator(floor)
 			var stop_bool bool
 			Elev_states, Active_orders, stop_bool = HandleFloorSensor(floor, Elev_states, Active_orders)
+			UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
 			if stop_bool {
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				elevio.SetDoorOpenLamp(true)
@@ -166,6 +167,7 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 			fmt.Println("HandleNewOrder")
 			var set_direction_bool, open_door_bool bool
 			Elev_states, Active_orders, set_direction_bool, open_door_bool = HandleNewOrder(new_order, Elev_states, Active_orders)
+			UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
 			if set_direction_bool {
 				elevio.SetMotorDirection(Elev_states.GetLastDirection())
 			}
@@ -181,6 +183,7 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 			}
 			var set_direction_bool, open_door_bool bool
 			Elev_states, Active_orders, set_direction_bool, open_door_bool = HandleDoorClosing(Elev_states, Active_orders)
+			UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
 			if set_direction_bool {
 				elevio.SetMotorDirection(Elev_states.GetLastDirection())
 			}

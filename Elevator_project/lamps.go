@@ -21,3 +21,15 @@ func UpdateLamps() {
 	// Should update lamps from global orders
 	// TODO: Implement later
 }
+
+func UpdateSingleElevOrderLamps(orders Orders) {
+	for floor_num := 0; floor_num < n_floors; floor_num++ {
+		for i := 0; i < 3; i++ {
+			if orders.GetSpecificOrder(floor_num, elevio.ButtonType(i)) {
+				elevio.SetButtonLamp(elevio.ButtonType(i), floor_num, true)
+			} else {
+				elevio.SetButtonLamp(elevio.ButtonType(i), floor_num, false)
+			}
+		}
+	}
+}

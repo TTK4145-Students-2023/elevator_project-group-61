@@ -137,11 +137,12 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 	var Active_orders Orders
 
 	// Initiate elevator
+	fmt.Println("Initiate elevator")
 	Active_orders.InitOrders()
 	InitLamps(Active_orders)
 	Elev_states.InitStates()
 	if elevio.GetFloor() == -1 {
-		Elev_states.SetDirection(elevio.MD_Up)
+		elevio.SetMotorDirection(elevio.MD_Up)
 	} else {
 		Elev_states.SetLastFloor(elevio.GetFloor())
 	}

@@ -23,10 +23,10 @@ func main(){
     // go elevio.PollStopButton(drv_stop)
 
     // New routine for checking delegated orders
-    ch_delegated_order := make(chan elevio.ButtonEvent)
+    // ch_delegated_order := make(chan elevio.ButtonEvent)
     
 
     go door_timer.CheckTimer(ch_time)
 	
-    Fsm_elevator(drv_buttons, drv_floors, ch_time, ch_delegated_order)
+    Fsm_elevator(drv_buttons, drv_floors, ch_time) //, ch_delegated_order
 }

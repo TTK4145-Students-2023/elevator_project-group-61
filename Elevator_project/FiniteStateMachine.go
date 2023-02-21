@@ -132,7 +132,7 @@ func HandleDoorClosing(elev_states States, active_orders Orders) (States, Orders
 }
 
 // TODO: Change the parameters to use arrows
-func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int, ch_new_order chan elevio.ButtonEvent) {
+func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door chan int) { //, ch_new_order chan elevio.ButtonEvent
 	var Elev_states States
 	var Active_orders Orders
 
@@ -160,11 +160,13 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 			Elev_states, Active_orders, stop_bool = HandleFloorSensor(floor, Elev_states, Active_orders)
 			UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
 			if stop_bool {
+				fmt.Println("Stopping elevator")
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				elevio.SetDoorOpenLamp(true)
 				door_timer.StartTimer() // maybe change to use golang timer
 			}
-		case new_order := <-ch_new_order: 
+			fmt.Println("Finished handling floorsensor")
+		case new_order := <-ch_btn: 
 			fmt.Println("HandleNewOrder")
 			var set_direction_bool, open_door_bool bool
 			Elev_states, Active_orders, set_direction_bool, open_door_bool = HandleNewOrder(new_order, Elev_states, Active_orders)
@@ -195,24 +197,23 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 				elevio.SetDoorOpenLamp(false)
 			}
 
-		case btn_press := <-ch_btn:
+		// case btn_press := <-ch_btn:
 			//TODO: Finish this one, (done the others I think)
-			fmt.Println("HandleButtonEvent")
-			if btn_press.Button == elevio.BT_Cab {
-				ch_new_order <- btn_press
-				break
-			}
-			if Elev_states.GetElevatorBehaviour() == "Moving" || btn_press.Floor != Elev_states.GetLastFloor() {
-				// Should really delegate here
-				// But for single, just execute
-				// TODO: Make delegation
-				ch_new_order <- btn_press
-				break
-			}
-			if BtnTypeToDir(btn_press.Button) == Elev_states.GetLastDirection() || Elev_states.GetLastFloor() == 0 || Elev_states.GetLastFloor() == n_floors-1 {
-				ch_new_order <- btn_press
-			}
-			// TODO: Make delegation
+			// fmt.Println("HandleButtonEvent")
+			// ch_new_order <- btn_press
+			// if btn_press.Button == elevio.BT_Cab {
+			// 	ch_new_order <- btn_press
+			// 	break
+			// }
+			// if Elev_states.GetElevatorBehaviour() == "Moving" || btn_press.Floor != Elev_states.GetLastFloor() {
+			// 	// Should really delegate here
+			// 	// TODO: Make delegation
+			// 	break
+			// }
+			// if BtnTypeToDir(btn_press.Button) == Elev_states.GetLastDirection() || Elev_states.GetLastFloor() == 0 || Elev_states.GetLastFloor() == n_floors-1 {
+			// 	ch_new_order <- btn_press
+			// }
+			// // TODO: Make delegation
 		}
 	}
 }

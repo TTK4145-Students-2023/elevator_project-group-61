@@ -1,6 +1,9 @@
 package door_timer
 
-import "time"
+import (
+	"time"
+	"fmt"
+)
 
 const StandardDoorWait = 3000
 
@@ -11,11 +14,13 @@ func StartTimer() {
 }
 
 func CheckTimer(ch_timer chan int) {
+	fmt.Println("Timer check started")
 	for {
 		if TimeCounter == -1 {
-			return
+			continue
 		}
 		if time.Now().UnixMilli()-TimeCounter > StandardDoorWait {
+			fmt.Println("Door timer expired")
 			ch_timer <- 1
 			TimeCounter = -1
 		}

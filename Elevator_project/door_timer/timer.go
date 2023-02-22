@@ -14,13 +14,11 @@ func StartTimer() {
 }
 
 func CheckTimer(ch_timer chan int) {
-	fmt.Println("Timer check started")
 	for {
 		if TimeCounter == -1 {
 			continue
 		}
 		if time.Now().UnixMilli()-TimeCounter > StandardDoorWait {
-			fmt.Println("Door timer expired")
 			ch_timer <- 1
 			TimeCounter = -1
 		}

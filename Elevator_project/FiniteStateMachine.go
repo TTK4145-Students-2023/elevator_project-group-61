@@ -159,12 +159,10 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 			Elev_states, Active_orders, stop_bool = HandleFloorSensor(floor, Elev_states, Active_orders)
 			UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
 			if stop_bool {
-				fmt.Println("Stopping elevator")
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				elevio.SetDoorOpenLamp(true)
 				door_timer.StartTimer() // maybe change to use golang timer
 			}
-			fmt.Println("Finished handling floorsensor")
 		case new_order := <-ch_new_order: 
 			fmt.Println("HandleNewOrder")
 			var set_direction_bool, open_door_bool bool
@@ -182,7 +180,6 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 		case <-ch_door:
 			fmt.Println("HandleDoorClosing")
 			if elevio.GetObstruction() {
-				fmt.Println("Obstruction detected, restarting timer")
 				door_timer.StartTimer()
 				break
 			}
@@ -198,7 +195,7 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 					elevio.SetMotorDirection(Elev_states.GetLastDirection())
 				}
 			}
-		case btn_press := <-ch_btn:
+		case btn_press := <-ch_btn: // This one has a lot of redundant code
 			fmt.Println("HandleButtonEvent")
 			if btn_press.Button == elevio.BT_Cab {
 				var open_door_bool, set_direction_bool bool

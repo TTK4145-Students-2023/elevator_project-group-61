@@ -2,7 +2,6 @@ package door_timer
 
 import (
 	"time"
-	"fmt"
 )
 
 const StandardDoorWait = 3000

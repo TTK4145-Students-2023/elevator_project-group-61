@@ -74,7 +74,6 @@ func HandleNewOrder(new_order elevio.ButtonEvent, elev_states States, active_ord
 	active_orders.AddOrder(new_order)
 	switch(elev_states.GetElevatorBehaviour()){
 	case Moving:
-		return elev_states, active_orders, open_door_bool, set_direction_bool
 	case DoorOpen:
 		if new_order.Floor == elev_states.GetLastFloor() &&
 		(new_order.Button == elevio.BT_Cab || 

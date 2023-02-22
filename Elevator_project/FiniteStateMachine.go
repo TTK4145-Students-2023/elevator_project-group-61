@@ -69,12 +69,12 @@ func HandleFloorSensor(floor int, elev_states States, active_orders Orders) (Sta
 }
 
 func HandleNewOrder(new_order elevio.ButtonEvent, elev_states States, active_orders Orders) (States, Orders, bool, bool) { 
-	set_direction_bool := false
 	open_door_bool := false
+	set_direction_bool := false
 	active_orders.AddOrder(new_order)
 	switch(elev_states.GetElevatorBehaviour()){
 	case Moving:
-		return elev_states, active_orders, set_direction_bool, open_door_bool
+		return elev_states, active_orders, open_door_bool, set_direction_bool
 	case DoorOpen:
 		if new_order.Floor == elev_states.GetLastFloor() &&
 		(new_order.Button == elevio.BT_Cab || 
@@ -100,7 +100,7 @@ func HandleNewOrder(new_order elevio.ButtonEvent, elev_states States, active_ord
 			active_orders.RemoveOrderDirection(new_order.Floor, BtnTypeToDir(new_order.Button))
 		}
 	}
-	return elev_states, active_orders, set_direction_bool, open_door_bool
+	return elev_states, active_orders, open_door_bool, set_direction_bool
 }
 
 func HandleDoorClosing(elev_states States, active_orders Orders) (States, Orders, bool, bool) {
@@ -169,45 +169,50 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 		case new_order := <-ch_new_order: 
 			fmt.Println("HandleNewOrder")
 			var set_direction_bool, open_door_bool bool
-			Elev_states, Active_orders, set_direction_bool, open_door_bool = HandleNewOrder(new_order, Elev_states, Active_orders)
+			Elev_states, Active_orders, open_door_bool, set_direction_bool = HandleNewOrder(new_order, Elev_states, Active_orders)
 			UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
-			if set_direction_bool {
-				elevio.SetMotorDirection(Elev_states.GetLastDirection())
-			}
-			if open_door_bool {
-				elevio.SetDoorOpenLamp(true)
-				door_timer.StartTimer()
-			}
-		case <-ch_door:
-			fmt.Println("HandleDoorClosing")
-			if elevio.GetObstruction() {
-				door_timer.StartTimer()
-				break
-			}
-			var set_direction_bool, open_door_bool bool
-			Elev_states, Active_orders, set_direction_bool, open_door_bool = HandleDoorClosing(Elev_states, Active_orders)
-			UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
-			if set_direction_bool {
-				elevio.SetMotorDirection(Elev_states.GetLastDirection())
-			}
 			if open_door_bool {
 				elevio.SetDoorOpenLamp(true)
 				door_timer.StartTimer()
 			} else {
 				elevio.SetDoorOpenLamp(false)
+				if set_direction_bool {
+					elevio.SetMotorDirection(Elev_states.GetLastDirection())
+				}
+			}
+		case <-ch_door:
+			fmt.Println("HandleDoorClosing")
+			if elevio.GetObstruction() {
+				fmt.Println("Obstruction detected, restarting timer")
+				door_timer.StartTimer()
+				break
+			}
+			var open_door_bool, set_direction_bool bool
+			Elev_states, Active_orders, open_door_bool, set_direction_bool = HandleDoorClosing(Elev_states, Active_orders)
+			UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
+			if open_door_bool {
+				elevio.SetDoorOpenLamp(true)
+				door_timer.StartTimer()
+			} else {
+				elevio.SetDoorOpenLamp(false)
+				if set_direction_bool {
+					elevio.SetMotorDirection(Elev_states.GetLastDirection())
+				}
 			}
 		case btn_press := <-ch_btn:
 			fmt.Println("HandleButtonEvent")
 			if btn_press.Button == elevio.BT_Cab {
-				var set_direction_bool, open_door_bool bool
-				Elev_states, Active_orders, set_direction_bool, open_door_bool = HandleNewOrder(btn_press, Elev_states, Active_orders)
+				var open_door_bool, set_direction_bool bool
+				Elev_states, Active_orders, open_door_bool, set_direction_bool = HandleNewOrder(btn_press, Elev_states, Active_orders)
 				UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
-				if set_direction_bool {
-					elevio.SetMotorDirection(Elev_states.GetLastDirection())
-				}
 				if open_door_bool {
 					elevio.SetDoorOpenLamp(true)
 					door_timer.StartTimer()
+				} else {
+					elevio.SetDoorOpenLamp(false)
+					if set_direction_bool {
+						elevio.SetMotorDirection(Elev_states.GetLastDirection())
+					}
 				}
 				break
 			}
@@ -215,42 +220,48 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent, ch_floor chan int, ch_door cha
 				// Should really delegate here
 				// TODO: Make delegation
 				// For now just add order
-				var set_direction_bool, open_door_bool bool
-				Elev_states, Active_orders, set_direction_bool, open_door_bool = HandleNewOrder(btn_press, Elev_states, Active_orders)
+				var open_door_bool, set_direction_bool bool
+				Elev_states, Active_orders, open_door_bool, set_direction_bool = HandleNewOrder(btn_press, Elev_states, Active_orders)
 				UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
-				if set_direction_bool {
-					elevio.SetMotorDirection(Elev_states.GetLastDirection())
-				}
 				if open_door_bool {
 					elevio.SetDoorOpenLamp(true)
 					door_timer.StartTimer()
+				} else {
+					elevio.SetDoorOpenLamp(false)
+					if set_direction_bool {
+						elevio.SetMotorDirection(Elev_states.GetLastDirection())
+					}
 				}
 				break
 			}
 			if BtnTypeToDir(btn_press.Button) == Elev_states.GetLastDirection() || Elev_states.GetLastFloor() == 0 || Elev_states.GetLastFloor() == n_floors-1 {
-				var set_direction_bool, open_door_bool bool
-				Elev_states, Active_orders, set_direction_bool, open_door_bool = HandleNewOrder(btn_press, Elev_states, Active_orders)
+				var open_door_bool, set_direction_bool bool
+				Elev_states, Active_orders, open_door_bool, set_direction_bool = HandleNewOrder(btn_press, Elev_states, Active_orders)
 				UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
-				if set_direction_bool {
-					elevio.SetMotorDirection(Elev_states.GetLastDirection())
-				}
 				if open_door_bool {
 					elevio.SetDoorOpenLamp(true)
 					door_timer.StartTimer()
+				} else {
+					elevio.SetDoorOpenLamp(false)
+					if set_direction_bool {
+						elevio.SetMotorDirection(Elev_states.GetLastDirection())
+					}
 				}
 				break
 			}
 			// TODO: Make delegation
 			// For now just add order
-			var set_direction_bool, open_door_bool bool
-				Elev_states, Active_orders, set_direction_bool, open_door_bool = HandleNewOrder(btn_press, Elev_states, Active_orders)
+			var open_door_bool, set_direction_bool bool
+				Elev_states, Active_orders, open_door_bool, set_direction_bool = HandleNewOrder(btn_press, Elev_states, Active_orders)
 				UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
-				if set_direction_bool {
-					elevio.SetMotorDirection(Elev_states.GetLastDirection())
-				}
 				if open_door_bool {
 					elevio.SetDoorOpenLamp(true)
 					door_timer.StartTimer()
+				} else {
+					elevio.SetDoorOpenLamp(false)
+					if set_direction_bool {
+						elevio.SetMotorDirection(Elev_states.GetLastDirection())
+					}
 				}
 		}
 	}

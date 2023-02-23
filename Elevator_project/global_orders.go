@@ -43,6 +43,47 @@ func (elev_order_map *ElevatorOrdersMap) InitGlobalOrdersMap() {
 	}
 }
 
+func (elev_order_map ElevatorOrdersMap)  CheckIfOrderCanBeAssigned(floor int, btn_type elevio.ButtonType) bool {
+	switch btn_type {
+	case elevio.BT_HallUp:
+		for i := 0; i < n_elevators; i++ {
+			if elev_order_map[i].Up_orders[floor] == Assigned || elev_order_map[i].Up_orders[floor] == Completed {
+				return false
+			}
+		}
+	case elevio.BT_HallDown:
+		for i := 0; i < n_elevators; i++ {
+			if elev_order_map[i].Down_orders[floor] == Assigned || elev_order_map[i].Down_orders[floor] == Completed {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func (elev_order_map *ElevatorOrdersMap) SetOrderAssigned(id int, floor int, btn_type elevio.ButtonType) {
+	if btn_type == elevio.BT_HallUp {
+		(*elev_order_map)[id].Up_orders[floor] = Assigned
+	}
+	if btn_type == elevio.BT_HallDown {
+		(*elev_order_map)[id].Down_orders[floor] = Assigned
+	}
+}
+
+func (elev_order_map *ElevatorOrdersMap) SetOrderCompleted(id int, floor int, btn_type elevio.ButtonType) {
+	if btn_type == elevio.BT_HallUp {
+		(*elev_order_map)[id].Up_orders[floor] = Completed
+	}
+	if btn_type == elevio.BT_HallDown {
+		(*elev_order_map)[id].Down_orders[floor] = Completed
+	}
+}
+
+func (elev_order_map *ElevatorOrdersMap) UpdateElevatorFromNetworkSignal(id int, global_orders GlobalOrders) {
+	(*elev_order_map)[id] = global_orders
+}
+
+// I don't know if these below here are useful
 func (elev_order_map ElevatorOrdersMap) GetSpecificElevatorAssignedOrders(id int) Orders {
 	assigned_orders := Orders{Up_orders: make([]bool, n_floors), Down_orders: make([]bool, n_floors), Cab_orders: make([]bool, n_floors)}
 	for i := 0; i < n_floors; i++ {

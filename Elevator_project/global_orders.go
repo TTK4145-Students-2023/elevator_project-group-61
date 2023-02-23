@@ -1,0 +1,81 @@
+package main
+
+import "ElevatorProject/elevio"
+
+// What this module needs to do:
+// - For all elevators know what hall orders they have and in what stage those orders are.
+// - - The orders can be in "unassigned", "assigned", "completed" or "aborted" state.
+
+const n_elevators int = 3
+
+type OrderStage int
+
+const (
+	Unassigned OrderStage = 0
+	Assigned   OrderStage = 1
+	Completed  OrderStage = 2
+	Aborted    OrderStage = 3
+)
+
+type GlobalOrders struct {
+	Up_orders   []OrderStage
+	Down_orders []OrderStage
+}
+
+func (globalorders *GlobalOrders) InitGlobalOrders() {
+	globalorders.Up_orders = make([]OrderStage, n_floors)
+	globalorders.Down_orders = make([]OrderStage, n_floors)
+	for i := 0; i < n_floors; i++ {
+		globalorders.Up_orders[i] = 0
+		globalorders.Down_orders[i] = 0
+	}
+}
+
+type ElevatorOrdersMap map[int]GlobalOrders
+
+func (elev_order_map *ElevatorOrdersMap) InitGlobalOrdersMap() {
+	for i := 0; i < n_elevators; i++ {
+		(*elev_order_map)[i] = GlobalOrders{Up_orders: make([]OrderStage, n_floors), Down_orders: make([]OrderStage, n_floors)}
+		for j := 0; j < n_floors; j++ {
+			(*elev_order_map)[i].Up_orders[j] = 0
+			(*elev_order_map)[i].Down_orders[j] = 0
+		}
+	}
+}
+
+func (elev_order_map ElevatorOrdersMap) GetSpecificElevatorAssignedOrders(id int) Orders {
+	assigned_orders := Orders{Up_orders: make([]bool, n_floors), Down_orders: make([]bool, n_floors), Cab_orders: make([]bool, n_floors)}
+	for i := 0; i < n_floors; i++ {
+		assigned_orders.Cab_orders[i] = false
+		if elev_order_map[id].Up_orders[i] == Assigned {
+			assigned_orders.Up_orders[i] = true
+		}
+		if elev_order_map[id].Down_orders[i] == Assigned {
+			assigned_orders.Down_orders[i] = true
+		}
+	}
+	return assigned_orders
+}
+
+func (old_global_orders GlobalOrders) GetDifferenceBetweenElevatorsOrders(new_global_orders GlobalOrders) GlobalOrders {
+	changed_orders := GlobalOrders{Up_orders: make([]OrderStage, n_floors), Down_orders: make([]OrderStage, n_floors)}
+	for i := 0; i < n_floors; i++ {
+		if old_global_orders.Up_orders[i] != new_global_orders.Up_orders[i] {
+			changed_orders.Up_orders[i] = new_global_orders.Up_orders[i]
+		}
+		if old_global_orders.Down_orders[i] != new_global_orders.Down_orders[i] {
+			changed_orders.Down_orders[i] = new_global_orders.Down_orders[i]
+		}
+	}
+	return changed_orders
+}
+
+func (elev_order_map *ElevatorOrdersMap) UpdateGlobalMapFromLocalChange(id int, btn elevio.ButtonEvent, stage OrderStage) {
+	if btn.Button == elevio.BT_HallUp {
+		(*elev_order_map)[id].Up_orders[btn.Floor] = stage
+	} else if btn.Button == elevio.BT_HallDown {
+		(*elev_order_map)[id].Down_orders[btn.Floor] = stage
+	}
+}
+
+ 

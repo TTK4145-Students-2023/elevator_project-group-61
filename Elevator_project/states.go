@@ -4,59 +4,62 @@ import (
 	"ElevatorProject/elevio"
 )
 
+const (
+	Idle = "Idle"
+	Moving = "Moving"
+	DoorOpen = "DoorOpen"
+)
+
 type States struct {
-	last_floor     int
-	last_direction elevio.MotorDirection
-	door_open      bool
-	moving         bool
+	Last_floor     int
+	Last_direction elevio.MotorDirection
+	ElevatorBehaviour string
 }
 
 // Methods
 func (states *States) InitStates() {
-	states.last_floor = -1
-	states.last_direction = elevio.MD_Up
-	states.door_open = false
-	states.moving = false
+	states.Last_floor = -1
+	states.Last_direction = elevio.MD_Up
+	states.ElevatorBehaviour = Idle
 }
 
 func (states *States) SetLastFloor(floor int) {
-	states.last_floor = floor
-	elevio.SetFloorIndicator(floor)
+	states.Last_floor = floor
+	// elevio.SetFloorIndicator(floor)
 }
 
 func (states *States) SetDirection(dir elevio.MotorDirection) {
 	switch dir {
 	case elevio.MD_Up:
-		states.last_direction = elevio.MD_Up
-		states.moving = true
-		elevio.SetMotorDirection(elevio.MD_Up)
+		states.Last_direction = elevio.MD_Up
+		states.ElevatorBehaviour = Moving
+		// elevio.SetMotorDirection(elevio.MD_Up)
 	case elevio.MD_Down:
-		states.last_direction = elevio.MD_Down
-		states.moving = true
-		elevio.SetMotorDirection(elevio.MD_Down)
+		states.Last_direction = elevio.MD_Down
+		states.ElevatorBehaviour = Moving
+		// elevio.SetMotorDirection(elevio.MD_Down)
 	case elevio.MD_Stop:
-		states.moving = false
-		elevio.SetMotorDirection(elevio.MD_Stop)
+		// elevio.SetMotorDirection(elevio.MD_Stop)
 	}
 }
 
-func (states *States) SetDoorOpen(open bool) {
-	states.door_open = open
-	elevio.SetDoorOpenLamp(open)
+func (states *States) SetElevatorBehaviour(behaviour string) {
+	states.ElevatorBehaviour = behaviour
 }
 
+// func (states *States) SetDoorOpen(open bool) {
+// 	states.ElevatorBehaviour = DoorOpen
+// 	// elevio.SetDoorOpenLamp(open)
+// }
+
 func (states States) GetLastFloor() int {
-	return states.last_floor
+	return states.Last_floor
 }
 
 func (states States) GetLastDirection() elevio.MotorDirection {
-	return states.last_direction
+	return states.Last_direction
 }
 
-func (states States) GetDoorOpen() bool {
-	return states.door_open
-}
-
-func (states States) GetMoving() bool {
-	return states.moving
+func (states States) GetElevatorBehaviour() string {
+	return states.ElevatorBehaviour
 }

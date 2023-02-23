@@ -9,7 +9,7 @@ func main(){
 
     numFloors := 4
 
-    elevio.Init("10.100.23.172:15657", numFloors) 
+    elevio.Init("localhost:15657", numFloors) 
     
     drv_buttons := make(chan elevio.ButtonEvent)
     drv_floors  := make(chan int)

@@ -76,7 +76,7 @@ func HandleNewOrder(new_order elevio.ButtonEvent, elev_states States, active_ord
 	case Moving:
 	case DoorOpen:
 		if new_order.Floor == elev_states.GetLastFloor() &&
-			(new_order.Button == elevio.BT_Cab ||
+				(new_order.Button == elevio.BT_Cab ||
 				BtnTypeToDir(new_order.Button) == elev_states.GetLastDirection() ||
 				elev_states.GetLastFloor() == 0 ||
 				elev_states.GetLastFloor() == n_floors-1) {
@@ -100,6 +100,39 @@ func HandleNewOrder(new_order elevio.ButtonEvent, elev_states States, active_ord
 		}
 	}
 	return elev_states, active_orders, open_door_bool, set_direction_bool
+}
+
+func HandleNewOrder2(elev_states States, active_orders Orders) (States, Orders, bool, bool, []SpecificOrder) {
+	open_door_bool := false
+	set_direction_bool := false
+	remove_orders_list := make([]SpecificOrder, 0)
+
+	up_this_floor, down_this_floor, cab_this_floor := active_orders.GetOrdersInFloor(elev_states.GetLastFloor())
+	switch elev_states.GetElevatorBehaviour() {
+	case Moving:
+	case DoorOpen:
+		if cab_this_floor {
+			open_door_bool = true
+			remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_Cab})
+		}
+		if up_this_floor && elev_states.GetLastDirection() == elevio.MD_Up {
+			open_door_bool = true
+			remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallUp})
+		}
+		if down_this_floor && elev_states.GetLastDirection() == elevio.MD_Down {
+			open_door_bool = true
+			remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallDown})
+		}
+	case Idle:
+		if !active_orders.AnyOrder() {
+			break
+		} else {
+			if active_orders.OrderInFloor(elev_states.GetLastFloor()) {
+				
+			}
+		}
+	}
+	return elev_states, active_orders, open_door_bool, set_direction_bool, remove_orders_list
 }
 
 func HandleDoorClosing(elev_states States, active_orders Orders) (States, Orders, bool, bool) {
@@ -187,6 +220,7 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent,
 			if open_door_bool {
 				elevio.SetDoorOpenLamp(true)
 				door_timer.StartTimer()
+				// TODO: Probably also delegate finished order here!!
 			} else {
 				elevio.SetDoorOpenLamp(false)
 				if set_direction_bool {

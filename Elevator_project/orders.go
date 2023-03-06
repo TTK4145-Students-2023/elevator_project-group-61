@@ -8,6 +8,11 @@ import (
 
 const elevator_orders_filename = "elevator_orders_backup.json"
 
+type SpecificOrder struct {
+	Floor int
+	Btn   elevio.ButtonType
+}
+
 type Orders struct {
 	Up_orders   []bool
 	Down_orders []bool
@@ -119,6 +124,10 @@ func (orders Orders) OrderInFloor(floor int) bool {
 		return true
 	}
 	return false
+}
+
+func (orders Orders) GetOrdersInFloor(floor int) (bool, bool, bool) {
+	return orders.Up_orders[floor], orders.Down_orders[floor], orders.Cab_orders[floor]
 }
 
 // Save and load to and from file functionality

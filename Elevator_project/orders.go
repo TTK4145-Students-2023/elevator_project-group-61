@@ -89,6 +89,18 @@ func (orders *Orders) AddOrder(btn elevio.ButtonEvent) {
 	SaveElevatorOrdersToFile(*orders)
 }
 
+func (orders *Orders) SetOrder(floor int, btn elevio.ButtonType, value bool) {
+	switch btn {
+	case elevio.BT_HallUp:
+		orders.Up_orders[floor] = value
+	case elevio.BT_HallDown:
+		orders.Down_orders[floor] = value
+	case elevio.BT_Cab:
+		orders.Cab_orders[floor] = value
+	}
+	SaveElevatorOrdersToFile(*orders)
+}
+
 func (orders *Orders) RemoveOrderDirection(floor int, dir elevio.MotorDirection) {
 	if dir == elevio.MD_Up && orders.Up_orders[floor] {
 		orders.Up_orders[floor] = false

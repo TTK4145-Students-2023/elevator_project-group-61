@@ -16,6 +16,9 @@ func main(){
     drv_obstr   := make(chan bool)
     // drv_stop    := make(chan bool)    
 	ch_time := make(chan int)
+
+    // New channel for hra
+    ch_hra := make(chan [][2]bool)
     
     go elevio.PollButtons(drv_buttons)
     go elevio.PollFloorSensor(drv_floors)
@@ -28,5 +31,5 @@ func main(){
 
     go door_timer.CheckTimer(ch_time)
 	
-    Fsm_elevator(drv_buttons, drv_floors, ch_time, ch_delegated_order)
+    Fsm_elevator(drv_buttons, drv_floors, ch_time, ch_delegated_order, ch_hra)
 }

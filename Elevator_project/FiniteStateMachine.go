@@ -189,14 +189,14 @@ func HandleDoorClosing(elev_states States, active_orders Orders) (States, Orders
 }
 
 // TODO: Change the parameters to use arrows
-func Fsm_elevator(ch_btn chan elevio.ButtonEvent,
-	ch_floor chan int,
-	ch_door chan int,
-	ch_new_order chan elevio.ButtonEvent,
-	ch_hra chan [][2]bool,
-	ch_cab_requests chan []bool,
-	ch_completed_hall_req chan SpecificOrder,
-	ch_new_hall_req chan SpecificOrder) {
+func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
+	ch_floor <-chan int,
+	ch_door <-chan int,
+	ch_hra <-chan [][2]bool,
+	ch_cab_requests chan<- []bool,
+	ch_completed_hall_req chan<- SpecificOrder,
+	ch_new_hall_req chan<- SpecificOrder,
+	ch_elevstate chan<- States) {
 
 	var Elev_states States
 	var Active_orders Orders
@@ -212,11 +212,9 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent,
 	} else {
 		Elev_states.SetLastFloor(elevio.GetFloor())
 	}
+	ch_elevstate <- Elev_states
 
 	// Finite state machine
-	// TODO: Add order lights functionality for all events
-	// TODO: Handle order delegation, both when adding and removing.
-	// TODO: That means in HandleFloorSensor, HandleNewOrder, HandleDoorClosing
 	for {
 		select {
 		case hra := <-ch_hra:
@@ -224,6 +222,7 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent,
 			var open_door_bool, set_direction_bool bool
 			var remove_orders_list []SpecificOrder
 			Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleNewRequests(hra, -1, Elev_states, Active_orders)
+			ch_elevstate <- Elev_states
 			if open_door_bool {
 				elevio.SetDoorOpenLamp(true)
 				door_timer.StartTimer()
@@ -249,6 +248,7 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent,
 			var stop_bool bool
 			var remove_orders_list []SpecificOrder
 			Elev_states, Active_orders, stop_bool, remove_orders_list = HandleFloorSensor(floor, Elev_states, Active_orders)
+			ch_elevstate <- Elev_states
 			if stop_bool {
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				elevio.SetDoorOpenLamp(true)
@@ -274,6 +274,7 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent,
 			var open_door_bool, set_direction_bool bool
 			var remove_orders_list []SpecificOrder
 			Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleDoorClosing(Elev_states, Active_orders)
+			ch_elevstate <- Elev_states
 			if open_door_bool {
 				elevio.SetDoorOpenLamp(true)
 				door_timer.StartTimer()
@@ -299,6 +300,7 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent,
 				var remove_orders_list []SpecificOrder
 				emtpy_hra := [][2]bool{}
 				Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleNewRequests(emtpy_hra, btn_press.Floor, Elev_states, Active_orders)
+				ch_elevstate <- Elev_states
 				if open_door_bool {
 					elevio.SetDoorOpenLamp(true)
 					door_timer.StartTimer()

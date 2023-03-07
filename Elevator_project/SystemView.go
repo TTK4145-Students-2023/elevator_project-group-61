@@ -27,9 +27,9 @@ type NodeAwareness struct {
 
 
 type SystemAwareness struct {
-	map[string] [n][2]RequestState,
-	map[string] ElevState
-	map[string] []bool
+	SystemHallRequests map[string] [n][2] RequestState
+	SystemElevState map[string] ElevState
+	SystemCabRequests map[string] []bool
 }
 
 

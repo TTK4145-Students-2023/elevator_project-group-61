@@ -1,6 +1,6 @@
 
 type HRAElevState struct {
-    Behavior    string      `json:"behaviour"`
+    Behaviour    string      `json:"behaviour"`
     Floor       int         `json:"floor"` 
     Direction   string      `json:"direction"`
     CabRequests []bool      `json:"cabRequests"`
@@ -13,9 +13,7 @@ type HRAInput struct {
 
 
 func transformToHRAInput() HRAInput{
-	for id, node_status := range nodeStatuses {
-		
-	}
+	
 }
 
 

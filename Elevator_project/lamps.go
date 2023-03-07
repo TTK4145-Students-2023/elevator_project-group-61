@@ -4,6 +4,12 @@ import (
 	"ElevatorProject/elevio"
 )
 
+func LampStateMachine(ch_hall_requests chan [][2]bool, ch_cab_requests chan []bool) {
+	//TODO: make
+	
+}
+
+
 func InitLamps(active_orders Orders) {
 	elevio.SetDoorOpenLamp(false)
 	for floor_num := 0; floor_num < n_floors; floor_num++ {

@@ -116,19 +116,13 @@ func HandleNewOrder2(elev_states States, active_orders Orders) (States, Orders, 
 			open_door_bool = true
 			remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_Cab})
 		}
-		if up_this_floor && elev_states.GetLastDirection() == elevio.MD_Up {
+		if (up_this_floor && elev_states.GetLastDirection() == elevio.MD_Up) ||
+		(elev_states.GetLastFloor() == 0 && up_this_floor) {
 			open_door_bool = true
 			remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallUp})
 		}
-		if down_this_floor && elev_states.GetLastDirection() == elevio.MD_Down {
-			open_door_bool = true
-			remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallDown})
-		}
-		if elev_states.GetLastFloor() == 0 && up_this_floor {
-			open_door_bool = true
-			remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallUp})
-		}
-		if elev_states.GetLastFloor() == n_floors-1 && down_this_floor {
+		if (down_this_floor && elev_states.GetLastDirection() == elevio.MD_Down) ||
+		(elev_states.GetLastFloor() == n_floors-1 && down_this_floor) {
 			open_door_bool = true
 			remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallDown})
 		}
@@ -137,21 +131,35 @@ func HandleNewOrder2(elev_states States, active_orders Orders) (States, Orders, 
 			break
 		} else {
 			if order_in_this_floor {
-				open_door_bool = true
 				if cab_this_floor {
+					open_door_bool = true
+					elev_states.SetElevatorBehaviour("DoorOpen")
 					remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_Cab})
 				}
-				if up_this_floor && elev_states.GetLastDirection() == elevio.MD_Up {
+				if (up_this_floor && elev_states.GetLastDirection() == elevio.MD_Up) || 
+					(up_this_floor && !down_this_floor && !active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)) ||
+					(elev_states.GetLastFloor() == 0 && up_this_floor) {
+					open_door_bool = true
+					elev_states.SetElevatorBehaviour("DoorOpen")
 					remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallUp})
 				}
-				if down_this_floor && elev_states.GetLastDirection() == elevio.MD_Down {
+				if (down_this_floor && elev_states.GetLastDirection() == elevio.MD_Down) ||
+				(down_this_floor && !up_this_floor && !active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)) ||
+				(elev_states.GetLastFloor() == n_floors-1 && down_this_floor) {
+					open_door_bool = true
+					elev_states.SetElevatorBehaviour("DoorOpen")
 					remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallDown})
 				}
-				if elev_states.GetLastFloor() == 0 && up_this_floor {
-					remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallUp})
-				}
-				if elev_states.GetLastFloor() == n_floors-1 && down_this_floor {
-					remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallDown})
+			}
+			if !order_in_this_floor || !open_door_bool{
+				set_direction_bool = true
+				elev_states.SetElevatorBehaviour("Moving")
+				orders_above := active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)
+				orders_below := active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)
+				if (elev_states.GetLastDirection() == elevio.MD_Up && orders_above) || !orders_below {
+					elev_states.SetDirection(elevio.MD_Up)
+				} else if (elev_states.GetLastDirection() == elevio.MD_Down && orders_below) || !orders_above {
+					elev_states.SetDirection(elevio.MD_Down)
 				}
 			}
 		}

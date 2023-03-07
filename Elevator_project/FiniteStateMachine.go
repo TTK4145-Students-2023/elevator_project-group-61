@@ -7,7 +7,6 @@ import (
 )
 
 // Constants
-// const id int = 1
 const n_floors int = 4
 
 // Helper functions
@@ -46,63 +45,49 @@ func BtnTypeToDir(btn_type elevio.ButtonType) elevio.MotorDirection {
 	return elevio.MD_Stop
 }
 
+func DirToBtnType(dir elevio.MotorDirection) elevio.ButtonType {
+	switch dir {
+	case elevio.MD_Up:
+		return elevio.BT_HallUp
+	case elevio.MD_Down:
+		return elevio.BT_HallDown
+	}
+	return elevio.BT_Cab
+}
+
 // Functions for handling events
-func HandleFloorSensor(floor int, elev_states States, active_orders Orders) (States, Orders, bool) {
+func HandleFloorSensor(floor int, elev_states States, active_orders Orders) (States, Orders, bool, []SpecificOrder) {
 	stop_bool := false
 	elev_states.SetLastFloor(floor)
+
+	remove_orders_list := make([]SpecificOrder, 0)
+
 	if StopAfterSensingFloor(floor, elev_states, active_orders) {
 		stop_bool = true
 		elev_states.SetElevatorBehaviour("DoorOpen")
-		active_orders.RemoveOrderDirection(floor, elevio.MD_Stop)
-		active_orders.RemoveOrderDirection(floor, elev_states.GetLastDirection())
-		// TODO: Delegate orders to other elevators (update global orders or similar)
-		if floor == 0 {
-			active_orders.RemoveOrderDirection(floor, elevio.MD_Up)
-			// TODO: Delegate orders to other elevators (update global orders or similar)
+		if active_orders.GetSpecificOrder(floor, elevio.BT_Cab) {
+			remove_orders_list = append(remove_orders_list, SpecificOrder{floor, elevio.BT_Cab})
 		}
-		if floor == n_floors-1 {
-			active_orders.RemoveOrderDirection(floor, elevio.MD_Down)
-			// TODO: Delegate orders to other elevators (update global orders or similar)
+		if active_orders.GetSpecificOrder(floor, DirToBtnType(elev_states.GetLastDirection())) {
+			remove_orders_list = append(remove_orders_list, SpecificOrder{floor, DirToBtnType(elev_states.GetLastDirection())})
 		}
-	}
-	return elev_states, active_orders, stop_bool
-}
-
-func HandleNewOrder(new_order elevio.ButtonEvent, elev_states States, active_orders Orders) (States, Orders, bool, bool) {
-	open_door_bool := false
-	set_direction_bool := false
-	active_orders.AddOrder(new_order)
-	switch elev_states.GetElevatorBehaviour() {
-	case Moving:
-	case DoorOpen:
-		if new_order.Floor == elev_states.GetLastFloor() &&
-				(new_order.Button == elevio.BT_Cab ||
-				BtnTypeToDir(new_order.Button) == elev_states.GetLastDirection() ||
-				elev_states.GetLastFloor() == 0 ||
-				elev_states.GetLastFloor() == n_floors-1) {
-			open_door_bool = true
-			active_orders.RemoveOrderDirection(new_order.Floor, BtnTypeToDir(new_order.Button))
+		if floor == 0 && active_orders.GetSpecificOrder(floor, elevio.BT_HallUp) {
+			remove_orders_list = append(remove_orders_list, SpecificOrder{floor, elevio.BT_HallUp})
 		}
-	case Idle:
-		if new_order.Floor != elev_states.GetLastFloor() {
-			set_direction_bool = true
-			if new_order.Floor > elev_states.GetLastFloor() {
-				elev_states.SetDirection(elevio.MD_Up)
-				elev_states.SetElevatorBehaviour("Moving")
-			} else {
-				elev_states.SetDirection(elevio.MD_Down)
-				elev_states.SetElevatorBehaviour("Moving")
-			}
-		} else {
-			open_door_bool = true
-			elev_states.SetElevatorBehaviour("DoorOpen")
-			active_orders.RemoveOrderDirection(new_order.Floor, BtnTypeToDir(new_order.Button))
+		if floor == n_floors-1 && active_orders.GetSpecificOrder(floor, elevio.BT_HallDown) {
+			remove_orders_list = append(remove_orders_list, SpecificOrder{floor, elevio.BT_HallDown})
 		}
 	}
-	return elev_states, active_orders, open_door_bool, set_direction_bool
+	return elev_states, active_orders, stop_bool, remove_orders_list
 }
 
-func HandleNewOrder2(elev_states States, active_orders Orders) (States, Orders, bool, bool, []SpecificOrder) {
+func HandleHRA(hra [][2]bool, elev_states States, active_orders Orders) (States, Orders, bool, bool, []SpecificOrder) {
+	// Set new hall requests
+	for i := 0; i < n_floors; i++ {
+		active_orders.SetOrder(i, elevio.BT_HallUp, hra[i][0])   // First columns is up, second is down
+		active_orders.SetOrder(i, elevio.BT_HallDown, hra[i][1]) 
+	}
+
 	open_door_bool := false
 	set_direction_bool := false
 	remove_orders_list := make([]SpecificOrder, 0)
@@ -193,14 +178,6 @@ func HandleDoorClosing(elev_states States, active_orders Orders) (States, Orders
 		elev_states.SetDirection(elevio.MD_Down)
 	}
 	return elev_states, active_orders, open_door_bool, set_direction_bool
-}
-
-func HandleHRA(hra [][2]bool, active_orders Orders) Orders {
-	for i := 0; i < n_floors; i++ {
-		active_orders.SetOrder(i, elevio.BT_HallUp, hra[i][0])   // First columns is up, second is down
-		active_orders.SetOrder(i, elevio.BT_HallDown, hra[i][1]) 
-	}
-	return active_orders
 }
 
 // TODO: Change the parameters to use arrows

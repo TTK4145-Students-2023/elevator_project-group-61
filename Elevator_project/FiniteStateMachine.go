@@ -192,6 +192,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	ch_floor <-chan int,
 	ch_door <-chan int,
 	ch_hra <-chan [][2]bool,
+	ch_init_cab_requests <-chan []bool,
 	ch_cab_requests chan<- []bool,
 	ch_completed_hall_req chan<- SpecificOrder,
 	ch_new_hall_req chan<- SpecificOrder,
@@ -203,7 +204,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	// Initiate elevator
 	fmt.Println("Initiate elevator")
 	Active_orders.InitOrders()
-	InitLamps(Active_orders)
+	InitLamps(Active_orders) //TODO: remove this because of fix by channel
 	Elev_states.InitStates()
 	if elevio.GetFloor() == -1 {
 		Elev_states.SetElevatorBehaviour("Moving")
@@ -321,6 +322,8 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				ch_new_hall_req <- SpecificOrder{btn_press.Floor, btn_press.Button}
 
 			}
+		case initial_cab_requests := <- ch_init_cab_requests:
+			// TODO: Implement
 		}
 	}
 }

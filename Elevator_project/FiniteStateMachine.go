@@ -81,11 +81,16 @@ func HandleFloorSensor(floor int, elev_states States, active_orders Orders) (Sta
 	return elev_states, active_orders, stop_bool, remove_orders_list
 }
 
-func HandleHRA(hra [][2]bool, elev_states States, active_orders Orders) (States, Orders, bool, bool, []SpecificOrder) {
-	// Set new hall requests
-	for i := 0; i < n_floors; i++ {
-		active_orders.SetOrder(i, elevio.BT_HallUp, hra[i][0])   // First columns is up, second is down
-		active_orders.SetOrder(i, elevio.BT_HallDown, hra[i][1]) 
+func HandleNewRequests(hra [][2]bool, cab_order int,elev_states States, active_orders Orders) (States, Orders, bool, bool, []SpecificOrder) {
+	// If cab order
+	if cab_order != -1 {
+		active_orders.SetOrder(cab_order, elevio.BT_Cab, true)
+	} else {
+		// If HRA orders
+		for i := 0; i < n_floors; i++ {
+			active_orders.SetOrder(i, elevio.BT_HallUp, hra[i][0])   // First columns is up, second is down
+			active_orders.SetOrder(i, elevio.BT_HallDown, hra[i][1]) 
+		}
 	}
 
 	open_door_bool := false
@@ -152,21 +157,24 @@ func HandleHRA(hra [][2]bool, elev_states States, active_orders Orders) (States,
 	return elev_states, active_orders, open_door_bool, set_direction_bool, remove_orders_list
 }
 
-func HandleDoorClosing(elev_states States, active_orders Orders) (States, Orders, bool, bool) {
+func HandleDoorClosing(elev_states States, active_orders Orders) (States, Orders, bool, bool, []SpecificOrder) {
 	open_door_bool := false
 	set_direction_bool := false
+
+	remove_orders_list := make([]SpecificOrder, 0)
+
 	if !active_orders.AnyOrder() {
 		elev_states.SetElevatorBehaviour("Idle")
-		return elev_states, active_orders, open_door_bool, set_direction_bool
+		return elev_states, active_orders, open_door_bool, set_direction_bool, remove_orders_list
 	}
 	if active_orders.OrderInFloor(elev_states.GetLastFloor()) && !active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elev_states.GetLastDirection()) {
 		open_door_bool = true
 		if elev_states.GetLastDirection() == elevio.MD_Up {
-			active_orders.RemoveOrderDirection(elev_states.GetLastFloor(), elevio.MD_Down)
+			remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallDown})
 		} else {
-			active_orders.RemoveOrderDirection(elev_states.GetLastFloor(), elevio.MD_Up)
+			remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallUp})
 		}
-		return elev_states, active_orders, open_door_bool, set_direction_bool
+		return elev_states, active_orders, open_door_bool, set_direction_bool, remove_orders_list
 	}
 	set_direction_bool = true
 	elev_states.SetElevatorBehaviour("Moving")
@@ -177,7 +185,7 @@ func HandleDoorClosing(elev_states States, active_orders Orders) (States, Orders
 	} else if (elev_states.GetLastDirection() == elevio.MD_Down && orders_down_bool) || !orders_up_bool {
 		elev_states.SetDirection(elevio.MD_Down)
 	}
-	return elev_states, active_orders, open_door_bool, set_direction_bool
+	return elev_states, active_orders, open_door_bool, set_direction_bool, remove_orders_list
 }
 
 // TODO: Change the parameters to use arrows
@@ -186,6 +194,7 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent,
 	ch_door chan int,
 	ch_new_order chan elevio.ButtonEvent,
 	ch_hra chan [][2]bool) {
+
 	var Elev_states States
 	var Active_orders Orders
 
@@ -195,6 +204,7 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent,
 	InitLamps(Active_orders)
 	Elev_states.InitStates()
 	if elevio.GetFloor() == -1 {
+		Elev_states.SetElevatorBehaviour("Moving")
 		elevio.SetMotorDirection(elevio.MD_Up)
 	} else {
 		Elev_states.SetLastFloor(elevio.GetFloor())
@@ -208,22 +218,43 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent,
 		select {
 		//Newest hra case
 		case hra := <-ch_hra:
-			fmt.Println("HandleHRA") // This is where we get the hra from the hra_assigner
-			Active_orders = HandleHRA(hra, Active_orders)
+			fmt.Println("HandleHRA")
+			var open_door_bool, set_direction_bool bool
+			var remove_orders_list []SpecificOrder
+			Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleNewRequests(hra, -1, Elev_states, Active_orders)
+			if open_door_bool {
+				elevio.SetDoorOpenLamp(true)
+				door_timer.StartTimer()
+				// TODO: Probably also delegate finished order here!!
+				for i, v := range remove_orders_list {
+					fmt.Println("Remove order: ", i, v)
+				}
+			} else {
+				if set_direction_bool {
+					elevio.SetMotorDirection(Elev_states.GetLastDirection())
+				}
+			}
+
 		case floor := <-ch_floor:
 			fmt.Println("HandleFloorSensor")
 			elevio.SetFloorIndicator(floor)
 			var stop_bool bool
-			Elev_states, Active_orders, stop_bool = HandleFloorSensor(floor, Elev_states, Active_orders)
+			var remove_orders_list []SpecificOrder
+			Elev_states, Active_orders, stop_bool, remove_orders_list = HandleFloorSensor(floor, Elev_states, Active_orders)
 			UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
 			if stop_bool {
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				elevio.SetDoorOpenLamp(true)
 				door_timer.StartTimer() // maybe change to use golang timer
+
+				// TODO: For loop to remove orders
+				for i, v := range remove_orders_list {
+					fmt.Println("Removing order", i, v)
+				}
 			}
 		case new_order := <-ch_new_order:
 			fmt.Println("HandleNewOrder")
-			var set_direction_bool, open_door_bool bool
+			var open_door_bool, set_direction_bool bool
 			Elev_states, Active_orders, open_door_bool, set_direction_bool = HandleNewOrder(new_order, Elev_states, Active_orders)
 			UpdateSingleElevOrderLamps(Active_orders) // to be changed maybe, to more globally orders
 			if open_door_bool {
@@ -231,7 +262,6 @@ func Fsm_elevator(ch_btn chan elevio.ButtonEvent,
 				door_timer.StartTimer()
 				// TODO: Probably also delegate finished order here!!
 			} else {
-				elevio.SetDoorOpenLamp(false)
 				if set_direction_bool {
 					elevio.SetMotorDirection(Elev_states.GetLastDirection())
 				}

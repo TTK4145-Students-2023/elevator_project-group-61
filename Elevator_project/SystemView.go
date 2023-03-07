@@ -18,20 +18,18 @@ const (
 	RS_Confirmed = 3
 )
 
-
-
 type NodeAwareness struct {
-	ID int
+	ID string
 	ElevatorState ElevState
 	HallRequests [n][2]RequestState    // n number of floors
-	CabRequests map[int] []bool
+	CabRequests map[string] []bool
 }
 
 
 type SystemAwareness struct {
-	map[int] [n][2]RequestState,
-	map[int] ElevState
-	map[int] []bool
+	map[string] [n][2]RequestState,
+	map[string] ElevState
+	map[string] []bool
 }
 
 

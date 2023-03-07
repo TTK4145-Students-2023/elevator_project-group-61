@@ -5,11 +5,10 @@ import (
 	"fmt"
 )
 
-const m int = m
-const ID int = 0
+const m_elevators int = 3
+const localID string = "0"
 
 type RequestState int
-
 
 const (
 	RS_Unkwown RequestState = 0
@@ -21,49 +20,73 @@ const (
 type NodeAwareness struct {
 	ID string
 	ElevatorState ElevState
-	HallRequests [n][2]RequestState    // n number of floors
+	HallRequests [n_floors][]RequestState    // n number of floors
 	CabRequests map[string] []bool
 }
 
-
 type SystemAwareness struct {
-	SystemHallRequests map[string] [n][2] RequestState
 	SystemElevState map[string] ElevState
+	SystemHallRequests map[string] [n_floors][]RequestState
 	SystemCabRequests map[string] []bool
 }
 
+// Denne funksjonen skal ta inn systemHallRequests og oppdatere denne nodens understanding basert på hva som 
+// ligger der
 
-func SystemView(ch_reciever <- chan NodeAwareness, ch_transmit chan <- NodeAwareness, ch_hallCalls 
+func updateMyHallRequestUnderstanding(systemHallRequests map[string][][2]RequestState) [][2]RequestState {
+	
+	return
+}
+
+func SystemView(ch_receiver <- chan NodeAwareness, ch_transmit chan <- NodeAwareness, ch_hallCalls 
 	<- chan int, ch_ElevState <- chan ElevState, 
-	ch_transmit chan <- NodeStatus, ch_alive <- chan []int, ch_hrainfo chan <- ) {
+	ch_transmit chan <- NodeStatus, ch_alive <- chan []int, ch_hrainfo chan <- etellerannet ) {
 
 		// Her skal alle lokale variabler lages
-		nodeAwareness := NodeAwareness{
-			ID : ID,
+		myNodeAwareness := NodeAwareness{
+			ID : LocalID,
 			ElevatorState: ,
 			HallRequsts : ,
 			CabRequests : ,
 		}
 
-		SystemAwareness := make(map[int] NodeAwareness, m)
+		// Må definere alive-listen her
+		systemAwareness := make(map[int] NodeAwareness, m)
 
-		
 		for {
 			select {
-			case node_status := <- ch_reciever:
-				// Hva skjer hvis det kommer en ny node_status på nettverket
-				
-				// Lage noe som overskriver det lokale mappet
-				// Kalle en funksjon som tar dette lokale mappet som input
+			case nodeAwareness := <- ch_reciever:
+				nodeID := nodeAwareness.ID
+				// Oppdatere akkurat denne nodens elevstate i system awareness
+				systemAwareness.SystemElevstate[nodeID] = nodeAwareness.ElevatorState
+				systemAwareness.SystemHallRequests[nodeID] = nodeAwareness.HallRequests
+				systemAwareness.SystemCabRequests[nodeID] = nodeAwareness.CabRequestsch_ElevState
+				myNodeAwareness.CabRequests[nodeID] = nodeAwareness.CabRequests
 
-				ch_transmit <- node_awareness
+				// Gjennomfører sammenlikningen
+				hallRequests := updateMyHallRequestUnderstanding(systemAwareness.SystemHallRequests)
+				
+				// Her skal både myNodeAwareness og min id på systemAwareness oppdateres
+
+				systemAwareness.SystemHallRequests[localID] = hallRequests 
+				myNodeAwareness.HallRequests = hallRequests
+
+
+				// Etter oppdatering skal vi sende resultatet på nettverket
+				ch_transmit <- myNodeAwareness
+
+				// Etter dette må vi sende til panelmodulen for å kunne sette lys.
+
+				ch_panel <- hallRequests
+
 			case hall_call := <- ch_hallCalls:
 				// Skrive hva som skjer hvis det kommer en ny hall call
 				ch_transmit <- node_awareness
-			case cab_call := <- ch_cabCall:
+			case cab_call := <- ch_cabRequests:
 				// Skrive lett hva som skjer når cab-call kommer inn
 				ch_transmit <- node_awareness
 			}
 
+			case // Her må vi håndtere sletting fra systemAwareness hvis den en heis dør.
 		}
 	 }

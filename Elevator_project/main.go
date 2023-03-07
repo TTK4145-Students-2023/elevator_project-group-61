@@ -31,5 +31,6 @@ func main(){
 
     go door_timer.CheckTimer(ch_time)
 	
+    // TODO: Change input arguments
     Fsm_elevator(drv_buttons, drv_floors, ch_time, ch_delegated_order, ch_hra)
 }

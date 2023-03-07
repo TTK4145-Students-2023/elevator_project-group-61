@@ -108,6 +108,7 @@ func HandleNewOrder2(elev_states States, active_orders Orders) (States, Orders, 
 	remove_orders_list := make([]SpecificOrder, 0)
 
 	up_this_floor, down_this_floor, cab_this_floor := active_orders.GetOrdersInFloor(elev_states.GetLastFloor())
+	order_in_this_floor := up_this_floor || down_this_floor || cab_this_floor
 	switch elev_states.GetElevatorBehaviour() {
 	case Moving:
 	case DoorOpen:
@@ -123,12 +124,35 @@ func HandleNewOrder2(elev_states States, active_orders Orders) (States, Orders, 
 			open_door_bool = true
 			remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallDown})
 		}
+		if elev_states.GetLastFloor() == 0 && up_this_floor {
+			open_door_bool = true
+			remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallUp})
+		}
+		if elev_states.GetLastFloor() == n_floors-1 && down_this_floor {
+			open_door_bool = true
+			remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallDown})
+		}
 	case Idle:
 		if !active_orders.AnyOrder() {
 			break
 		} else {
-			if active_orders.OrderInFloor(elev_states.GetLastFloor()) {
-				
+			if order_in_this_floor {
+				open_door_bool = true
+				if cab_this_floor {
+					remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_Cab})
+				}
+				if up_this_floor && elev_states.GetLastDirection() == elevio.MD_Up {
+					remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallUp})
+				}
+				if down_this_floor && elev_states.GetLastDirection() == elevio.MD_Down {
+					remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallDown})
+				}
+				if elev_states.GetLastFloor() == 0 && up_this_floor {
+					remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallUp})
+				}
+				if elev_states.GetLastFloor() == n_floors-1 && down_this_floor {
+					remove_orders_list = append(remove_orders_list, SpecificOrder{elev_states.GetLastFloor(), elevio.BT_HallDown})
+				}
 			}
 		}
 	}

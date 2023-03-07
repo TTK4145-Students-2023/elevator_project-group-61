@@ -188,7 +188,6 @@ func HandleDoorClosing(elev_states States, active_orders Orders) (States, Orders
 	return elev_states, active_orders, open_door_bool, set_direction_bool, remove_orders_list
 }
 
-// TODO: Change the parameters to use arrows
 func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	ch_floor <-chan int,
 	ch_door <-chan int,

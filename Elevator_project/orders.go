@@ -8,6 +8,11 @@ import (
 
 const elevator_orders_filename = "elevator_orders_backup.json"
 
+type SpecificOrder struct {
+	Floor int
+	Btn   elevio.ButtonType
+}
+
 type Orders struct {
 	Up_orders   []bool
 	Down_orders []bool
@@ -89,6 +94,18 @@ func (orders *Orders) AddOrder(btn elevio.ButtonEvent) {
 	SaveElevatorOrdersToFile(*orders)
 }
 
+func (orders *Orders) SetOrder(floor int, btn elevio.ButtonType, value bool) {
+	switch btn {
+	case elevio.BT_HallUp:
+		orders.Up_orders[floor] = value
+	case elevio.BT_HallDown:
+		orders.Down_orders[floor] = value
+	case elevio.BT_Cab:
+		orders.Cab_orders[floor] = value
+	}
+	SaveElevatorOrdersToFile(*orders)
+}
+
 func (orders *Orders) RemoveOrderDirection(floor int, dir elevio.MotorDirection) {
 	if dir == elevio.MD_Up && orders.Up_orders[floor] {
 		orders.Up_orders[floor] = false
@@ -107,6 +124,10 @@ func (orders Orders) OrderInFloor(floor int) bool {
 		return true
 	}
 	return false
+}
+
+func (orders Orders) GetOrdersInFloor(floor int) (bool, bool, bool) {
+	return orders.Up_orders[floor], orders.Down_orders[floor], orders.Cab_orders[floor]
 }
 
 // Save and load to and from file functionality

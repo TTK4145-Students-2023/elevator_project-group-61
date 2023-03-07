@@ -94,6 +94,10 @@ func (orders *Orders) AddOrder(btn elevio.ButtonEvent) {
 	SaveElevatorOrdersToFile(*orders)
 }
 
+func (orders Orders) GetCabRequests() []bool {
+	return orders.Cab_orders
+}
+
 func (orders *Orders) SetOrder(floor int, btn elevio.ButtonType, value bool) {
 	switch btn {
 	case elevio.BT_HallUp:

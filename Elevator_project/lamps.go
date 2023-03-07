@@ -33,3 +33,13 @@ func UpdateSingleElevOrderLamps(orders Orders) {
 		}
 	}
 }
+
+func UpdateCabLamps(orders Orders) {
+	for floor_num := 0; floor_num < n_floors; floor_num++ {
+		if orders.GetSpecificOrder(floor_num, elevio.BT_Cab) {
+			elevio.SetButtonLamp(elevio.BT_Cab, floor_num, true)
+		} else {
+			elevio.SetButtonLamp(elevio.BT_Cab, floor_num, false)
+		}
+	}
+}

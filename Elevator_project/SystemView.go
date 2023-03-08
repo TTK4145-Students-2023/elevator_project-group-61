@@ -19,6 +19,7 @@ const (
 )
 
 type NodeAwareness struct {
+	
 	ID string
 	ElevatorState ElevState
 	HallRequests [n_floors][]RequestState    // n number of floors
@@ -31,10 +32,7 @@ type SystemAwareness struct {
 	SystemCabRequests map[string][]bool
 }
 
-// Denne funksjonen skal ta inn systemHallRequests og oppdatere denne nodens understanding basert på hva som 
-// ligger der
-
-func updateMyHallRequestUnderstanding(systemHallRequests map[string][][2]RequestState) [][2]RequestState {
+func updateMyHallRequestView(systemHallRequests map[string][][2]RequestState) [][2]RequestState {
 	myView := systemHallRequests[localID]
 	delete(systemHallRequests, localID)
 	myUpdatedView := make([][2]RequestState, n_floors)
@@ -42,7 +40,7 @@ func updateMyHallRequestUnderstanding(systemHallRequests map[string][][2]Request
 	for row := 0; row < len(myView); row++ {
 		for col := 0; j < len(myView[row]); col++ {
 			hall_order := myView[row][col]
-			// TODO Lag den planlagte switch case
+
 			switch hall_order {
 			case RS_Unkwown:
 				max_count := int(hall_order)

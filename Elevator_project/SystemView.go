@@ -2,6 +2,7 @@ package main
 
 import (
 	"ElevatorProject/elevio"
+	"crypto/x509"
 	"fmt"
 )
 
@@ -27,15 +28,62 @@ type NodeAwareness struct {
 type SystemAwareness struct {
 	SystemElevState map[string] ElevState
 	SystemHallRequests map[string] [n_floors][]RequestState
-	SystemCabRequests map[string] []bool
+	SystemCabRequests map[string][]bool
 }
 
 // Denne funksjonen skal ta inn systemHallRequests og oppdatere denne nodens understanding basert på hva som 
 // ligger der
 
 func updateMyHallRequestUnderstanding(systemHallRequests map[string][][2]RequestState) [][2]RequestState {
-	
-	return
+	myView := systemHallRequests[localID]
+	delete(systemHallRequests, localID)
+	myUpdatedView := make([][2]RequestState, n_floors)
+
+	for row := 0; row < len(myView); row++ {
+		for col := 0; j < len(myView[row]); col++ {
+			hall_order := myView[row][col]
+			// TODO Lag den planlagte switch case
+			switch hall_order {
+			case RS_Unkwown:
+				max_count := int(hall_order)
+				for nodeID, nodeView := range systemHallRequests {
+					if int(nodeView[row][col]) > max_count {
+						max_count = int(nodeView[row][col])
+					}
+				}
+				myUpdatedView[row][col] = RequestState(max_count)
+			case RS_NoOrder:
+				// Go to RS_Pending if any other node has RS_Pending
+				for nodeID, nodeView := range systemHallRequests {
+					if nodeView[row][col] == RS_Pending {
+						myUpdatedView[row][col] = RS_Pending
+						break
+					}
+				}
+			case RS_Pending:
+				RS_Pending_count := 0
+				for nodeID, nodeView := range systemHallRequests {
+					if nodeView[row][col] == RS_Confirmed {
+						myUpdatedView[row][col] = RS_Confirmed
+						break
+					} else if nodeView[row][col] == RS_Pending {
+						RS_Pending_count++
+					}
+				}
+				if RS_Pending_count > len(systemHallRequests) {
+					myUpdatedView[row][col] = RS_Confirmed
+				}
+			case RS_Confirmed:
+				for nodeID, nodeView := range systemHallRequests {
+					if nodeView[row][col] == RS_NoOrder {
+						myUpdatedView[row][col] = RS_NoOrder
+						break
+					}
+				}
+			}
+		}
+	}
+	return myUpdatedView
 }
 
 func SystemView(ch_receiver <- chan NodeAwareness, ch_transmit chan <- NodeAwareness, ch_hallCalls 

@@ -1,4 +1,4 @@
-package door_timer
+package doortimer
 
 import (
 	"time"

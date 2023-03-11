@@ -1,7 +1,7 @@
-package main 
+package singleelevator
 
 import (
-	"ElevatorProject/elevio"
+	"elevatorproject/singleelevator/elevio"
 )
 
 const (

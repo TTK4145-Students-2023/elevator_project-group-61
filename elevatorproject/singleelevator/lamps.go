@@ -1,7 +1,7 @@
-package main
+package singleelevator
 
 import (
-	"ElevatorProject/elevio"
+	"elevatorproject/singleelevator/elevio"
 )
 
 func LampStateMachine(ch_hall_requests chan [][2]bool, ch_cab_requests chan []bool) {

@@ -1,7 +1,7 @@
-package main
+package singleelevator
 
 import (
-	"ElevatorProject/elevio"
+	"elevatorproject/singelelevator/elevio"
 	"encoding/json"
 	"io/ioutil"
 )

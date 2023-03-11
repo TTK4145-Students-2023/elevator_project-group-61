@@ -1,6 +1,6 @@
-package main
+package singleelevator
 
-import "ElevatorProject/elevio"
+import "elevatorproject/singleelevator/elevio"
 
 // What this module needs to do:
 // - For all elevators know what hall orders they have and in what stage those orders are.

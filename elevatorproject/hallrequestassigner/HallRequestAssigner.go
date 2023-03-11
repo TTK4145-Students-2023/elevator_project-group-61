@@ -6,8 +6,7 @@
 
 //TODO: In network module, implement I'm available channel, which truns off broadcasting for the unavailable node.
 
-
-
+package hallrequestassigner 
 
 
 type HRAElevState struct {
@@ -60,7 +59,7 @@ func transformToHRAInput(systemAwareness SystemAwareness, id string) HRAInput {
 
 
 
-func assignHallRequests(ch_hraInput <-chan SystemAwareness, ch_hraoutput chan<- [][2]bool, id string) {
+func AssignHallRequests(ch_hraInput <-chan SystemAwareness, ch_hraoutput chan<- [][2]bool, id string) {
 	for {
 		select {
 		case systemAwareness := <-ch_hraInput:

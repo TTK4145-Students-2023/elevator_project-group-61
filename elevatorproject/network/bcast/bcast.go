@@ -1,7 +1,7 @@
 package bcast
 
 import (
-	"Network-go/network/conn"
+	"elevatorproject/network/conn"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -9,50 +9,40 @@ import (
 )
 
 const bufSize = 1024
-const interval = 15 * time.Millisecond
 
 // Encodes received values from `chans` into type-tagged JSON, then broadcasts
 // it on `port`
-func Transmitter(port int, transmitterChannel interface{}) {
-	checkArgs(transmitterChannel)
-	typeNames := []string{reflect.TypeOf(transmitterChannel).Elem().String()}
-	selectCases := []reflect.SelectCase{{
-		Dir:  reflect.SelectRecv,
-		Chan: reflect.ValueOf(transmitterChannel),
-	}}
+func Transmitter(port int, chans ...interface{}) {
+	checkArgs(chans...)
+	typeNames := make([]string, len(chans))
+	selectCases := make([]reflect.SelectCase, len(typeNames))
+	for i, ch := range chans {
+		selectCases[i] = reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(ch),
+		}
+		typeNames[i] = reflect.TypeOf(ch).Elem().String()
+	}
 
 	conn := conn.DialBroadcastUDP(port)
 	addr, _ := net.ResolveUDPAddr("udp4", fmt.Sprintf("255.255.255.255:%d", port))
-
-	latestValue := reflect.Zero(reflect.TypeOf(transmitterChannel).Elem()).Interface()
-	ticker := time.NewTicker(interval)
-
 	for {
-		select {
-		case <-ticker.C:
-			jsonstr, _ := json.Marshal(latestValue)
-			ttj, _ := json.Marshal(typeTaggedJSON{
-				TypeId: typeNames[0],
-				JSON:   jsonstr,
-			})
-			if len(ttj) > bufSize {
-				panic(fmt.Sprintf(
-					"Tried to send a message longer than the buffer size (length: %d, buffer size: %d)\n\t'%s'\n"+
-						"Either send smaller packets, or go to network/bcast/bcast.go and increase the buffer size",
-					len(ttj), bufSize, string(ttj)))
-			}
-			conn.WriteTo(ttj, addr)
-
-		case rcv, ok := <-selectCases[0].Chan:
-			if ok {
-				latestValue = rcv.Interface()
-			} else {
-				return
-			}
+		chosen, value, _ := reflect.Select(selectCases)
+		jsonstr, _ := json.Marshal(value.Interface())
+		ttj, _ := json.Marshal(typeTaggedJSON{
+			TypeId: typeNames[chosen],
+			JSON:   jsonstr,
+		})
+		if len(ttj) > bufSize {
+			panic(fmt.Sprintf(
+				"Tried to send a message longer than the buffer size (length: %d, buffer size: %d)\n\t'%s'\n"+
+					"Either send smaller packets, or go to network/bcast/bcast.go and increase the buffer size",
+				len(ttj), bufSize, string(ttj)))
 		}
+		conn.WriteTo(ttj, addr)
+
 	}
 }
-
 
 // Matches type-tagged JSON received on `port` to element types of `chans`, then
 // sends the decoded value on the corresponding channel
@@ -93,12 +83,14 @@ type typeTaggedJSON struct {
 }
 
 // Checks that args to Tx'er/Rx'er are valid:
-//  All args must be channels
-//  Element types of channels must be encodable with JSON
-//  No element types are repeated
+//
+//	All args must be channels
+//	Element types of channels must be encodable with JSON
+//	No element types are repeated
+//
 // Implementation note:
-//  - Why there is no `isMarshalable()` function in encoding/json is a mystery,
-//    so the tests on element type are hand-copied from `encoding/json/encode.go`
+//   - Why there is no `isMarshalable()` function in encoding/json is a mystery,
+//     so the tests on element type are hand-copied from `encoding/json/encode.go`
 func checkArgs(chans ...interface{}) {
 	n := 0
 	for range chans {
@@ -127,13 +119,12 @@ func checkArgs(chans ...interface{}) {
 		elemTypes[i] = elemType
 
 		// Element type must be encodable with JSON
-		checkTypeRecursive(elemType, []int{i+1})
+		checkTypeRecursive(elemType, []int{i + 1})
 
 	}
 }
 
-
-func checkTypeRecursive(val reflect.Type, offsets []int){
+func checkTypeRecursive(val reflect.Type, offsets []int) {
 	switch val.Kind() {
 	case reflect.Complex64, reflect.Complex128, reflect.Chan, reflect.Func, reflect.UnsafePointer:
 		panic(fmt.Sprintf(

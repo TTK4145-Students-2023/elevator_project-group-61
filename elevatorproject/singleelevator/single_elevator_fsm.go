@@ -1,8 +1,8 @@
-package main
+package singleelevator
 
 import (
-	"ElevatorProject/door_timer"
-	"ElevatorProject/elevio"
+	"elevatorproject/singleelevator/doortimer"
+	"elevatorproject/singleelevator/elevio"
 	"fmt"
 )
 

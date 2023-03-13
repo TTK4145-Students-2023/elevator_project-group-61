@@ -8,11 +8,6 @@ import (
 
 const elevator_orders_filename = "elevator_orders_backup.json"
 
-type SpecificOrder struct {
-	Floor int
-	Btn   elevio.ButtonType
-}
-
 type Orders struct {
 	Up_orders   []bool
 	Down_orders []bool
@@ -24,7 +19,7 @@ func (orders *Orders) InitOrders() {
 	orders.Cab_orders = make([]bool, n_floors)
 	orders.Up_orders = make([]bool, n_floors)
 	orders.Down_orders = make([]bool, n_floors)
-	// Try to load old orders from file
+	// Try to load old orders from file // Removed because it ruined tests. Uncomment if you want to use it.
 	// loaded_orders, err := LoadElevatorOrdersFromFile()
 	// if err == nil {
 	// 	*orders = loaded_orders

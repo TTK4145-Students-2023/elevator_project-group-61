@@ -38,8 +38,7 @@ func testMakeHRA(orders_to_send chan [][2]bool){
     for {
         time.Sleep(10*time.Second)
         hra_orders := make([][2]bool, 4)
-        floors := rand.Intn(4)
-        for i := 0; i < floors; i++ {
+        for i := 0; i < 4; i++ {
             for j := 0; j < 2; j++ {
                 if !(i == 0 && j == 1) && !(i == 3 && j == 0) {
                     hra_orders[i][j] = rand.Intn(2) == 1

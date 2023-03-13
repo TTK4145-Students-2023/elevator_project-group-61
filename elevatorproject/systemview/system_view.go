@@ -14,10 +14,11 @@ type RequestState int
 // All peers alive in a list of same type peers
 
 const (
-	RS_Unknown   RequestState = 0
-	RS_NoOrder                = 1
-	RS_Pending                = 2
-	RS_Confirmed              = 3
+	RS_Unknown RequestState = -1
+	RS_NoOrder = 0
+	RS_Pending = 1
+	RS_Confirmed = 2
+	RS_Completed = 3
 )
 
 type PeersAlive []string
@@ -54,7 +55,6 @@ func updateMyHallRequestView(systemHallRequests map[string][][2]RequestState) []
 					}
 				}
 				myView[row][col] = RequestState(max_count)
-
 			case RS_NoOrder:
 				// Go to RS_Pending if any other node has RS_Pending
 				for _, nodeView := range systemHallRequests {
@@ -73,14 +73,12 @@ func updateMyHallRequestView(systemHallRequests map[string][][2]RequestState) []
 						RS_Pending_count++
 					}
 				}
-				// print len of systemHallRequests and
-				//fmt.Println("len(systemHallRequests): ", len(systemHallRequests))
 				if RS_Pending_count == len(systemHallRequests) {
 					myView[row][col] = RS_Confirmed
 				}
 			case RS_Confirmed:
 				for _, nodeView := range systemHallRequests {
-					if nodeView[row][col] == RS_NoOrder {
+					if nodeView[row][col] == RS_NoOrder || nodeView[row][col] == RS_Completed {
 						myView[row][col] = RS_NoOrder
 						break
 					}

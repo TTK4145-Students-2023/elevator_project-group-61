@@ -86,10 +86,10 @@ func updateMyHallRequestView(systemHallRequests map[string][][2]RequestState) []
 					}
 				}
 			case RS_Completed:
-				// Go to RS_NoOrder if all other nodes have RS_NoOrder
+				// Go to RS_NoOrder if all other nodes have anything else than RS_Confirmed
 				noOrderCount := 0
 				for _, nodeView := range systemHallRequests {
-					if nodeView[row][col] == RS_NoOrder {
+					if nodeView[row][col] != RS_Confirmed {
 						noOrderCount++
 					}
 				}

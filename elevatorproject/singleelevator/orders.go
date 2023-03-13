@@ -25,11 +25,11 @@ func (orders *Orders) InitOrders() {
 	orders.Up_orders = make([]bool, n_floors)
 	orders.Down_orders = make([]bool, n_floors)
 	// Try to load old orders from file
-	loaded_orders, err := LoadElevatorOrdersFromFile()
-	if err == nil {
-		*orders = loaded_orders
-		return
-	}
+	// loaded_orders, err := LoadElevatorOrdersFromFile()
+	// if err == nil {
+	// 	*orders = loaded_orders
+	// 	return
+	// }
 	for i := 0; i < n_floors; i++ {
 		orders.Cab_orders[i] = false
 		orders.Up_orders[i] = false

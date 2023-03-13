@@ -1,7 +1,7 @@
 package singleelevator
 
 import (
-	"elevatorproject/singelelevator/elevio"
+	"elevatorproject/singleelevator/elevio"
 	"encoding/json"
 	"io/ioutil"
 )
@@ -136,26 +136,26 @@ func (orders Orders) GetOrdersInFloor(floor int) (bool, bool, bool) {
 
 // Save and load to and from file functionality
 func SaveElevatorOrdersToFile(orders Orders) error {
-    data, err := json.MarshalIndent(orders, "", "    ")
-    if err != nil {
-        return err
-    }
-    err = ioutil.WriteFile(elevator_orders_filename, data, 0644)
-    if err != nil {
-        return err
-    }
-    return nil
+	data, err := json.MarshalIndent(orders, "", "    ")
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(elevator_orders_filename, data, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func LoadElevatorOrdersFromFile() (Orders, error) {
-    var orders Orders
-    data, err := ioutil.ReadFile(elevator_orders_filename)
-    if err != nil {
-        return orders, err
-    }
-    err = json.Unmarshal(data, &orders)
-    if err != nil {
-        return orders, err
-    }
-    return orders, nil
+	var orders Orders
+	data, err := ioutil.ReadFile(elevator_orders_filename)
+	if err != nil {
+		return orders, err
+	}
+	err = json.Unmarshal(data, &orders)
+	if err != nil {
+		return orders, err
+	}
+	return orders, nil
 }

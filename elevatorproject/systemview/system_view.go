@@ -4,6 +4,7 @@ import (
 	"time"
 	"elevatorproject/singleelevator"
 	"elevatorproject/network/peers"
+	"elevatorproject/singleelevator/elevio"
 )
 
 const n_floors int = 4
@@ -50,7 +51,7 @@ func updateMyHallRequestView(systemHallRequests map[string][][2]RequestState) []
 			case RS_Unknown:
 				max_count := int(hall_order)
 				for _, nodeView := range systemHallRequests {
-					if int(nodeView[row][col]) > max_count {
+					if (int(nodeView[row][col]) > max_count) && nodeView[row][col] != RS_Confirmed {
 						max_count = int(nodeView[row][col])
 					}
 				}
@@ -64,24 +65,36 @@ func updateMyHallRequestView(systemHallRequests map[string][][2]RequestState) []
 					}
 				}
 			case RS_Pending:
-				RS_Pending_count := 0
+				pendingCount := 0
 				for _, nodeView := range systemHallRequests {
 					if nodeView[row][col] == RS_Confirmed {
 						myView[row][col] = RS_Confirmed
 						break
 					} else if nodeView[row][col] == RS_Pending {
-						RS_Pending_count++
+						pendingCount++
 					}
 				}
-				if RS_Pending_count == len(systemHallRequests) {
+				if	pendingCount == len(systemHallRequests) {
 					myView[row][col] = RS_Confirmed
 				}
 			case RS_Confirmed:
 				for _, nodeView := range systemHallRequests {
-					if nodeView[row][col] == RS_NoOrder || nodeView[row][col] == RS_Completed {
+					// TODO: Check if or nodeView[row][col] == RS_Confirmed is needed
+					if nodeView[row][col] == RS_Completed {
 						myView[row][col] = RS_NoOrder
 						break
 					}
+				}
+			case RS_Completed:
+				// Go to RS_NoOrder if all other nodes have RS_NoOrder
+				noOrderCount := 0
+				for _, nodeView := range systemHallRequests {
+					if nodeView[row][col] == RS_NoOrder {
+						noOrderCount++
+					}
+				}
+				if noOrderCount == len(systemHallRequests) {
+					myView[row][col] = RS_NoOrder
 				}
 			}
 		}
@@ -144,8 +157,8 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 	ch_receive <-chan NodeAwareness,
 	ch_peerUpdate <-chan peers.PeerUpdate,
 	ch_peerTransmitEnable chan<- bool,
-	ch_newHallRequest <-chan singleelevator.SpecificOrder,
-	ch_compledtedHallRequest <-chan singleelevator.SpecificOrder,
+	ch_newHallRequest <-chan elevio.ButtonEvent,
+	ch_compledtedHallRequest <-chan elevio.ButtonEvent,
 	ch_cabRequests <-chan []bool,
 	ch_elevState <-chan singleelevator.States,
 	ch_hallRequests chan<- [][2]bool,

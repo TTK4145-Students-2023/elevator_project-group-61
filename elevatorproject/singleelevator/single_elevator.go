@@ -36,7 +36,7 @@ func RunSingleElevator(){
 
 func testMakeHRA(orders_to_send chan [][2]bool){
     for {
-        time.Sleep(10*time.Second)
+        time.Sleep(2*time.Second)
         hra_orders := make([][2]bool, 4)
         for i := 0; i < 4; i++ {
             for j := 0; j < 2; j++ {

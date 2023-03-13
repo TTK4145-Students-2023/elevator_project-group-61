@@ -51,7 +51,7 @@ func updateMyHallRequestView(systemHallRequests map[string][][2]RequestState) []
 			case RS_Unknown:
 				max_count := int(hall_order)
 				for _, nodeView := range systemHallRequests {
-					if (int(nodeView[row][col]) > max_count) && nodeView[row][col] != RS_Confirmed {
+					if (int(nodeView[row][col]) > max_count) && nodeView[row][col] != RS_Completed {
 						max_count = int(nodeView[row][col])
 					}
 				}

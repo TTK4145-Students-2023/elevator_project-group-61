@@ -8,6 +8,13 @@
 
 package hallrequestassigner 
 
+import (
+	"encoding/json"
+	"fmt"
+	"os/exec"
+	"runtime"
+)
+
 
 type HRAElevState struct {
     Behavior    string      `json:"behaviour"`
@@ -55,9 +62,7 @@ func transformToHRAInput(systemAwareness SystemAwareness, id string) HRAInput {
 		States:       transfromedHRAStates,
 	}
 	return transfromedHRAInput
-}l goroutines are asleep - deadlock!
-
-
+}
 
 func AssignHallRequests(ch_hraInput <-chan SystemAwareness, ch_hraoutput chan<- [][2]bool, id string) {
 	for {
@@ -81,12 +86,11 @@ func AssignHallRequests(ch_hraInput <-chan SystemAwareness, ch_hraoutput chan<- 
 				return
 			}
 
-			ret, err := exec.Command("../hall_request_assigner/"+hraExecutable, "-i", string(jsonBytes)).CombinedOutput()
+			ret, err := exec.Command(+hraExecutable, "-i", string(jsonBytes)).CombinedOutput()
 			if err != nil {
 				fmt.Println("exec.Command error: ", err)
 				fmt.Println(string(ret))
-				returnl goroutines are asleep - deadlock!
-
+				return
 			}
 
 			output := new(map[string][][2]bool)

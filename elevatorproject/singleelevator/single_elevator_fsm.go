@@ -92,16 +92,14 @@ func HandleNewRequests(hra [][2]bool, cab_order_floor int, elev_states States, a
 			active_orders.SetOrder(i, elevio.BT_HallDown, hra[i][1])
 		}
 	}
-
 	open_door_bool := false
 	set_direction_bool := false
 	remove_orders_list := make([]elevio.ButtonEvent, 0)
 
-	up_this_floor, down_this_floor, cab_this_floor := active_orders.GetOrdersInFloor(elev_states.GetLastFloor())
-	order_in_this_floor := up_this_floor || down_this_floor || cab_this_floor
 	switch elev_states.GetElevatorBehaviour() {
 	case Moving:
 	case DoorOpen:
+		up_this_floor, down_this_floor, cab_this_floor := active_orders.GetOrdersInFloor(elev_states.GetLastFloor())
 		if cab_this_floor {
 			open_door_bool = true
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{elev_states.GetLastFloor(), elevio.BT_Cab})
@@ -117,6 +115,8 @@ func HandleNewRequests(hra [][2]bool, cab_order_floor int, elev_states States, a
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{elev_states.GetLastFloor(), elevio.BT_HallDown})
 		}
 	case Idle:
+		up_this_floor, down_this_floor, cab_this_floor := active_orders.GetOrdersInFloor(elev_states.GetLastFloor())
+		order_in_this_floor := up_this_floor || down_this_floor || cab_this_floor
 		orders_above := active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)
 		orders_below := active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)
 		if !active_orders.AnyOrder() {

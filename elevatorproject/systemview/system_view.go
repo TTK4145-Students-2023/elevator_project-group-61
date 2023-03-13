@@ -181,7 +181,6 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 			peersLost := peerUpdate.Lost
 
 			// Heller kjøre en metode som sletter her
-
 			if len(peersAlive) <= 1 {
 				singleElevatorMode = true
 				// We must stop broadcasting our node awareness. Disable the channel
@@ -197,10 +196,10 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 				// else single elevator mode false
 			} else {
 				singleElevatorMode = false
-
 			}
 			for _, lostPeer := range peersLost {
 				// If this node can be found in lostPeer, we should delete it from the systemAwareness
+				delete(systemAwareness.SystemNodesAvailable, lostPeer)
 				delete(systemAwareness.SystemElevState, lostPeer)
 				delete(systemAwareness.SystemHallRequests, lostPeer)
 				delete(systemAwareness.SystemCabRequests, lostPeer)
@@ -236,14 +235,20 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 
 		case newHallRequest := <-ch_newHallRequest:
 			// Her skal vi oppdatere vår egen hall request
-			myNodeAwareness.HallRequests[newHallRequest.Floor][int(newHallRequest.Btn)] = RS_Pending
+			myNodeAwareness.HallRequests[newHallRequest.Floor][int(newHallRequest.Button)] = RS_Pending
 			systemAwareness.SystemHallRequests[localID] = myNodeAwareness.HallRequests
 
 			// Denne trengs vel bare i singel elevator mode
-			//ch_hallRequests <- myNodeAwareness.HallRequests
+			if singleElevatorMode {
+				ch_hallRequests <- convertHallRequestStateToBool(myNodeAwareness.HallRequests, singleElevatorMode)
+			}
 		case completedHallRequest := <-ch_compledtedHallRequest:
 			// Her skal vi oppdatere vår egen hall request
-			myNodeAwareness.HallRequests[completedHallRequest.Floor][int(completedHallRequest.Btn)] = RS_NoOrder
+			nextRS := RS_Completed
+			if singleElevatorMode {
+				nextRS = RS_NoOrder
+			}
+			myNodeAwareness.HallRequests[completedHallRequest.Floor][int(completedHallRequest.Button)] = nextRS
 			systemAwareness.SystemHallRequests[localID] = myNodeAwareness.HallRequests
 
 		case cabRequests := <-ch_cabRequests:
@@ -263,4 +268,3 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 	}
 }
 
-// I singleElevatorMode never go to confirmed state. New orders will always be pending.

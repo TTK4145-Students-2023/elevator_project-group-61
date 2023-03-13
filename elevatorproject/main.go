@@ -1,19 +1,20 @@
 package main
 
 import (
-	"elevatorproject/network/bcast"
-	"elevatorproject/network/localip"
-	"elevatorproject/network/peers"
-	"flag"
-	"fmt"
-	"os"
-	"time"
+	// "elevatorproject/network/bcast"
+	// "elevatorproject/network/localip"
+	// "elevatorproject/network/peers"
+	// "flag"
+	// "fmt"
+	// "os"
+	// "time"
+	"elevatorproject/singleelevator"
 	
 )
 
 
 func main() {
-	
+	singleelevator.RunSingleElevator()
 }
 
 /*

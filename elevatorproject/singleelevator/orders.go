@@ -86,7 +86,7 @@ func (orders *Orders) AddOrder(btn elevio.ButtonEvent) {
 	case elevio.BT_Cab:
 		orders.Cab_orders[btn.Floor] = true
 	}
-	SaveElevatorOrdersToFile(*orders)
+	// SaveElevatorOrdersToFile(*orders)
 }
 
 func (orders Orders) GetCabRequests() []bool {
@@ -102,7 +102,7 @@ func (orders *Orders) SetOrder(floor int, btn elevio.ButtonType, value bool) {
 	case elevio.BT_Cab:
 		orders.Cab_orders[floor] = value
 	}
-	SaveElevatorOrdersToFile(*orders)
+	// SaveElevatorOrdersToFile(*orders)
 }
 
 func (orders *Orders) RemoveOrderDirection(floor int, dir elevio.MotorDirection) {
@@ -115,7 +115,7 @@ func (orders *Orders) RemoveOrderDirection(floor int, dir elevio.MotorDirection)
 	if dir == elevio.MD_Stop && orders.Cab_orders[floor] {
 		orders.Cab_orders[floor] = false
 	}
-	SaveElevatorOrdersToFile(*orders)
+	// SaveElevatorOrdersToFile(*orders)
 }
 
 func (orders Orders) OrderInFloor(floor int) bool {

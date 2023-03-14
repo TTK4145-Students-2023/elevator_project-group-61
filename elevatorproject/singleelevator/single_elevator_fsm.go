@@ -6,6 +6,14 @@ import (
 	"fmt"
 )
 
+// Helper struct
+type ElevState struct {
+    Behavior    string     
+    Floor       int          
+    Direction   string      
+    CabRequests []bool      
+}
+
 // Constants
 const n_floors int = 4
 
@@ -53,6 +61,51 @@ func DirToBtnType(dir elevio.MotorDirection) elevio.ButtonType {
 		return elevio.BT_HallDown
 	}
 	return elevio.BT_Cab
+}
+
+// type ElevState struct {
+//     Behavior    string     
+//     Floor       int          
+//     Direction   string      
+//     CabRequests []bool      
+// }
+
+func StatesToHRAStates(states States, cab_requests []bool) ElevState {
+	hra_states := ElevState{}
+
+	// Floor
+	if states.GetLastFloor() == -1 {
+		hra_states.Floor = n_floors/2
+	} else {
+		hra_states.Floor = states.GetLastFloor()
+	}
+
+	// Direction
+	switch (states.GetLastDirection()) {
+	case elevio.MD_Up:
+		hra_states.Direction = "up"
+	case elevio.MD_Down:
+		hra_states.Direction = "down"
+	}
+
+	// Behaviour
+	switch (states.GetElevatorBehaviour()) {
+	case "Idle":
+		hra_states.Behavior = "idle"
+		hra_states.Direction = "stop"
+	case "Moving":
+		hra_states.Behavior = "moving"
+	case "DoorOpen":
+		hra_states.Behavior = "doorOpen"
+		hra_states.Direction = "stop"
+	default:
+		panic("Invalid elevator behaviour")
+	}
+
+	// Cab requests
+	hra_states.CabRequests = cab_requests
+
+	return hra_states
 }
 
 // Functions for handling events
@@ -231,10 +284,12 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	ch_cab_requests chan<- []bool,
 	ch_completed_hall_req chan<- elevio.ButtonEvent,
 	ch_new_hall_req chan<- elevio.ButtonEvent,
-	ch_elevstate chan<- States) {
+	ch_elevstate chan<- ElevState) {
 
 	var Elev_states States
 	var Active_orders Orders
+
+	// StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
 
 	// Initiate elevator
 	fmt.Println("Initiate elevator")
@@ -247,7 +302,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	} else {
 		Elev_states.SetLastFloor(elevio.GetFloor())
 	}
-	ch_elevstate <- Elev_states
+	ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
 
 	// Finite state machine
 	for {
@@ -258,7 +313,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			var remove_orders_list []elevio.ButtonEvent
 			Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleNewRequests(hra, -1, Elev_states, Active_orders)
 			testSetLights(Active_orders) // Just for testing
-			ch_elevstate <- Elev_states
+			ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
 			if open_door_bool {
 				elevio.SetDoorOpenLamp(true)
 				doortimer.StartTimer()
@@ -285,7 +340,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			var remove_orders_list []elevio.ButtonEvent
 			Elev_states, Active_orders, stop_bool, remove_orders_list = HandleFloorSensor(floor, Elev_states, Active_orders)
 			testSetLights(Active_orders) // Just for testing
-			ch_elevstate <- Elev_states
+			ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
 			if stop_bool {
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				elevio.SetDoorOpenLamp(true)
@@ -313,7 +368,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			var remove_orders_list []elevio.ButtonEvent
 			Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleDoorClosing(Elev_states, Active_orders)
 			testSetLights(Active_orders) // Just for testing
-			ch_elevstate <- Elev_states
+			ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
 			if open_door_bool {
 				elevio.SetDoorOpenLamp(true)
 				doortimer.StartTimer()
@@ -341,7 +396,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				emtpy_hra := [][2]bool{}
 				Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleNewRequests(emtpy_hra, btn_press.Floor, Elev_states, Active_orders)
 				testSetLights(Active_orders) // Just for testing
-				ch_elevstate <- Elev_states
+				ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
 				if open_door_bool {
 					elevio.SetDoorOpenLamp(true)
 					doortimer.StartTimer()

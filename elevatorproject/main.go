@@ -1,88 +1,63 @@
 package main
 
 import (
-	// "elevatorproject/network/bcast"
-	// "elevatorproject/network/localip"
-	// "elevatorproject/network/peers"
-	// "flag"
-	// "fmt"
-	// "os"
-	// "time"
+	"elevatorproject/config"
+	"elevatorproject/hallrequestassigner"
+	"elevatorproject/network/peers"
 	"elevatorproject/singleelevator"
-	
+	"elevatorproject/systemview"
+	"elevatorproject/singleelevator/elevio"
+	"elevatorproject/singleelevator/doortimer"
 )
 
 
 func main() {
-	singleelevator.RunSingleElevator()
+	numFloors := 4
+
+    elevio.Init("10.100.23.27:15657", numFloors) 
+	
+	// singleelevator
+    drv_buttons := make(chan elevio.ButtonEvent)
+    drv_floors  := make(chan int)   
+	ch_door := make(chan int)
+
+    ch_completedHallRequests := make(chan elevio.ButtonEvent)
+    ch_newHallRequests := make(chan elevio.ButtonEvent)
+    ch_elevState := make(chan singleelevator.ElevState)
+	ch_cabRequests := make(chan []bool)
+	
+	// network
+	ch_receive := make(chan systemview.NodeAwareness)
+	ch_transmit := make(chan systemview.NodeAwareness)
+	ch_peerTransmitEnable := make(chan bool)
+	ch_peerUpdate := make(chan peers.PeerUpdate)
+
+	//systemview
+	ch_initCabRequests := make(chan []bool)
+	ch_hraInput := make(chan systemview.SystemAwareness)
+	ch_hallRequests := make(chan [][2]bool)
+
+	// hra
+	ch_hraOutput := make(chan [][2]bool)
+	
+	
+   
+    
+    go elevio.PollButtons(drv_buttons)
+    go elevio.PollFloorSensor(drv_floors)
+    go doortimer.CheckTimer(ch_door)
+
+
+    
+	go singleelevator.Fsm_elevator(drv_buttons, drv_floors, ch_door, ch_hraOutput, ch_initCabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState)
+	
+	go peers.Receiver(12222, ch_peerUpdate)
+	go peers.Transmitter(12223, config.LocalID, ch_peerTransmitEnable)
+
+	go systemview.SystemView(ch_transmit, ch_receive, ch_peerUpdate, ch_peerTransmitEnable, ch_newHallRequests, 
+		ch_completedHallRequests, ch_elevState, ch_hallRequests, ch_initCabRequests, ch_hraInput)
+
+	go hallrequestassigner.AssignHallRequests(ch_hraInput, ch_hraOutput)
+	go singleelevator.LampStateMachine(ch_hallRequests, ch_cabRequests)
 }
 
-/*
-type HelloMsg struct {
-	Message string
-	Iter    int
-}
-
-func main() {
-	// Our id can be anything. Here we pass it on the command line, using
-	//  `go run main.go -id=our_id`
-	var id string
-	flag.StringVar(&id, "id", "", "id of this peer")
-	flag.Parse()
-
-	// ... or alternatively, we can use the local IP address.
-	// (But since we can run multiple programs on the same PC, we also append the
-	//  process ID)
-	if id == "" {
-		localIP, err := localip.LocalIP()
-		if err != nil {
-			fmt.Println(err)
-			localIP = "DISCONNECTED"
-		}
-		id = fmt.Sprintf("peer-%s-%d", localIP, os.Getpid())
-	}
-
-	// We make a channel for receiving updates on the id's of the peers that are
-	//  alive on the network
-	peerUpdateCh := make(chan peers.PeerUpdate)
-	// We can disable/enable the transmitter after it has been started.
-	// This could be used to signal that we are somehow "unavailable".
-	peerTxEnable := make(chan bool)
-	go peers.Transmitter(15647, id, peerTxEnable)
-	go peers.Receiver(15647, peerUpdateCh)
-
-	// We make channels for sending and receiving our custom data types
-	helloTx := make(chan HelloMsg)
-	helloRx := make(chan HelloMsg)
-	// ... and start the transmitter/receiver pair on some port
-	// These functions can take any number of channels! It is also possible to
-	//  start multiple transmitters/receivers on the same port.
-	go bcast.Transmitter(16569, helloTx)
-	go bcast.Receiver(16569, helloRx)
-
-	// The example message. We just send one of these every second.
-	go func() {
-		helloMsg := HelloMsg{"Hello from " + id, 0}
-		for {
-			helloMsg.Iter++
-			helloTx <- helloMsg
-			time.Sleep(1 * time.Second)
-		}
-	}()
-
-	fmt.Println("Started")
-	for {
-		select {
-		case p := <-peerUpdateCh:
-			fmt.Printf("Peer update:\n")
-			fmt.Printf("  Peers:    %q\n", p.Peers)
-			fmt.Printf("  New:      %q\n", p.New)
-			fmt.Printf("  Lost:     %q\n", p.Lost)
-
-		case a := <-helloRx:
-			fmt.Printf("Received: %#v\n", a)
-		}
-	}
-}
-
-*/

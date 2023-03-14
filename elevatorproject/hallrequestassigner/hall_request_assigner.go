@@ -9,6 +9,7 @@
 package hallrequestassigner
 
 import (
+	"elevatorproject/config"
 	"elevatorproject/systemview"
 	"encoding/json"
 	"fmt"
@@ -30,9 +31,9 @@ type HRAInput struct {
 }
 
 // TODO: get localID from somewhere
-func transformToHRAInput(systemAwareness systemview.SystemAwareness, id string) HRAInput {
-	transfromedHRAHallRequests := make([][2]bool, len(systemAwareness.SystemHallRequests[id]))
-	systemHallRequests := systemAwareness.SystemHallRequests[id]
+func transformToHRAInput(systemAwareness systemview.SystemAwareness) HRAInput {
+	transfromedHRAHallRequests := make([][2]bool, len(systemAwareness.SystemHallRequests[config.LocalID]))
+	systemHallRequests := systemAwareness.SystemHallRequests[config.LocalID]
 	for i, floor := range systemHallRequests {
 		for j, requestState := range floor {
 			if requestState == systemview.RS_Confirmed {
@@ -68,11 +69,11 @@ func transformToHRAInput(systemAwareness systemview.SystemAwareness, id string) 
 	return transfromedHRAInput
 }
 
-func AssignHallRequests(ch_hraInput <-chan systemview.SystemAwareness, ch_hraoutput chan<- [][2]bool, id string) {
+func AssignHallRequests(ch_hraInput <-chan systemview.SystemAwareness, ch_hraoutput chan<- [][2]bool) {
 	for {
 		select {
 		case systemAwareness := <-ch_hraInput:
-			hraInput := transformToHRAInput(systemAwareness, id)
+			hraInput := transformToHRAInput(systemAwareness)
 
 			hraExecutable := ""
 			switch runtime.GOOS {
@@ -103,7 +104,7 @@ func AssignHallRequests(ch_hraInput <-chan systemview.SystemAwareness, ch_hraout
 				fmt.Println("json.Unmarshal error: ", err)
 				return
 			}
-			hraOutput := (*output)[id] //TODO: Get the local ID from somewhere
+			hraOutput := (*output)[config.LocalID] //TODO: Get the local ID from somewhere
 
 			ch_hraoutput <- hraOutput
 		}

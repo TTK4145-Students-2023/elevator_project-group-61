@@ -37,8 +37,8 @@ type SystemAwareness struct {
 }
 
 func updateMyHallRequestView(systemHallRequests map[string][][2]RequestState) [][2]RequestState {
-	myView := systemHallRequests[LocalID]
-	delete(systemHallRequests, LocalID)
+	myView := systemHallRequests[config.LocalID]
+	delete(systemHallRequests, config.LocalID)
 
 	for row := 0; row < len(myView); row++ {
 		for col := 0; col < len(myView[row]); col++ {

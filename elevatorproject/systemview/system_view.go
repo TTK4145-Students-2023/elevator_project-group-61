@@ -189,7 +189,7 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 			} else if singleElevatorMode && len(peersAlive) > 1 {
 				singleElevatorMode = false
 				// We must set all no order to unknown
-				myNodeAwareness.ChangeNoOrderToUnknown()
+				myNodeAwareness.ChangeNoOrderAndConfirmedToUnknown()
 				// Update system awareness hall requests
 				systemAwareness.SystemHallRequests[localID] = myNodeAwareness.HallRequests
 				ch_peerTransmitEnable <- true

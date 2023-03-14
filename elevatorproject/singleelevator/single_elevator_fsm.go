@@ -4,19 +4,20 @@ import (
 	"elevatorproject/singleelevator/doortimer"
 	"elevatorproject/singleelevator/elevio"
 	"fmt"
+	"elevatorproject/config"
 )
 
 // Helper struct
 type ElevState struct {
-    Behavior    string     
+    Behaviour    string     
     Floor       int          
     Direction   string      
     CabRequests []bool   
-	isAvailable bool   
+	IsAvailable bool   
 }
 
 // Constants
-const n_floors int = 4
+const n_floors int = config.NumFloors
 
 // Helper functions
 func StopAfterSensingFloor(floor int, elev_states States, active_orders Orders) bool {
@@ -93,12 +94,12 @@ func StatesToHRAStates(states States, cab_requests []bool, isAvailable bool) Ele
 	// Behaviour
 	switch (states.GetElevatorBehaviour()) {
 	case "Idle":
-		hra_states.Behavior = "idle"
+		hra_states.Behaviour = "idle"
 		hra_states.Direction = "stop"
 	case "Moving":
-		hra_states.Behavior = "moving"
+		hra_states.Behaviour = "moving"
 	case "DoorOpen":
-		hra_states.Behavior = "doorOpen"
+		hra_states.Behaviour = "doorOpen"
 		hra_states.Direction = "stop"
 	default:
 		panic("Invalid elevator behaviour")
@@ -108,7 +109,7 @@ func StatesToHRAStates(states States, cab_requests []bool, isAvailable bool) Ele
 	hra_states.CabRequests = cab_requests
 
 	// isAvailable
-	hra_states.isAvailable = isAvailable
+	hra_states.IsAvailable = isAvailable
 
 	return hra_states
 }
@@ -294,6 +295,12 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	var Active_orders Orders
 
 	isAvailable := true
+	// Timers for isAvailable
+	obstruction_timer := time.NewTimer(10*time.Second)
+	obstruction_timer.Stop()
+
+	mechanical_timer := time.NewTimer(7*time.Second)
+	mechanical_timer.Stop()
 
 	// Initiate elevator
 	fmt.Println("Initiate elevator")

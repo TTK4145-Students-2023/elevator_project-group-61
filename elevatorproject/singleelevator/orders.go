@@ -16,16 +16,16 @@ type Orders struct {
 
 // Methods
 func (orders *Orders) InitOrders() {
-	orders.Cab_orders = make([]bool, n_floors)
-	orders.Up_orders = make([]bool, n_floors)
-	orders.Down_orders = make([]bool, n_floors)
+	orders.Cab_orders = make([]bool, NumFloors)
+	orders.Up_orders = make([]bool, NumFloors)
+	orders.Down_orders = make([]bool, NumFloors)
 	// Try to load old orders from file // Removed because it ruined tests. Uncomment if you want to use it.
 	// loaded_orders, err := LoadElevatorOrdersFromFile()
 	// if err == nil {
 	// 	*orders = loaded_orders
 	// 	return
 	// }
-	for i := 0; i < n_floors; i++ {
+	for i := 0; i < NumFloors; i++ {
 		orders.Cab_orders[i] = false
 		orders.Up_orders[i] = false
 		orders.Down_orders[i] = false
@@ -45,7 +45,7 @@ func (orders Orders) GetSpecificOrder(floor int, btn elevio.ButtonType) bool {
 }
 
 func (orders Orders) AnyOrder() bool {
-	for i := 0; i < n_floors; i++ {
+	for i := 0; i < NumFloors; i++ {
 		if orders.Cab_orders[i] || orders.Up_orders[i] || orders.Down_orders[i] {
 			return true
 		}
@@ -56,10 +56,10 @@ func (orders Orders) AnyOrder() bool {
 func (orders Orders) AnyOrderPastFloorInDir(floor int, dir elevio.MotorDirection) bool {
 	switch dir {
 	case elevio.MD_Up:
-		if floor == n_floors-1 {
+		if floor == NumFloors-1 {
 			return false
 		}
-		for i := floor + 1; i < n_floors; i++ {
+		for i := floor + 1; i < NumFloors; i++ {
 			if orders.Cab_orders[i] || orders.Down_orders[i] || orders.Up_orders[i] {
 				return true
 			}

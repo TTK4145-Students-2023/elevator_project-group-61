@@ -23,9 +23,9 @@ type GlobalOrders struct {
 }
 
 func (globalorders *GlobalOrders) InitGlobalOrders() {
-	globalorders.Up_orders = make([]OrderStage, n_floors)
-	globalorders.Down_orders = make([]OrderStage, n_floors)
-	for i := 0; i < n_floors; i++ {
+	globalorders.Up_orders = make([]OrderStage, NumFloors)
+	globalorders.Down_orders = make([]OrderStage, NumFloors)
+	for i := 0; i < NumFloors; i++ {
 		globalorders.Up_orders[i] = 0
 		globalorders.Down_orders[i] = 0
 	}
@@ -35,15 +35,15 @@ type ElevatorOrdersMap map[int]GlobalOrders
 
 func (elev_order_map *ElevatorOrdersMap) InitGlobalOrdersMap() {
 	for i := 0; i < n_elevators; i++ {
-		(*elev_order_map)[i] = GlobalOrders{Up_orders: make([]OrderStage, n_floors), Down_orders: make([]OrderStage, n_floors)}
-		for j := 0; j < n_floors; j++ {
+		(*elev_order_map)[i] = GlobalOrders{Up_orders: make([]OrderStage, NumFloors), Down_orders: make([]OrderStage, NumFloors)}
+		for j := 0; j < NumFloors; j++ {
 			(*elev_order_map)[i].Up_orders[j] = 0
 			(*elev_order_map)[i].Down_orders[j] = 0
 		}
 	}
 }
 
-func (elev_order_map ElevatorOrdersMap)  CheckIfOrderCanBeAssigned(floor int, btn_type elevio.ButtonType) bool {
+func (elev_order_map ElevatorOrdersMap) CheckIfOrderCanBeAssigned(floor int, btn_type elevio.ButtonType) bool {
 	switch btn_type {
 	case elevio.BT_HallUp:
 		for i := 0; i < n_elevators; i++ {
@@ -85,8 +85,8 @@ func (elev_order_map *ElevatorOrdersMap) UpdateElevatorFromNetworkSignal(id int,
 
 // I don't know if these below here are useful
 func (elev_order_map ElevatorOrdersMap) GetSpecificElevatorAssignedOrders(id int) Orders {
-	assigned_orders := Orders{Up_orders: make([]bool, n_floors), Down_orders: make([]bool, n_floors), Cab_orders: make([]bool, n_floors)}
-	for i := 0; i < n_floors; i++ {
+	assigned_orders := Orders{Up_orders: make([]bool, NumFloors), Down_orders: make([]bool, NumFloors), Cab_orders: make([]bool, NumFloors)}
+	for i := 0; i < NumFloors; i++ {
 		assigned_orders.Cab_orders[i] = false
 		if elev_order_map[id].Up_orders[i] == Assigned {
 			assigned_orders.Up_orders[i] = true
@@ -99,8 +99,8 @@ func (elev_order_map ElevatorOrdersMap) GetSpecificElevatorAssignedOrders(id int
 }
 
 func (old_global_orders GlobalOrders) GetDifferenceBetweenElevatorsOrders(new_global_orders GlobalOrders) GlobalOrders {
-	changed_orders := GlobalOrders{Up_orders: make([]OrderStage, n_floors), Down_orders: make([]OrderStage, n_floors)}
-	for i := 0; i < n_floors; i++ {
+	changed_orders := GlobalOrders{Up_orders: make([]OrderStage, NumFloors), Down_orders: make([]OrderStage, NumFloors)}
+	for i := 0; i < NumFloors; i++ {
 		if old_global_orders.Up_orders[i] != new_global_orders.Up_orders[i] {
 			changed_orders.Up_orders[i] = new_global_orders.Up_orders[i]
 		}
@@ -118,5 +118,3 @@ func (elev_order_map *ElevatorOrdersMap) UpdateGlobalMapFromLocalChange(id int, 
 		(*elev_order_map)[id].Down_orders[btn.Floor] = stage
 	}
 }
-
- 

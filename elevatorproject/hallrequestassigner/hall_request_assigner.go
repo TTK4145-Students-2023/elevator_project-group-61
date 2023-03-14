@@ -6,37 +6,38 @@
 
 //TODO: In network module, implement I'm available channel, which truns off broadcasting for the unavailable node.
 
-package hallrequestassigner 
+package hallrequestassigner
 
 import (
+	"elevatorproject/systemview"
 	"encoding/json"
 	"fmt"
 	"os/exec"
 	"runtime"
 )
 
-
 type HRAElevState struct {
-    Behavior    string      `json:"behaviour"`
-    Floor       int         `json:"floor"` 
-    Direction   string      `json:"direction"`
-    CabRequests []bool      `json:"cabRequests"` //Dont need this for ElevState
+	Behaviour   string `json:"behaviour"`
+	Floor       int    `json:"floor"`
+	Direction   string `json:"direction"`
+	CabRequests []bool `json:"cabRequests"` //Dont need this for ElevState
 }
- //The HallRequests are all the requests in the system, but from this nodes point of view.
+
+// The HallRequests are all the requests in the system, but from this nodes point of view.
 type HRAInput struct {
-    HallRequests    [][2]bool                   `json:"hallRequests"`
-    States          map[string]HRAElevState     `json:"states"`
+	HallRequests [][2]bool               `json:"hallRequests"`
+	States       map[string]HRAElevState `json:"states"`
 }
 
 // TODO: get localID from somewhere
-func transformToHRAInput(systemAwareness SystemAwareness, id string) HRAInput {
+func transformToHRAInput(systemAwareness systemview.SystemAwareness, id string) HRAInput {
 	transfromedHRAHallRequests := make([][2]bool, len(systemAwareness.SystemHallRequests[id]))
 	systemHallRequests := systemAwareness.SystemHallRequests[id]
 	for i, floor := range systemHallRequests {
 		for j, requestState := range floor {
-			if requestState == RS_Confirmed {
+			if requestState == systemview.RS_Confirmed {
 				transfromedHRAHallRequests[i][j] = true
-			} else if requestState == RS_Pending && len(systemAwareness.SystemElevState) == 1 {
+			} else if requestState == systemview.RS_Pending && len(systemAwareness.SystemElevState) == 1 {
 				transfromedHRAHallRequests[i][j] = true
 			} else {
 				transfromedHRAHallRequests[i][j] = false
@@ -46,15 +47,18 @@ func transformToHRAInput(systemAwareness SystemAwareness, id string) HRAInput {
 
 	transfromedHRAStates := make(map[string]HRAElevState)
 	systemElevState := systemAwareness.SystemElevState
-	systemCabRequests := systemAwareness.SystemCabRequests
+	//systemCabRequests := systemAwareness.SystemCabRequests
+	systemNodesAvailable := systemAwareness.SystemNodesAvailable
 	for id, elevState := range systemElevState {
-		newHRAElevState := HRAElevState{
-			Behaviour:   elevState.Behaviour,
-			Floor:       elevState.Floor,
-			Direction:   elevState.Direction,
-			CabRequests: systemCabRequests[id],
+		if systemNodesAvailable[id] {
+			newHRAElevState := HRAElevState{
+				Behaviour:   elevState.Behaviour,
+				Floor:       elevState.Floor,
+				Direction:   elevState.Direction,
+				CabRequests: elevState.CabRequests,
+			}
+			transfromedHRAStates[id] = newHRAElevState
 		}
-		transfromedHRAStates[id] = newHRAElevState
 	}
 
 	transfromedHRAInput := HRAInput{
@@ -64,7 +68,7 @@ func transformToHRAInput(systemAwareness SystemAwareness, id string) HRAInput {
 	return transfromedHRAInput
 }
 
-func AssignHallRequests(ch_hraInput <-chan SystemAwareness, ch_hraoutput chan<- [][2]bool, id string) {
+func AssignHallRequests(ch_hraInput <-chan systemview.SystemAwareness, ch_hraoutput chan<- [][2]bool, id string) {
 	for {
 		select {
 		case systemAwareness := <-ch_hraInput:
@@ -86,7 +90,7 @@ func AssignHallRequests(ch_hraInput <-chan SystemAwareness, ch_hraoutput chan<- 
 				return
 			}
 
-			ret, err := exec.Command(+hraExecutable, "-i", string(jsonBytes)).CombinedOutput()
+			ret, err := exec.Command(hraExecutable, "-i", string(jsonBytes)).CombinedOutput()
 			if err != nil {
 				fmt.Println("exec.Command error: ", err)
 				fmt.Println(string(ret))

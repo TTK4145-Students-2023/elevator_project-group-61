@@ -1,20 +1,16 @@
 package systemview
 
 import (
+	"elevatorproject/config"
 	"elevatorproject/network/peers"
 	"elevatorproject/singleelevator"
 	"elevatorproject/singleelevator/elevio"
 	"time"
 )
 
-const n_floors int = 4
-const m_elevators int = 3
-const localID string = "0"
-
 type RequestState int
 
 // All peers alive in a list of same type peers
-
 const (
 	RS_Unknown   RequestState = -1
 	RS_NoOrder                = 0
@@ -26,23 +22,23 @@ const (
 type PeersAlive []string
 
 type NodeAwareness struct {
-	ID            string
-	IsAvailable   bool
-	ElevatorState singleelevator.States
-	HallRequests  [][2]RequestState // n number of floors
-	CabRequests   map[string][]bool
+	ID           string
+	IsAvailable  bool
+	ElevState    singleelevator.ElevState
+	HallRequests [][2]RequestState // n number of floors
+	CabRequests  map[string][]bool
 }
 
 type SystemAwareness struct {
-	SystemElevState      map[string]singleelevator.States
+	SystemElevState      map[string]singleelevator.ElevState
 	SystemHallRequests   map[string][][2]RequestState
 	SystemCabRequests    map[string][]bool
 	SystemNodesAvailable map[string]bool
 }
 
 func updateMyHallRequestView(systemHallRequests map[string][][2]RequestState) [][2]RequestState {
-	myView := systemHallRequests[localID]
-	delete(systemHallRequests, localID)
+	myView := systemHallRequests[LocalID]
+	delete(systemHallRequests, LocalID)
 
 	for row := 0; row < len(myView); row++ {
 		for col := 0; col < len(myView[row]); col++ {
@@ -125,16 +121,14 @@ func (nodeAwareness *NodeAwareness) ChangeNoOrderAndConfirmedToUnknown() {
 }
 
 func (nodeAwareness *NodeAwareness) InitNodeAwareness() {
-	nodeAwareness.ID = localID
-	nodeAwareness.ElevatorState.InitStates()
-	nodeAwareness.HallRequests = make([][2]RequestState, n_floors)
+	nodeAwareness.ID = config.LocalID
+	nodeAwareness.HallRequests = make([][2]RequestState, config.NumFloors)
 	nodeAwareness.CabRequests = make(map[string][]bool)
 }
 
 func (systemAwareness *SystemAwareness) InitSystemAwareness() {
-	systemAwareness.SystemElevState = make(map[string]singleelevator.States, m_elevators)
-	systemAwareness.SystemHallRequests = make(map[string][][2]RequestState, m_elevators)
-	systemAwareness.SystemCabRequests = make(map[string][]bool, m_elevators)
+	systemAwareness.SystemElevState = make(map[string]singleelevator.ElevState, config.NumElevators)
+	systemAwareness.SystemHallRequests = make(map[string][][2]RequestState, config.NumElevators)
 }
 
 // function that takes a [][2]RequestState as input and return [][2]bool
@@ -159,8 +153,7 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 	ch_peerTransmitEnable chan<- bool,
 	ch_newHallRequest <-chan elevio.ButtonEvent,
 	ch_compledtedHallRequest <-chan elevio.ButtonEvent,
-	ch_cabRequests <-chan []bool,
-	ch_elevState <-chan singleelevator.States,
+	ch_elevState <-chan singleelevator.ElevState,
 	ch_hallRequests chan<- [][2]bool,
 	ch_initCabRequests chan<- []bool,
 	ch_hraInput chan<- SystemAwareness) {
@@ -190,13 +183,13 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 				// We must set all no order to unknown
 				myNodeAwareness.ChangeNoOrderAndConfirmedToUnknown()
 				// Update system awareness hall requests
-				systemAwareness.SystemHallRequests[localID] = myNodeAwareness.HallRequests
+				systemAwareness.SystemHallRequests[config.LocalID] = myNodeAwareness.HallRequests
 				ch_peerTransmitEnable <- true
 				// else single elevator mode false
 			} else if len(peersAlive) > 1 && singleElevatorMode {
 				singleElevatorMode = false
 			}
-			
+
 			for _, lostPeer := range peersLost {
 				// If this node can be found in lostPeer, we should delete it from the systemAwareness
 				delete(systemAwareness.SystemNodesAvailable, lostPeer)
@@ -205,26 +198,24 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 				delete(systemAwareness.SystemCabRequests, lostPeer)
 			}
 
-			// Here I can add if I am in an init state, I should send cab call of localID on channel init_cab_requests
+			// Here I can add if I am in an init state, I should send cab call of LocalID on channel init_cab_requests
 			// This will be done in the init state of the elevator
 		case nodeAwareness := <-ch_receive:
 			nodeID := nodeAwareness.ID
 			// Break out of case if IsPeerAlive returns false
-			if !peersAlive.IsPeerAlive(nodeID) || nodeID == localID {
+			if !peersAlive.IsPeerAlive(nodeID) || nodeID == config.LocalID {
 				break
 			}
 			systemAwareness.SystemNodesAvailable[nodeID] = nodeAwareness.IsAvailable
-			systemAwareness.SystemElevState[nodeID] = nodeAwareness.ElevatorState
+			systemAwareness.SystemElevState[nodeID] = nodeAwareness.ElevState
 			systemAwareness.SystemHallRequests[nodeID] = nodeAwareness.HallRequests
-			systemAwareness.SystemCabRequests[nodeID] = nodeAwareness.CabRequests[nodeID]
-
-			myNodeAwareness.CabRequests[nodeID] = nodeAwareness.CabRequests[nodeID]
+			myNodeAwareness.CabRequests[nodeID] = nodeAwareness.ElevState.CabRequests
 
 			// Gjennomfører sammenlikningen
 			hallRequests := updateMyHallRequestView(systemAwareness.SystemHallRequests)
 
 			// Her skal både myNodeAwareness og min id på systemAwareness oppdateres
-			systemAwareness.SystemHallRequests[localID] = hallRequests
+			systemAwareness.SystemHallRequests[config.LocalID] = hallRequests
 			myNodeAwareness.HallRequests = hallRequests
 
 			// Send systemAwareness til hra modulen
@@ -236,7 +227,7 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 		case newHallRequest := <-ch_newHallRequest:
 			// Her skal vi oppdatere vår egen hall request
 			myNodeAwareness.HallRequests[newHallRequest.Floor][int(newHallRequest.Button)] = RS_Pending
-			systemAwareness.SystemHallRequests[localID] = myNodeAwareness.HallRequests
+			systemAwareness.SystemHallRequests[config.LocalID] = myNodeAwareness.HallRequests
 
 			// Denne trengs vel bare i singel elevator mode
 			if singleElevatorMode {
@@ -249,17 +240,12 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 				nextRS = RS_NoOrder
 			}
 			myNodeAwareness.HallRequests[completedHallRequest.Floor][int(completedHallRequest.Button)] = nextRS
-			systemAwareness.SystemHallRequests[localID] = myNodeAwareness.HallRequests
-
-		case cabRequests := <-ch_cabRequests:
-			// Her skal vi oppdatere vår egen cab request
-			myNodeAwareness.CabRequests[localID] = cabRequests
-			systemAwareness.SystemCabRequests[localID] = cabRequests
+			systemAwareness.SystemHallRequests[config.LocalID] = myNodeAwareness.HallRequests
 
 		case elevState := <-ch_elevState:
 			// Her skal vi oppdatere vår egen elevstate
-			myNodeAwareness.ElevatorState = elevState
-			systemAwareness.SystemElevState[localID] = elevState
+			myNodeAwareness.ElevState = elevState
+			systemAwareness.SystemElevState[config.LocalID] = elevState
 
 		case <-time.After(15 * time.Millisecond):
 			// Her skal vi sende vår egen nodeawareness på nettverket

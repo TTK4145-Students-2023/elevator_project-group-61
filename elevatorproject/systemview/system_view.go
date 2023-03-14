@@ -1,10 +1,10 @@
-package systemview 
+package systemview
 
 import (
-	"time"
-	"elevatorproject/singleelevator"
 	"elevatorproject/network/peers"
+	"elevatorproject/singleelevator"
 	"elevatorproject/singleelevator/elevio"
+	"time"
 )
 
 const n_floors int = 4
@@ -12,30 +12,31 @@ const m_elevators int = 3
 const localID string = "0"
 
 type RequestState int
+
 // All peers alive in a list of same type peers
 
 const (
-	RS_Unknown RequestState = -1
-	RS_NoOrder = 0
-	RS_Pending = 1
-	RS_Confirmed = 2
-	RS_Completed = 3
+	RS_Unknown   RequestState = -1
+	RS_NoOrder                = 0
+	RS_Pending                = 1
+	RS_Confirmed              = 2
+	RS_Completed              = 3
 )
 
 type PeersAlive []string
 
 type NodeAwareness struct {
 	ID            string
-	IsAvailable bool
+	IsAvailable   bool
 	ElevatorState singleelevator.States
 	HallRequests  [][2]RequestState // n number of floors
 	CabRequests   map[string][]bool
 }
 
 type SystemAwareness struct {
-	SystemElevState    map[string]singleelevator.States
-	SystemHallRequests map[string][][2]RequestState
-	SystemCabRequests  map[string][]bool
+	SystemElevState      map[string]singleelevator.States
+	SystemHallRequests   map[string][][2]RequestState
+	SystemCabRequests    map[string][]bool
 	SystemNodesAvailable map[string]bool
 }
 
@@ -74,7 +75,7 @@ func updateMyHallRequestView(systemHallRequests map[string][][2]RequestState) []
 						pendingCount++
 					}
 				}
-				if	pendingCount == len(systemHallRequests) {
+				if pendingCount == len(systemHallRequests) {
 					myView[row][col] = RS_Confirmed
 				}
 			case RS_Confirmed:
@@ -113,10 +114,10 @@ func (peersAlive PeersAlive) IsPeerAlive(nodeID string) bool {
 }
 
 // Function that changes all NoOrder to Unknown as a method of the NodeAwareness struct
-func (nodeAwareness *NodeAwareness) ChangeNoOrderToUnknown() {
+func (nodeAwareness *NodeAwareness) ChangeNoOrderAndConfirmedToUnknown() {
 	for row := 0; row < len(nodeAwareness.HallRequests); row++ {
 		for col := 0; col < len(nodeAwareness.HallRequests[row]); col++ {
-			if nodeAwareness.HallRequests[row][col] == RS_NoOrder {
+			if nodeAwareness.HallRequests[row][col] == RS_NoOrder || nodeAwareness.HallRequests[row][col] == RS_Confirmed {
 				nodeAwareness.HallRequests[row][col] = RS_Unknown
 			}
 		}
@@ -141,9 +142,9 @@ func convertHallRequestStateToBool(hallRequests [][2]RequestState, singleElevato
 	hallRequestsBool := make([][2]bool, len(hallRequests))
 	for row := 0; row < len(hallRequests); row++ {
 		for col := 0; col < len(hallRequests[row]); col++ {
-			if (hallRequests[row][col] == RS_Confirmed) {
+			if hallRequests[row][col] == RS_Confirmed {
 				hallRequestsBool[row][col] = true
-			} else if ((hallRequests[row][col] == RS_Pending) && singleElevatorMode) {
+			} else if (hallRequests[row][col] == RS_Pending) && singleElevatorMode {
 			} else {
 				hallRequestsBool[row][col] = false
 			}
@@ -151,7 +152,6 @@ func convertHallRequestStateToBool(hallRequests [][2]RequestState, singleElevato
 	}
 	return hallRequestsBool
 }
-
 
 func SystemView(ch_transmit chan<- NodeAwareness,
 	ch_receive <-chan NodeAwareness,
@@ -267,4 +267,3 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 		}
 	}
 }
-

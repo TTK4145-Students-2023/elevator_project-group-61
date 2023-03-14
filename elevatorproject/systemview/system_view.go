@@ -11,12 +11,14 @@ import (
 type RequestState int
 
 // All peers alive in a list of same type peers
+
+
 const (
-	RS_Unknown   RequestState = -1
-	RS_NoOrder                = 0
-	RS_Pending                = 1
-	RS_Confirmed              = 2
-	RS_Completed              = 3
+	RS_Unknown RequestState = -1
+	RS_NoOrder RequestState = 0
+	RS_Pending RequestState = 1
+	RS_Confirmed RequestState = 2
+	RS_Completed RequestState = 3
 )
 
 type PeersAlive []string
@@ -146,15 +148,15 @@ func convertHallRequestStateToBool(hallRequests [][2]RequestState, singleElevato
 	return hallRequestsBool
 }
 
-func SystemView(ch_transmit chan<- NodeAwareness,
-	ch_receive <-chan NodeAwareness,
-	ch_peerUpdate <-chan peers.PeerUpdate,
-	ch_peerTransmitEnable chan<- bool,
+func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
+	ch_receiveNodeAwareness <-chan NodeAwareness,
+	ch_receivePeerUpdate <-chan peers.PeerUpdate,
+	ch_setTransmitEnable chan<- bool,
 	ch_newHallRequest <-chan elevio.ButtonEvent,
 	ch_compledtedHallRequest <-chan elevio.ButtonEvent,
 	ch_elevState <-chan singleelevator.ElevState,
-	ch_hallRequests chan<- [][2]bool,
-	ch_initCabRequests chan<- []bool,
+	ch_hallRequests chan <- [][2]bool,
+	ch_initCabRequests chan <- []bool,
 	ch_hraInput chan<- SystemAwareness) {
 
 	var myNodeAwareness NodeAwareness
@@ -167,7 +169,7 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 
 	for {
 		select {
-		case peerUpdate := <-ch_peerUpdate:
+		case peerUpdate := <- ch_receivePeerUpdate:
 			// Go to single elevator mode if at least one node left
 			peersAlive = peerUpdate.Peers
 			peersLost := peerUpdate.Lost
@@ -175,7 +177,7 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 			if len(peersAlive) <= 1 && !singleElevatorMode {
 				singleElevatorMode = true
 				// We must stop broadcasting our node awareness. Disable the channel
-				ch_peerTransmitEnable <- false
+				ch_setTransmitEnable <- false
 
 			} else if singleElevatorMode && len(peersAlive) > 1 {
 				singleElevatorMode = false
@@ -183,7 +185,7 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 				myNodeAwareness.ChangeNoOrderAndConfirmedToUnknown()
 				// Update system awareness hall requests
 				systemAwareness.SystemHallRequests[config.LocalID] = myNodeAwareness.HallRequests
-				ch_peerTransmitEnable <- true
+				ch_setTransmitEnable <- true
 				// else single elevator mode false
 			} else if len(peersAlive) > 1 && singleElevatorMode {
 				singleElevatorMode = false
@@ -199,7 +201,7 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 
 			// Here I can add if I am in an init state, I should send cab call of LocalID on channel init_cab_requests
 			// This will be done in the init state of the elevator
-		case nodeAwareness := <-ch_receive:
+		case nodeAwareness := <-ch_receiveNodeAwareness:
 			nodeID := nodeAwareness.ID
 			// Break out of case if IsPeerAlive returns false
 			if !peersAlive.IsPeerAlive(nodeID) || nodeID == config.LocalID {
@@ -248,7 +250,7 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 
 		case <-time.After(15 * time.Millisecond):
 			// Her skal vi sende vår egen nodeawareness på nettverket
-			ch_transmit <- myNodeAwareness
+			ch_sendNodeAwareness <- myNodeAwareness
 		}
 	}
 }

@@ -19,19 +19,19 @@ func RunSingleElevator(){
 	ch_door := make(chan int)
     ch_hra := make(chan [][2]bool)
     ch_init_cab_requests := make(chan []bool)
-    ch_cab_requests := make(chan []bool)
+    // ch_cab_requests := make(chan []bool)
     ch_completed_hall_requests := make(chan elevio.ButtonEvent)
     ch_new_hall_requests := make(chan elevio.ButtonEvent)
-    ch_elevstate := make(chan States)
+    ch_elevstate := make(chan ElevState)
     
     go elevio.PollButtons(drv_buttons)
     go elevio.PollFloorSensor(drv_floors)
     go doortimer.CheckTimer(ch_door)
 
     go testMakeHRA(ch_hra)
-    go testReceiveStuff(ch_cab_requests, ch_completed_hall_requests, ch_new_hall_requests, ch_elevstate)
+    go testReceiveStuff(ch_completed_hall_requests, ch_new_hall_requests, ch_elevstate)
 	
-    Fsm_elevator(drv_buttons, drv_floors, ch_door, ch_hra, ch_init_cab_requests, ch_cab_requests, ch_completed_hall_requests, ch_new_hall_requests, ch_elevstate)
+    Fsm_elevator(drv_buttons, drv_floors, ch_door, ch_hra, ch_init_cab_requests, ch_completed_hall_requests, ch_new_hall_requests, ch_elevstate)
 }
 
 func testMakeHRA(orders_to_send chan [][2]bool){
@@ -50,11 +50,9 @@ func testMakeHRA(orders_to_send chan [][2]bool){
     }
 }
 
-func testReceiveStuff(ch_cab_requests chan []bool, ch_completed_hall_requests chan elevio.ButtonEvent, ch_new_hall_requests chan elevio.ButtonEvent, ch_elevstate chan States){
+func testReceiveStuff(ch_completed_hall_requests chan elevio.ButtonEvent, ch_new_hall_requests chan elevio.ButtonEvent, ch_elevstate chan ElevState){
     for {
         select {
-        case cab_requests := <-ch_cab_requests:
-            fmt.Println("Cab requests: ", cab_requests)
         case completed_hall_request := <-ch_completed_hall_requests:
             fmt.Println("Completed hall request: ", completed_hall_request)
         case new_hall_request := <-ch_new_hall_requests:

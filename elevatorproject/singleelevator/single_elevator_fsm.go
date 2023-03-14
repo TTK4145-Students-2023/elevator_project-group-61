@@ -281,7 +281,6 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	ch_door <-chan int,
 	ch_hra <-chan [][2]bool,
 	ch_init_cab_requests <-chan []bool,
-	ch_cab_requests chan<- []bool,
 	ch_completed_hall_req chan<- elevio.ButtonEvent,
 	ch_new_hall_req chan<- elevio.ButtonEvent,
 	ch_elevstate chan<- ElevState) {
@@ -321,7 +320,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				for _, v := range remove_orders_list {
 					if v.Button == elevio.BT_Cab {
 						Active_orders.SetOrder(v.Floor, v.Button, false)
-						ch_cab_requests <- Active_orders.GetCabRequests()
+						ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
 						UpdateCabLamps(Active_orders)
 					} else {
 						ch_completed_hall_req <- v
@@ -350,7 +349,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				for _, v := range remove_orders_list {
 					if v.Button == elevio.BT_Cab {
 						Active_orders.SetOrder(v.Floor, v.Button, false)
-						ch_cab_requests <- Active_orders.GetCabRequests()
+						ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
 						UpdateCabLamps(Active_orders)
 					} else {
 						ch_completed_hall_req <- v
@@ -375,7 +374,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				for _, v := range remove_orders_list {
 					if v.Button == elevio.BT_Cab {
 						Active_orders.SetOrder(v.Floor, v.Button, false)
-						ch_cab_requests <- Active_orders.GetCabRequests()
+						ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
 						UpdateCabLamps(Active_orders)
 					} else {
 						ch_completed_hall_req <- v
@@ -403,7 +402,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 					for _, v := range remove_orders_list {
 						if v.Button == elevio.BT_Cab {
 							Active_orders.SetOrder(v.Floor, v.Button, false)
-							ch_cab_requests <- Active_orders.GetCabRequests()
+							ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
 							UpdateCabLamps(Active_orders)
 						} else {
 							ch_completed_hall_req <- v

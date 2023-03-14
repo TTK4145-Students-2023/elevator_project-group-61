@@ -179,9 +179,8 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 			// Go to single elevator mode if at least one node left
 			peersAlive = peerUpdate.Peers
 			peersLost := peerUpdate.Lost
-
 			// Heller kjøre en metode som sletter her
-			if len(peersAlive) <= 1 {
+			if len(peersAlive) <= 1 && !singleElevatorMode {
 				singleElevatorMode = true
 				// We must stop broadcasting our node awareness. Disable the channel
 				ch_peerTransmitEnable <- false
@@ -194,9 +193,10 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 				systemAwareness.SystemHallRequests[localID] = myNodeAwareness.HallRequests
 				ch_peerTransmitEnable <- true
 				// else single elevator mode false
-			} else {
+			} else if len(peersAlive) > 1 && singleElevatorMode {
 				singleElevatorMode = false
 			}
+			
 			for _, lostPeer := range peersLost {
 				// If this node can be found in lostPeer, we should delete it from the systemAwareness
 				delete(systemAwareness.SystemNodesAvailable, lostPeer)

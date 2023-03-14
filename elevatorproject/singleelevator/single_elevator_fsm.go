@@ -11,7 +11,8 @@ type ElevState struct {
     Behavior    string     
     Floor       int          
     Direction   string      
-    CabRequests []bool      
+    CabRequests []bool   
+	isAvailable bool   
 }
 
 // Constants
@@ -68,9 +69,10 @@ func DirToBtnType(dir elevio.MotorDirection) elevio.ButtonType {
 //     Floor       int          
 //     Direction   string      
 //     CabRequests []bool      
+//	   isAvailable bool
 // }
 
-func StatesToHRAStates(states States, cab_requests []bool) ElevState {
+func StatesToHRAStates(states States, cab_requests []bool, isAvailable bool) ElevState {
 	hra_states := ElevState{}
 
 	// Floor
@@ -104,6 +106,9 @@ func StatesToHRAStates(states States, cab_requests []bool) ElevState {
 
 	// Cab requests
 	hra_states.CabRequests = cab_requests
+
+	// isAvailable
+	hra_states.isAvailable = isAvailable
 
 	return hra_states
 }
@@ -288,7 +293,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	var Elev_states States
 	var Active_orders Orders
 
-	// StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
+	isAvailable := true
 
 	// Initiate elevator
 	fmt.Println("Initiate elevator")
@@ -301,7 +306,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	} else {
 		Elev_states.SetLastFloor(elevio.GetFloor())
 	}
-	ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
+	ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
 
 	// Finite state machine
 	for {
@@ -312,7 +317,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			var remove_orders_list []elevio.ButtonEvent
 			Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleNewRequests(hra, -1, Elev_states, Active_orders)
 			testSetLights(Active_orders) // Just for testing
-			ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
+			ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
 			if open_door_bool {
 				elevio.SetDoorOpenLamp(true)
 				doortimer.StartTimer()
@@ -320,7 +325,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				for _, v := range remove_orders_list {
 					if v.Button == elevio.BT_Cab {
 						Active_orders.SetOrder(v.Floor, v.Button, false)
-						ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
+						ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
 						UpdateCabLamps(Active_orders)
 					} else {
 						ch_completed_hall_req <- v
@@ -339,7 +344,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			var remove_orders_list []elevio.ButtonEvent
 			Elev_states, Active_orders, stop_bool, remove_orders_list = HandleFloorSensor(floor, Elev_states, Active_orders)
 			testSetLights(Active_orders) // Just for testing
-			ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
+			ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
 			if stop_bool {
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				elevio.SetDoorOpenLamp(true)
@@ -349,7 +354,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				for _, v := range remove_orders_list {
 					if v.Button == elevio.BT_Cab {
 						Active_orders.SetOrder(v.Floor, v.Button, false)
-						ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
+						ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
 						UpdateCabLamps(Active_orders)
 					} else {
 						ch_completed_hall_req <- v
@@ -367,14 +372,14 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			var remove_orders_list []elevio.ButtonEvent
 			Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleDoorClosing(Elev_states, Active_orders)
 			testSetLights(Active_orders) // Just for testing
-			ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
+			ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
 			if open_door_bool {
 				elevio.SetDoorOpenLamp(true)
 				doortimer.StartTimer()
 				for _, v := range remove_orders_list {
 					if v.Button == elevio.BT_Cab {
 						Active_orders.SetOrder(v.Floor, v.Button, false)
-						ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
+						ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
 						UpdateCabLamps(Active_orders)
 					} else {
 						ch_completed_hall_req <- v
@@ -395,14 +400,14 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				emtpy_hra := [][2]bool{}
 				Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleNewRequests(emtpy_hra, btn_press.Floor, Elev_states, Active_orders)
 				testSetLights(Active_orders) // Just for testing
-				ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
+				ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
 				if open_door_bool {
 					elevio.SetDoorOpenLamp(true)
 					doortimer.StartTimer()
 					for _, v := range remove_orders_list {
 						if v.Button == elevio.BT_Cab {
 							Active_orders.SetOrder(v.Floor, v.Button, false)
-							ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests())
+							ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
 							UpdateCabLamps(Active_orders)
 						} else {
 							ch_completed_hall_req <- v

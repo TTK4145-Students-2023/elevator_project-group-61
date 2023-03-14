@@ -23,6 +23,8 @@ func RunSingleElevator(){
     ch_completed_hall_requests := make(chan elevio.ButtonEvent)
     ch_new_hall_requests := make(chan elevio.ButtonEvent)
     ch_elevstate := make(chan ElevState)
+    // Newest channels
+    ch_mechanical_error := make(chan bool)
     
     go elevio.PollButtons(drv_buttons)
     go elevio.PollFloorSensor(drv_floors)

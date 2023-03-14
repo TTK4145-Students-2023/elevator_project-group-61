@@ -5,6 +5,7 @@ import (
 	"elevatorproject/network/peers"
 	"elevatorproject/config"
 	"elevatorproject/network/bcast"
+	"fmt"
 )
 
 // Network function going to take in ch_transmit, ch_receive, ch_peerUpdate, ch_peerTransmitEnable
@@ -13,7 +14,7 @@ func Network(
 	ch_sendNodeAwareness <- chan systemview.NodeAwareness,
 	ch_receiveNodeAwareness chan <- systemview.NodeAwareness,
 	ch_receivePeerUpdate chan <- peers.PeerUpdate,
-	ch_setTransmitEnalble <- chan bool) {
+	ch_setTransmitEnable <- chan bool) {
 	
 	ch_transmit := make(chan systemview.NodeAwareness)
 	ch_receive := make(chan systemview.NodeAwareness)
@@ -28,12 +29,15 @@ func Network(
 	for {
 		select {
 		case myNodeAwareness := <- ch_sendNodeAwareness:
+			fmt.Println("Sending node awareness")
 			ch_transmit <- myNodeAwareness
 		case nodeAwareness := <- ch_receive:
+			fmt.Println("Receiving node awareness")
 			ch_receiveNodeAwareness <- nodeAwareness
+			// print floor
 		case peerUpdate := <- ch_peerUpdate:
 			ch_receivePeerUpdate <- peerUpdate
-		case setTransitEnable := <- ch_setTransmitEnalble:
+		case setTransitEnable := <- ch_setTransmitEnable:
 			ch_peerTransmitEnable <- setTransitEnable
 		}
 	}	

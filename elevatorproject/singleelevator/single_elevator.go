@@ -12,7 +12,7 @@ func RunSingleElevator(){
 
     numFloors := 4
 
-    elevio.Init("10.100.23.23:15657", numFloors) 
+    elevio.Init("10.100.23.27:15657", numFloors) 
     
     drv_buttons := make(chan elevio.ButtonEvent)
     drv_floors  := make(chan int)   

@@ -5,7 +5,7 @@ import (
 	"elevatorproject/singleelevator/elevio"
 	"fmt"
 	"elevatorproject/config"
-	"time"
+	// "time"
 )
 
 // Helper struct
@@ -297,11 +297,11 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 
 	isAvailable := true
 	// Timers for isAvailable
-	obstruction_timer := time.NewTimer(10*time.Second)
-	obstruction_timer.Stop()
+	// obstruction_timer := time.NewTimer(10*time.Second)
+	// obstruction_timer.Stop()
 
-	mechanical_timer := time.NewTimer(7*time.Second)
-	mechanical_timer.Stop()
+	// mechanical_timer := time.NewTimer(7*time.Second)
+	// mechanical_timer.Stop()
 
 	// Initiate elevator
 	fmt.Println("Initiate elevator")

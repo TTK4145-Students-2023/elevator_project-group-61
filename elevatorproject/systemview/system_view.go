@@ -32,13 +32,12 @@ type NodeAwareness struct {
 type SystemAwareness struct {
 	SystemElevState      map[string]singleelevator.ElevState
 	SystemHallRequests   map[string][][2]RequestState
-	SystemCabRequests    map[string][]bool
 	SystemNodesAvailable map[string]bool
 }
 
 func updateMyHallRequestView(systemHallRequests map[string][][2]RequestState) [][2]RequestState {
-	myView := systemHallRequests[LocalID]
-	delete(systemHallRequests, LocalID)
+	myView := systemHallRequests[config.LocalID]
+	delete(systemHallRequests, config.LocalID)
 
 	for row := 0; row < len(myView); row++ {
 		for col := 0; col < len(myView[row]); col++ {
@@ -195,7 +194,7 @@ func SystemView(ch_transmit chan<- NodeAwareness,
 				delete(systemAwareness.SystemNodesAvailable, lostPeer)
 				delete(systemAwareness.SystemElevState, lostPeer)
 				delete(systemAwareness.SystemHallRequests, lostPeer)
-				delete(systemAwareness.SystemCabRequests, lostPeer)
+
 			}
 
 			// Here I can add if I am in an init state, I should send cab call of LocalID on channel init_cab_requests

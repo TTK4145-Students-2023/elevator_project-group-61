@@ -21,10 +21,10 @@ func Network(
 	ch_peerTransmitEnable := make(chan bool)
 	ch_peerUpdate := make(chan peers.PeerUpdate)
 
-	go peers.Transmitter(15647, config.LocalID, ch_peerTransmitEnable)
-	go peers.Receiver(15647, ch_peerUpdate)
-	go bcast.Receiver(16569, ch_receive)
-	go bcast.Transmitter(16569, ch_transmit)
+	go peers.Transmitter(13200, config.LocalID, ch_peerTransmitEnable)
+	go peers.Receiver(13200, ch_peerUpdate)
+	go bcast.Receiver(12100, ch_receive)
+	go bcast.Transmitter(12100, ch_transmit)
 
 	for {
 		select {

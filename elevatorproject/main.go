@@ -14,7 +14,7 @@ import (
 func main() {
 	numFloors := 4
 
-    elevio.Init("10.100.23.27:15657", numFloors) 
+    elevio.Init("localhost:15657", numFloors) 
 
     ch_completedHallRequests := make(chan elevio.ButtonEvent)
     ch_newHallRequests := make(chan elevio.ButtonEvent)

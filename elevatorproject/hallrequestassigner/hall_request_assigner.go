@@ -73,6 +73,7 @@ func AssignHallRequests(ch_hraInput <-chan systemview.SystemAwareness, ch_hraout
 	for {
 		select {
 		case systemAwareness := <-ch_hraInput:
+			fmt.Println("HRA has gotten input\n")
 			hraInput := transformToHRAInput(systemAwareness)
 
 			hraExecutable := ""

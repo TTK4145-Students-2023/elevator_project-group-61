@@ -5,19 +5,18 @@ import (
 	"elevatorproject/network/peers"
 	"elevatorproject/singleelevator"
 	"elevatorproject/singleelevator/elevio"
-	"time"
 	"fmt"
+	"time"
 )
 
 type RequestState int
 
 // All peers alive in a list of same type peers
 
-
 const (
-	RS_Unknown RequestState = -1
-	RS_NoOrder RequestState = 0
-	RS_Pending RequestState = 1
+	RS_Unknown   RequestState = -1
+	RS_NoOrder   RequestState = 0
+	RS_Pending   RequestState = 1
 	RS_Confirmed RequestState = 2
 	RS_Completed RequestState = 3
 )
@@ -141,6 +140,7 @@ func convertHallRequestStateToBool(hallRequests [][2]RequestState, singleElevato
 			if hallRequests[row][col] == RS_Confirmed {
 				hallRequestsBool[row][col] = true
 			} else if (hallRequests[row][col] == RS_Pending) && singleElevatorMode {
+				hallRequestsBool[row][col] = true
 			} else {
 				hallRequestsBool[row][col] = false
 			}
@@ -171,8 +171,8 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 	ch_newHallRequest <-chan elevio.ButtonEvent,
 	ch_compledtedHallRequest <-chan elevio.ButtonEvent,
 	ch_elevState <-chan singleelevator.ElevState,
-	ch_hallRequests chan <- [][2]bool,
-	ch_initCabRequests chan <- []bool,
+	ch_hallRequests chan<- [][2]bool,
+	ch_initCabRequests chan<- []bool,
 	ch_hraInput chan<- SystemAwareness) {
 
 	var myNodeAwareness NodeAwareness
@@ -185,7 +185,7 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 
 	for {
 		select {
-		case peerUpdate := <- ch_receivePeerUpdate:
+		case peerUpdate := <-ch_receivePeerUpdate:
 			// Go to single elevator mode if at least one node left
 			peersAlive = peerUpdate.Peers
 			peersLost := peerUpdate.Lost
@@ -283,7 +283,6 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 			// Her skal vi oppdatere vår egen elevstate
 			myNodeAwareness.ElevState = elevState
 			systemAwareness.SystemElevState[config.LocalID] = elevState
-
 
 		case <-time.After(5 * time.Second):
 			// Her skal vi sende vår egen nodeawareness på nettverket

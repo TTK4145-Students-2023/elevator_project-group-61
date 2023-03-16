@@ -130,6 +130,8 @@ func (nodeAwareness *NodeAwareness) InitNodeAwareness() {
 func (systemAwareness *SystemAwareness) InitSystemAwareness() {
 	systemAwareness.SystemElevState = make(map[string]singleelevator.ElevState, config.NumElevators)
 	systemAwareness.SystemHallRequests = make(map[string][][2]RequestState, config.NumElevators)
+	systemAwareness.SystemNodesAvailable = make(map[string]bool, config.NumElevators)
+	systemAwareness.SystemNodesAvailable[config.LocalID] = true
 }
 
 // function that takes a [][2]RequestState as input and return [][2]bool
@@ -280,14 +282,17 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 
 		case elevState := <-ch_elevState:
 			// Her skal vi oppdatere vår egen elevstate
+			fmt.Println("Inside getting elevState channel case")
 			myNodeAwareness.ElevState = elevState
 			systemAwareness.SystemElevState[config.LocalID] = elevState
+
+			fmt.Println(systemAwareness.SystemElevState[config.LocalID])
 
 		case <-time.After(5 * time.Second):
 			// Her skal vi sende vår egen nodeawareness på nettverket
 			ch_sendNodeAwareness <- myNodeAwareness
 
-			printNodeAwareness(myNodeAwareness)
+			//printNodeAwareness(myNodeAwareness)
 		}
 	}
 }

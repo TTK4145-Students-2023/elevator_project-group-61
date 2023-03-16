@@ -8,11 +8,13 @@ import (
 	"elevatorproject/singleelevator"
 	"elevatorproject/systemview"
 	"elevatorproject/singleelevator/elevio"
+	"fmt"
 )
 
 
 func main() {
 
+	fmt.Printf("Starter programmet")
     elevio.Init("localhost:15657", config.NumFloors) 
 
     ch_completedHallRequests := make(chan elevio.ButtonEvent)
@@ -40,6 +42,8 @@ func main() {
 
 	go hallrequestassigner.AssignHallRequests(ch_hraInput, ch_hraOutput)
 	go singleelevator.LampStateMachine(ch_hallRequests, ch_cabLamps)
+	fmt.Println("Starter opp singleelevator")
 	singleelevator.RunSingleElevator(ch_cabLamps, ch_hraOutput, ch_initCabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState)
+
 }
 

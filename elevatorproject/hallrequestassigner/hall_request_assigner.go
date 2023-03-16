@@ -15,6 +15,8 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
+
+	"io/ioutil"
 )
 
 type HRAElevState struct {
@@ -92,6 +94,12 @@ func AssignHallRequests(ch_hraInput <-chan systemview.SystemAwareness, ch_hraout
 				return
 			}
 
+			// Print out json to file
+			err = ioutil.WriteFile("hra_assigner_input", jsonBytes, 0644)
+			if err != nil {
+				panic(err)
+			}
+
 			ret, err := exec.Command(hraExecutable, "-i", string(jsonBytes)).CombinedOutput()
 			if err != nil {
 				fmt.Println("exec.Command error: ", err)
@@ -105,7 +113,14 @@ func AssignHallRequests(ch_hraInput <-chan systemview.SystemAwareness, ch_hraout
 				fmt.Println("json.Unmarshal error: ", err)
 				return
 			}
-			hraOutput := (*output)[config.LocalID]
+			hraOutput := (*output)[config.LocalID] //TODO: Get the local ID from somewhere
+
+			// printer output
+			fmt.Printf("output: \n")
+    		for k, v := range *output {
+        		fmt.Printf("%6v :  %+v\n", k, v)
+    		}
+
 			ch_hraoutput <- hraOutput
 		}
 	}

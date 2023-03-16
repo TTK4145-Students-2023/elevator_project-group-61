@@ -307,8 +307,9 @@ func Fsm_elevator(ch_cab_lamps chan<- []bool,
 	} else {
 		Elev_states.SetLastFloor(elevio.GetFloor())
 	}
+	fmt.Println("Before sending elevstate")
 	ch_elevstate <- StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
-
+	fmt.Println("After sending elevstate")
 	// Finite state machine
 	for {
 		select {

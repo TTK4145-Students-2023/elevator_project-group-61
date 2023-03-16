@@ -430,6 +430,7 @@ func Fsm_elevator(ch_cab_lamps chan<- []bool,
 				}
 			} else {
 				ch_new_hall_req <- elevio.ButtonEvent{btn_press.Floor, btn_press.Button}
+				fmt.Println("New hall request sent from single elev")
 
 			}
 		case initial_cab_requests := <-ch_init_cab_requests:

@@ -204,10 +204,10 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 				// Update system awareness hall requests
 				systemAwareness.SystemHallRequests[config.LocalID] = myNodeAwareness.HallRequests
 				fmt.Println("Kobler oss tilbake på nettverket igjen")
-				ch_setTransmitEnable <- true
+				//ch_setTransmitEnable <- true
 				// else single elevator mode false
 			} //else if len(peersAlive) > 1 && singleElevatorMode {
-				//singleElevatorMode = false
+			//singleElevatorMode = false
 			//}
 
 			for _, lostPeer := range peersLost {
@@ -255,9 +255,10 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 			ch_hallRequests <- convertHallRequestStateToBool(hallRequests, singleElevatorMode)
 
 			// Debug print
-			
+
 		case newHallRequest := <-ch_newHallRequest:
 			// Her skal vi oppdatere vår egen hall request
+			fmt.Println("newHallRequest received in SystemView")
 			myNodeAwareness.HallRequests[newHallRequest.Floor][int(newHallRequest.Button)] = RS_Pending
 			systemAwareness.SystemHallRequests[config.LocalID] = myNodeAwareness.HallRequests
 
@@ -269,7 +270,7 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 				// nice print of output of convertHallRequestStateToBool
 			}
 			// nice print to check if we are in single elevator mode
-			fmt.Println("Single elevator mode: ", singleElevatorMode)
+			//fmt.Println("Single elevator mode: ", singleElevatorMode)
 			// nice print of the new hall request
 			//fmt.Println("New hall request: ", newHallRequest.Floor, newHallRequest.Button)
 		case completedHallRequest := <-ch_compledtedHallRequest:
@@ -298,7 +299,7 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 
 			fmt.Println(systemAwareness.SystemElevState[config.LocalID])
 
-		case <-time.After(3000 * time.Millisecond):
+		case <-time.After(50 * time.Millisecond):
 			// Her skal vi sende vår egen nodeawareness på nettverket
 			ch_sendNodeAwareness <- myNodeAwareness
 

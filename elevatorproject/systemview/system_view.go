@@ -261,7 +261,6 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 				ch_hallRequests <- convertHallRequestStateToBool(myNodeAwareness.HallRequests, singleElevatorMode)
 				ch_hraInput <- systemAwareness
 				// nice print of output of convertHallRequestStateToBool
-				fmt.Println("Hall requests bool: ", convertHallRequestStateToBool(myNodeAwareness.HallRequests, singleElevatorMode))
 			}
 			// nice print to check if we are in single elevator mode
 			fmt.Println("Single elevator mode: ", singleElevatorMode)

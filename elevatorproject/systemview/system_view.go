@@ -228,6 +228,9 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 			// Here I can add if I am in an init state, I should send cab call of LocalID on channel init_cab_requests
 			// This will be done in the init state of the elevator
 		case nodeAwareness := <-ch_receiveNodeAwareness:
+			fmt.Println("Received from ", nodeAwareness.ID)
+			fmt.Println(nodeAwareness.HallRequests)
+
 			nodeID := nodeAwareness.ID
 			// Break out of case if IsPeerAlive returns false
 			if !peersAlive.IsPeerAlive(nodeID) || nodeID == config.LocalID {
@@ -252,7 +255,7 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 			ch_hallRequests <- convertHallRequestStateToBool(hallRequests, singleElevatorMode)
 
 			// Debug print
-			fmt.Println("Received from ", nodeAwareness.ID)
+			
 		case newHallRequest := <-ch_newHallRequest:
 			// Her skal vi oppdatere vår egen hall request
 			myNodeAwareness.HallRequests[newHallRequest.Floor][int(newHallRequest.Button)] = RS_Pending
@@ -289,13 +292,13 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 
 		case elevState := <-ch_elevState:
 			// Her skal vi oppdatere vår egen elevstate
-			fmt.Println("Inside getting elevState channel case")
+			//fmt.Println("Inside getting elevState channel case")
 			myNodeAwareness.ElevState = elevState
 			systemAwareness.SystemElevState[config.LocalID] = elevState
 
 			fmt.Println(systemAwareness.SystemElevState[config.LocalID])
 
-		case <-time.After(300 * time.Millisecond):
+		case <-time.After(3000 * time.Millisecond):
 			// Her skal vi sende vår egen nodeawareness på nettverket
 			ch_sendNodeAwareness <- myNodeAwareness
 

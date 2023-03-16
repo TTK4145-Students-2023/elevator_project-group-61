@@ -256,11 +256,17 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 			systemAwareness.SystemHallRequests[config.LocalID] = myNodeAwareness.HallRequests
 
 			// Denne trengs vel bare i singel elevator mode
+
 			if singleElevatorMode {
 				ch_hallRequests <- convertHallRequestStateToBool(myNodeAwareness.HallRequests, singleElevatorMode)
+				ch_hraInput <- systemAwareness
+				// nice print of output of convertHallRequestStateToBool
+				fmt.Println("Hall requests bool: ", convertHallRequestStateToBool(myNodeAwareness.HallRequests, singleElevatorMode))
 			}
+			// nice print to check if we are in single elevator mode
+			fmt.Println("Single elevator mode: ", singleElevatorMode)
 			// nice print of the new hall request
-			fmt.Println("New hall request: ", newHallRequest.Floor, newHallRequest.Button)
+			//fmt.Println("New hall request: ", newHallRequest.Floor, newHallRequest.Button)
 		case completedHallRequest := <-ch_compledtedHallRequest:
 			// Her skal vi oppdatere vår egen hall request
 			nextRS := RS_Completed

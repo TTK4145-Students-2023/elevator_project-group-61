@@ -73,7 +73,7 @@ func AssignHallRequests(ch_hraInput <-chan systemview.SystemAwareness, ch_hraout
 	for {
 		select {
 		case systemAwareness := <-ch_hraInput:
-			fmt.Println("HRA has gotten input\n")
+			fmt.Println("HRA has gotten input")
 			hraInput := transformToHRAInput(systemAwareness)
 
 			hraExecutable := ""
@@ -105,8 +105,7 @@ func AssignHallRequests(ch_hraInput <-chan systemview.SystemAwareness, ch_hraout
 				fmt.Println("json.Unmarshal error: ", err)
 				return
 			}
-			hraOutput := (*output)[config.LocalID] //TODO: Get the local ID from somewhere
-
+			hraOutput := (*output)[config.LocalID]
 			ch_hraoutput <- hraOutput
 		}
 	}

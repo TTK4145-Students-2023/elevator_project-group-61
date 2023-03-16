@@ -40,8 +40,6 @@ func main() {
 	ch_hraOutput := make(chan [][2]bool)
 
 	go network.Network(ch_sendNodeAwareness, ch_receiveNodeAwareness, ch_receivePeerUpdate, ch_setTransmitEnable)
-	go peers.Receiver(12222, ch_peerUpdate)
-	go peers.Transmitter(12223, config.LocalID, ch_peerTransmitEnable)
 
 	go systemview.SystemView(ch_sendNodeAwareness, ch_receiveNodeAwareness, ch_receivePeerUpdate, ch_setTransmitEnable, ch_newHallRequests, 
 		ch_completedHallRequests, ch_elevState, ch_hallRequests, ch_initCabRequests, ch_hraInput)

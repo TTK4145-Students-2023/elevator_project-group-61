@@ -195,7 +195,7 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 			if len(peersAlive) <= 1 && !singleElevatorMode {
 				singleElevatorMode = true
 				// We must stop broadcasting our node awareness. Disable the channel
-				ch_setTransmitEnable <- false
+				//ch_setTransmitEnable <- false
 
 			} else if singleElevatorMode && len(peersAlive) > 1 {
 				singleElevatorMode = false
@@ -206,9 +206,9 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 				fmt.Println("Kobler oss tilbake på nettverket igjen")
 				ch_setTransmitEnable <- true
 				// else single elevator mode false
-			} else if len(peersAlive) > 1 && singleElevatorMode {
-				singleElevatorMode = false
-			}
+			} //else if len(peersAlive) > 1 && singleElevatorMode {
+				//singleElevatorMode = false
+			//}
 
 			for _, lostPeer := range peersLost {
 				// If this node can be found in lostPeer, we should delete it from the systemAwareness

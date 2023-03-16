@@ -12,19 +12,13 @@ import (
 
 
 func main() {
-	numFloors := 4
 
-    elevio.Init("localhost:15657", numFloors) 
+    elevio.Init("localhost:15657", config.NumFloors) 
 
     ch_completedHallRequests := make(chan elevio.ButtonEvent)
     ch_newHallRequests := make(chan elevio.ButtonEvent)
     ch_elevState := make(chan singleelevator.ElevState)
-	// ch_cabRequests := make(chan []bool)
 	ch_cabLamps := make(chan []bool)
-	
-	// network
-	ch_peerTransmitEnable := make(chan bool)
-	ch_peerUpdate := make(chan peers.PeerUpdate)
 
 	//systemview
 	ch_initCabRequests := make(chan []bool)
@@ -40,8 +34,6 @@ func main() {
 	ch_hraOutput := make(chan [][2]bool)
 
 	go network.Network(ch_sendNodeAwareness, ch_receiveNodeAwareness, ch_receivePeerUpdate, ch_setTransmitEnable)
-	go peers.Receiver(12222, ch_peerUpdate)
-	go peers.Transmitter(12223, config.LocalID, ch_peerTransmitEnable)
 
 	go systemview.SystemView(ch_sendNodeAwareness, ch_receiveNodeAwareness, ch_receivePeerUpdate, ch_setTransmitEnable, ch_newHallRequests, 
 		ch_completedHallRequests, ch_elevState, ch_hallRequests, ch_initCabRequests, ch_hraInput)

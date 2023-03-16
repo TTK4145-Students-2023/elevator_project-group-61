@@ -203,6 +203,7 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 				myNodeAwareness.ChangeNoOrderAndConfirmedToUnknown()
 				// Update system awareness hall requests
 				systemAwareness.SystemHallRequests[config.LocalID] = myNodeAwareness.HallRequests
+				fmt.Println("Kobler oss tilbake på nettverket igjen")
 				ch_setTransmitEnable <- true
 				// else single elevator mode false
 			} else if len(peersAlive) > 1 && singleElevatorMode {
@@ -211,10 +212,11 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 
 			for _, lostPeer := range peersLost {
 				// If this node can be found in lostPeer, we should delete it from the systemAwareness
-				delete(systemAwareness.SystemNodesAvailable, lostPeer)
-				delete(systemAwareness.SystemElevState, lostPeer)
-				delete(systemAwareness.SystemHallRequests, lostPeer)
-
+				if lostPeer != config.LocalID {
+					delete(systemAwareness.SystemNodesAvailable, lostPeer)
+					delete(systemAwareness.SystemElevState, lostPeer)
+					delete(systemAwareness.SystemHallRequests, lostPeer)
+				}
 			}
 
 			// print peer update
@@ -250,8 +252,7 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 			ch_hallRequests <- convertHallRequestStateToBool(hallRequests, singleElevatorMode)
 
 			// Debug print
-			printNodeAwareness(nodeAwareness)
-
+			fmt.Println("Received from ", nodeAwareness.ID)
 		case newHallRequest := <-ch_newHallRequest:
 			// Her skal vi oppdatere vår egen hall request
 			myNodeAwareness.HallRequests[newHallRequest.Floor][int(newHallRequest.Button)] = RS_Pending
@@ -294,7 +295,7 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 
 			fmt.Println(systemAwareness.SystemElevState[config.LocalID])
 
-		case <-time.After(5 * time.Second):
+		case <-time.After(300 * time.Millisecond):
 			// Her skal vi sende vår egen nodeawareness på nettverket
 			ch_sendNodeAwareness <- myNodeAwareness
 

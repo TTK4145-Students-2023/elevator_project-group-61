@@ -12,19 +12,13 @@ import (
 
 
 func main() {
-	numFloors := 4
 
-    elevio.Init("localhost:15657", numFloors) 
+    elevio.Init("localhost:15657", config.NumFloors) 
 
     ch_completedHallRequests := make(chan elevio.ButtonEvent)
     ch_newHallRequests := make(chan elevio.ButtonEvent)
     ch_elevState := make(chan singleelevator.ElevState)
-	// ch_cabRequests := make(chan []bool)
 	ch_cabLamps := make(chan []bool)
-	
-	// network
-	ch_peerTransmitEnable := make(chan bool)
-	ch_peerUpdate := make(chan peers.PeerUpdate)
 
 	//systemview
 	ch_initCabRequests := make(chan []bool)

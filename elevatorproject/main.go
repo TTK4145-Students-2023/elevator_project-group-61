@@ -8,7 +8,6 @@ import (
 	"elevatorproject/singleelevator"
 	"elevatorproject/systemview"
 	"elevatorproject/singleelevator/elevio"
-	"elevatorproject/singleelevator/doortimer"
 )
 
 
@@ -16,16 +15,12 @@ func main() {
 	numFloors := 4
 
     elevio.Init("10.100.23.27:15657", numFloors) 
-	
-	// singleelevator
-    drv_buttons := make(chan elevio.ButtonEvent)
-    drv_floors  := make(chan int)   
-	ch_door := make(chan int)
 
     ch_completedHallRequests := make(chan elevio.ButtonEvent)
     ch_newHallRequests := make(chan elevio.ButtonEvent)
     ch_elevState := make(chan singleelevator.ElevState)
-	ch_cabRequests := make(chan []bool)
+	// ch_cabRequests := make(chan []bool)
+	ch_cabLamps := make(chan []bool)
 	
 	// network
 	ch_peerTransmitEnable := make(chan bool)
@@ -44,13 +39,7 @@ func main() {
 	// hra
 	ch_hraOutput := make(chan [][2]bool)
 	
-    go elevio.PollButtons(drv_buttons)
-    go elevio.PollFloorSensor(drv_floors)
-    go doortimer.CheckTimer(ch_door)
-
-
-    
-	go singleelevator.Fsm_elevator(drv_buttons, drv_floors, ch_door, ch_hraOutput, ch_initCabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState)
+	go singleelevator.RunSingleElevator(ch_cabLamps, ch_hraOutput, ch_initCabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState)
 	go network.Network(ch_sendNodeAwareness, ch_receiveNodeAwareness, ch_receivePeerUpdate, ch_setTransmitEnable)
 	go peers.Receiver(12222, ch_peerUpdate)
 	go peers.Transmitter(12223, config.LocalID, ch_peerTransmitEnable)
@@ -59,6 +48,6 @@ func main() {
 		ch_completedHallRequests, ch_elevState, ch_hallRequests, ch_initCabRequests, ch_hraInput)
 
 	go hallrequestassigner.AssignHallRequests(ch_hraInput, ch_hraOutput)
-	go singleelevator.LampStateMachine(ch_hallRequests, ch_cabRequests)
+	go singleelevator.LampStateMachine(ch_hallRequests, ch_cabLamps)
 }
 

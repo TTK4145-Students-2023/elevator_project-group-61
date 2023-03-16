@@ -3,12 +3,12 @@ package singleelevator
 import (
     "elevatorproject/singleelevator/doortimer"
     "elevatorproject/singleelevator/elevio"
-    "fmt"
-    "math/rand"
-    "time"
+    // "fmt"
+    // "math/rand"
+    // "time"
 )
 
-func RunSingleElevator(ch_hra chan [][2]bool, ch_init_cab_requests chan []bool, ch_completed_hall_requests chan elevio.ButtonEvent, ch_new_hall_requests chan elevio.ButtonEvent, ch_elevstate chan ElevState) {
+func RunSingleElevator(ch_cab_lamps chan[]bool, ch_hra chan [][2]bool, ch_init_cab_requests chan []bool, ch_completed_hall_requests chan elevio.ButtonEvent, ch_new_hall_requests chan elevio.ButtonEvent, ch_elevstate chan ElevState) {
 
     numFloors := 4
 
@@ -28,7 +28,7 @@ func RunSingleElevator(ch_hra chan [][2]bool, ch_init_cab_requests chan []bool, 
     // go testMakeHRA(ch_hra)
     // go testReceiveStuff(ch_completed_hall_requests, ch_new_hall_requests, ch_elevstate)
 	
-    Fsm_elevator(drv_buttons, drv_floors, ch_door, ch_hra, ch_init_cab_requests, ch_completed_hall_requests, ch_new_hall_requests, ch_elevstate)
+    Fsm_elevator(ch_cab_lamps, drv_buttons, drv_floors, ch_door, ch_hra, ch_init_cab_requests, ch_completed_hall_requests, ch_new_hall_requests, ch_elevstate)
 }
 
 // func testMakeHRA(orders_to_send chan [][2]bool){

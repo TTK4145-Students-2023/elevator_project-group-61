@@ -6,6 +6,7 @@ import (
 	"elevatorproject/singleelevator"
 	"elevatorproject/singleelevator/elevio"
 	"time"
+	"fmt"
 )
 
 type RequestState int
@@ -148,6 +149,21 @@ func convertHallRequestStateToBool(hallRequests [][2]RequestState, singleElevato
 	return hallRequestsBool
 }
 
+func printNodeAwareness(node NodeAwareness) {
+	fmt.Printf("ID: %s\n", node.ID)
+	fmt.Printf("IsAvailable: %v\n", node.IsAvailable)
+	fmt.Printf("ElevState: Behaviour=%s Floor=%d Direction=%s CabRequests=%v IsAvailable=%v\n",
+		node.ElevState.Behaviour, node.ElevState.Floor, node.ElevState.Direction, node.ElevState.CabRequests, node.ElevState.IsAvailable)
+	fmt.Printf("HallRequests:\n")
+	for i, requests := range node.HallRequests {
+		fmt.Printf("  Floor %d: Up=%v Down=%v\n", i+1, requests[0], requests[1])
+	}
+	fmt.Printf("CabRequests:\n")
+	for id, requests := range node.CabRequests {
+		fmt.Printf("  Cab %s: %v\n", id, requests)
+	}
+}
+
 func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 	ch_receiveNodeAwareness <-chan NodeAwareness,
 	ch_receivePeerUpdate <-chan peers.PeerUpdate,
@@ -199,6 +215,12 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 
 			}
 
+			// print peer update
+			fmt.Printf("Peer update:\n")
+			fmt.Printf("  Peers:    %q\n", peerUpdate.Peers)
+			fmt.Printf("  New:      %q\n", peerUpdate.New)
+			fmt.Printf("  Lost:     %q\n", peerUpdate.Lost)
+
 			// Here I can add if I am in an init state, I should send cab call of LocalID on channel init_cab_requests
 			// This will be done in the init state of the elevator
 		case nodeAwareness := <-ch_receiveNodeAwareness:
@@ -225,6 +247,9 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 			// Etter dette må vi sende til panelmodulen for å kunne sette lys.
 			ch_hallRequests <- convertHallRequestStateToBool(hallRequests, singleElevatorMode)
 
+			// Debug print
+			printNodeAwareness(nodeAwareness)
+
 		case newHallRequest := <-ch_newHallRequest:
 			// Her skal vi oppdatere vår egen hall request
 			myNodeAwareness.HallRequests[newHallRequest.Floor][int(newHallRequest.Button)] = RS_Pending
@@ -234,6 +259,8 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 			if singleElevatorMode {
 				ch_hallRequests <- convertHallRequestStateToBool(myNodeAwareness.HallRequests, singleElevatorMode)
 			}
+			// nice print of the new hall request
+			fmt.Println("New hall request: ", newHallRequest.Floor, newHallRequest.Button)
 		case completedHallRequest := <-ch_compledtedHallRequest:
 			// Her skal vi oppdatere vår egen hall request
 			nextRS := RS_Completed
@@ -243,14 +270,20 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 			myNodeAwareness.HallRequests[completedHallRequest.Floor][int(completedHallRequest.Button)] = nextRS
 			systemAwareness.SystemHallRequests[config.LocalID] = myNodeAwareness.HallRequests
 
+			// nice print of the completed hall request
+			fmt.Println("Completed hall request: ", completedHallRequest.Floor, completedHallRequest.Button)
+
 		case elevState := <-ch_elevState:
 			// Her skal vi oppdatere vår egen elevstate
 			myNodeAwareness.ElevState = elevState
 			systemAwareness.SystemElevState[config.LocalID] = elevState
 
-		case <-time.After(15 * time.Millisecond):
+
+		case <-time.After(5 * time.Second):
 			// Her skal vi sende vår egen nodeawareness på nettverket
 			ch_sendNodeAwareness <- myNodeAwareness
+
+			printNodeAwareness(myNodeAwareness)
 		}
 	}
 }

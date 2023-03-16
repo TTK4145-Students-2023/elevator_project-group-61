@@ -66,14 +66,6 @@ func DirToBtnType(dir elevio.MotorDirection) elevio.ButtonType {
 	return elevio.BT_Cab
 }
 
-// type ElevState struct {
-//     Behavior    string     
-//     Floor       int          
-//     Direction   string      
-//     CabRequests []bool      
-//	   isAvailable bool
-// }
-
 func StatesToHRAStates(states States, cab_requests []bool, isAvailable bool) ElevState {
 	hra_states := ElevState{}
 

@@ -297,7 +297,7 @@ func Fsm_elevator(ch_cab_lamps chan<- []bool,
 	// mechanical_timer.Stop()
 
 	// Initiate elevator
-	fmt.Println("Initiate elevator")
+	// fmt.Println("Initiate elevator")
 	Active_orders.InitOrders()
 	InitLamps(Active_orders) //TODO: remove this because of fix by channel
 	Elev_states.InitStates()
@@ -313,7 +313,7 @@ func Fsm_elevator(ch_cab_lamps chan<- []bool,
 	for {
 		select {
 		case hra := <-ch_hra:
-			fmt.Println("HandleHRA")
+			// fmt.Println("HandleHRA")
 			var open_door_bool, set_direction_bool bool
 			var remove_orders_list []elevio.ButtonEvent
 			Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleNewRequests(hra, -1, Elev_states, Active_orders)
@@ -340,7 +340,7 @@ func Fsm_elevator(ch_cab_lamps chan<- []bool,
 				}
 			}
 		case floor := <-ch_floor:
-			fmt.Println("HandleFloorSensor")
+			// fmt.Println("HandleFloorSensor")
 			elevio.SetFloorIndicator(floor)
 			var stop_bool bool
 			var remove_orders_list []elevio.ButtonEvent
@@ -367,7 +367,7 @@ func Fsm_elevator(ch_cab_lamps chan<- []bool,
 		case <-ch_door:
 			// testSetLights(Active_orders) // Just for testing
 			ch_cab_lamps <- Active_orders.GetCabRequests()
-			fmt.Println("HandleDoorClosing")
+			// fmt.Println("HandleDoorClosing")
 			if elevio.GetObstruction() {
 				doortimer.StartTimer()
 				break
@@ -399,7 +399,7 @@ func Fsm_elevator(ch_cab_lamps chan<- []bool,
 		case btn_press := <-ch_btn:
 			// testSetLights(Active_orders) // Just for testing
 			ch_cab_lamps <- Active_orders.GetCabRequests()
-			fmt.Println("HandleButtonEvent")
+			// fmt.Println("HandleButtonEvent")
 			if btn_press.Button == elevio.BT_Cab {
 				var open_door_bool, set_direction_bool bool
 				var remove_orders_list []elevio.ButtonEvent

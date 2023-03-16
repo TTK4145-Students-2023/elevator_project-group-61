@@ -38,8 +38,7 @@ func main() {
 	
 	// hra
 	ch_hraOutput := make(chan [][2]bool)
-	
-	go singleelevator.RunSingleElevator(ch_cabLamps, ch_hraOutput, ch_initCabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState)
+
 	go network.Network(ch_sendNodeAwareness, ch_receiveNodeAwareness, ch_receivePeerUpdate, ch_setTransmitEnable)
 	go peers.Receiver(12222, ch_peerUpdate)
 	go peers.Transmitter(12223, config.LocalID, ch_peerTransmitEnable)
@@ -49,5 +48,6 @@ func main() {
 
 	go hallrequestassigner.AssignHallRequests(ch_hraInput, ch_hraOutput)
 	go singleelevator.LampStateMachine(ch_hallRequests, ch_cabLamps)
+	singleelevator.RunSingleElevator(ch_cabLamps, ch_hraOutput, ch_initCabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState)
 }
 

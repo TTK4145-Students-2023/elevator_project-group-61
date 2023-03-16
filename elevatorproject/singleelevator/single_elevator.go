@@ -10,9 +10,9 @@ import (
 
 func RunSingleElevator(ch_cab_lamps chan[]bool, ch_hra chan [][2]bool, ch_init_cab_requests chan []bool, ch_completed_hall_requests chan elevio.ButtonEvent, ch_new_hall_requests chan elevio.ButtonEvent, ch_elevstate chan ElevState) {
 
-    numFloors := 4
+    // numFloors := 4
 
-    elevio.Init("10.100.23.27:15657", numFloors) 
+    // elevio.Init("10.100.23.27:15657", numFloors) 
     
     drv_buttons := make(chan elevio.ButtonEvent)
     drv_floors  := make(chan int)   

@@ -1,20 +1,20 @@
 package singleelevator
 
 import (
+	"elevatorproject/config"
 	"elevatorproject/singleelevator/doortimer"
 	"elevatorproject/singleelevator/elevio"
 	"fmt"
-	"elevatorproject/config"
 	// "time"
 )
 
 // Helper struct
 type ElevState struct {
-    Behaviour    string     
-    Floor       int          
-    Direction   string      
-    CabRequests []bool   
-	IsAvailable bool   
+	Behaviour   string
+	Floor       int
+	Direction   string
+	CabRequests []bool
+	IsAvailable bool
 }
 
 // Constants
@@ -71,13 +71,13 @@ func StatesToHRAStates(states States, cab_requests []bool, isAvailable bool) Ele
 
 	// Floor
 	if states.GetLastFloor() == -1 {
-		hra_states.Floor = n_floors/2
+		hra_states.Floor = n_floors / 2
 	} else {
 		hra_states.Floor = states.GetLastFloor()
 	}
 
 	// Direction
-	switch (states.GetLastDirection()) {
+	switch states.GetLastDirection() {
 	case elevio.MD_Up:
 		hra_states.Direction = "up"
 	case elevio.MD_Down:
@@ -85,7 +85,7 @@ func StatesToHRAStates(states States, cab_requests []bool, isAvailable bool) Ele
 	}
 
 	// Behaviour
-	switch (states.GetElevatorBehaviour()) {
+	switch states.GetElevatorBehaviour() {
 	case "Idle":
 		hra_states.Behaviour = "idle"
 		hra_states.Direction = "stop"
@@ -314,7 +314,8 @@ func Fsm_elevator(ch_cab_lamps chan<- []bool,
 	for {
 		select {
 		case hra := <-ch_hra:
-			// fmt.Println("HandleHRA")
+			fmt.Println("HandleHRA")
+			fmt.Println(hra)
 			var open_door_bool, set_direction_bool bool
 			var remove_orders_list []elevio.ButtonEvent
 			Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleNewRequests(hra, -1, Elev_states, Active_orders)
@@ -341,7 +342,7 @@ func Fsm_elevator(ch_cab_lamps chan<- []bool,
 				}
 			}
 		case floor := <-ch_floor:
-			// fmt.Println("HandleFloorSensor")
+			fmt.Println("HandleFloorSensor")
 			elevio.SetFloorIndicator(floor)
 			var stop_bool bool
 			var remove_orders_list []elevio.ButtonEvent
@@ -368,9 +369,10 @@ func Fsm_elevator(ch_cab_lamps chan<- []bool,
 		case <-ch_door:
 			// testSetLights(Active_orders) // Just for testing
 			ch_cab_lamps <- Active_orders.GetCabRequests()
-			// fmt.Println("HandleDoorClosing")
+			fmt.Println("HandleDoorClosing")
 			if elevio.GetObstruction() {
 				doortimer.StartTimer()
+				fmt.Println("Obstruction detected")
 				break
 			}
 			var open_door_bool, set_direction_bool bool
@@ -400,7 +402,7 @@ func Fsm_elevator(ch_cab_lamps chan<- []bool,
 		case btn_press := <-ch_btn:
 			// testSetLights(Active_orders) // Just for testing
 			ch_cab_lamps <- Active_orders.GetCabRequests()
-			// fmt.Println("HandleButtonEvent")
+			fmt.Println("HandleButtonEvent")
 			if btn_press.Button == elevio.BT_Cab {
 				var open_door_bool, set_direction_bool bool
 				var remove_orders_list []elevio.ButtonEvent

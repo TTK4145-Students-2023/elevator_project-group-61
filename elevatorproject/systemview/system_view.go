@@ -272,10 +272,16 @@ func SystemView(ch_sendNodeAwareness chan<- NodeAwareness,
 			// Her skal vi oppdatere vår egen hall request
 			nextRS := RS_Completed
 			if singleElevatorMode {
+				fmt.Println("Skal bli NoOrder")
 				nextRS = RS_NoOrder
 			}
 			myNodeAwareness.HallRequests[completedHallRequest.Floor][int(completedHallRequest.Button)] = nextRS
 			systemAwareness.SystemHallRequests[config.LocalID] = myNodeAwareness.HallRequests
+
+			if singleElevatorMode {
+				ch_hallRequests <- convertHallRequestStateToBool(myNodeAwareness.HallRequests, singleElevatorMode)
+				ch_hraInput <- systemAwareness
+			}
 
 			// nice print of the completed hall request
 			fmt.Println("Completed hall request: ", completedHallRequest.Floor, completedHallRequest.Button)

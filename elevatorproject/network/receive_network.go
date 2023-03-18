@@ -12,11 +12,9 @@ import (
 
 func ReceiveNetwork(ch_receiveNodeView chan <- nodeview.MyNodeView,
 	ch_receivePeerUpdate chan <- peers.PeerUpdate) {
-		ch_receive := make(chan nodeview.MyNodeView)
-		ch_peerUpdate := make(chan peers.PeerUpdate)
+		
 
-		go peers.Receiver(13200, ch_peerUpdate)
-		go bcast.Receiver(12100, ch_receive)
+		
 
 		for {
 			select {

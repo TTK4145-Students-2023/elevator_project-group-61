@@ -26,6 +26,7 @@ func ReceiveNetwork(ch_receiveNodeView chan <- nodeview.MyNodeView,
 			case peerUpdate := <- ch_peerUpdate:
 				ch_receivePeerUpdate <- peerUpdate
 			//default:
+				//time.Sleep(100*time.Millisecond)
 
 			}
 		}

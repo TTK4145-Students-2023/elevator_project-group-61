@@ -7,6 +7,7 @@ import (
 	"elevatorproject/singleelevator"
 	"fmt"
 	"strings"
+	// "time"
 )
 
 type PeersAlive []string
@@ -32,6 +33,7 @@ func (myWorldView *MyWorldView) initMyWorldView() {
 	myWorldView.HallRequestView = make([][2]nodeview.RequestState, config.NumElevators)
 	myWorldView.NodesAvailable = make(map[string]bool, config.NumElevators)
 	myWorldView.NodesAvailable[config.LocalID] = true
+	myWorldView.NodesAvailable["Elevator2"] = true
 }
 
 func printNodeView(node nodeview.MyNodeView) {
@@ -98,10 +100,13 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 				break
 			}
 
-			fmt.Println("----------------------------------")
-			fmt.Println(nodeView.ElevState)
+			fmt.Println("-------------Elevstate-------------")
+			singleelevator.PrintElevState(nodeView.ElevState)
 
-			myWorldView.NodesAvailable[nodeID] = nodeView.IsAvailable
+			
+
+			//myWorldView.NodesAvailable[nodeID] = nodeView.IsAvailable
+			fmt.Println(myWorldView.NodesAvailable[nodeID])
 			myWorldView.ElevStates[nodeID] = nodeView.ElevState
 
 			if nodeID != config.LocalID {
@@ -111,11 +116,13 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 				myWorldView.HallRequestView = nodeView.HallRequests
 			}
 
+			fmt.Println("------------MyWorldView-------------")
+			PrintMyWorldView(myWorldView)
 			
 			ch_hraInput <- myWorldView
 			ch_remoteRequestView <- remoteRequestView
 		//default:
-
+			//time.Sleep(100*time.Millisecond)
 		}
 	}
 }

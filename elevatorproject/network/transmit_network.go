@@ -24,6 +24,7 @@ func TransmitNetwork(ch_sendMyNodeView <- chan nodeview.MyNodeView, ch_setTransm
 		case setTransmitEnable := <- ch_setTransmitEnable:
 			ch_peerTransmitEnable <- setTransmitEnable
 		//default:
+			//time.Sleep(100*time.Millisecond)
 
 		}
 	}

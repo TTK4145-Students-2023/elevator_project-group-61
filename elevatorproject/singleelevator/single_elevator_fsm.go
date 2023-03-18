@@ -5,6 +5,7 @@ import (
 	"elevatorproject/singleelevator/doortimer"
 	"elevatorproject/singleelevator/elevio"
 	"fmt"
+	"strings"
 	// "time"
 )
 
@@ -21,6 +22,19 @@ type ElevState struct {
 const n_floors int = config.NumFloors
 
 // Helper functions
+
+func PrintElevState(state ElevState) {
+	fmt.Printf("Behaviour: %s\n", state.Behaviour)
+	fmt.Printf("Floor: %d\n", state.Floor)
+	fmt.Printf("Direction: %s\n", state.Direction)
+	fmt.Printf("CabRequests: %s\n", boolSliceToString(state.CabRequests))
+	fmt.Printf("IsAvailable: %t\n", state.IsAvailable)
+}
+
+func boolSliceToString(arr []bool) string {
+	return strings.Join(strings.Split(fmt.Sprintf("%v", arr), " "), ", ")
+}
+
 func StopAfterSensingFloor(floor int, elev_states States, active_orders Orders) bool {
 	if floor == 0 || floor == n_floors-1 {
 		return true

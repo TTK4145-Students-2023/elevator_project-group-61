@@ -14,6 +14,7 @@ import (
 	"elevatorproject/nodeview"
 	"encoding/json"
 	"fmt"
+	// "time"
 	"os/exec"
 	"runtime"
 	"io/ioutil"
@@ -122,9 +123,8 @@ func AssignHallRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hraoutput c
     		// for k, v := range *output {
         	// 	fmt.Printf("%6v :  %+v\n", k, v)
     		// }
-
 			ch_hraoutput <- hraOutput
-		//default:
+		default:
 			//time.Sleep(100*time.Millisecond)
 		}
 	}

@@ -6,6 +6,7 @@ import (
 	"elevatorproject/nodeview"
 	"elevatorproject/singleelevator"
 	"fmt"
+	"time"
 	"strings"
 	//"time"
 )
@@ -127,6 +128,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			//PrintMyWorldView(myWorldView)
 
 			ch_remoteRequestView <- remoteRequestView
+			time.Sleep(100*time.Millisecond)
 			ch_hraInput <- myWorldView
 		
 		}

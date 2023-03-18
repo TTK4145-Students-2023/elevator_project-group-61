@@ -5,6 +5,7 @@ import (
 	"elevatorproject/network/peers"
 	"elevatorproject/nodeview"
 	"fmt"
+	"time"
 )
 
 // Network function going to take in ch_transmit, ch_receive, ch_peerUpdate, ch_peerTransmitEnable
@@ -29,5 +30,6 @@ func ReceiveNetwork(ch_receiveNodeView chan <- nodeview.MyNodeView,
 				//time.Sleep(100*time.Millisecond)
 
 			}
+			time.Sleep(100*time.Millisecond)
 		}
 	}

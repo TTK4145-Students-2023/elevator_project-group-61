@@ -7,7 +7,7 @@ import (
 	"elevatorproject/singleelevator"
 	"fmt"
 	"strings"
-	// "time"
+	//"time"
 )
 
 type PeersAlive []string
@@ -103,8 +103,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			fmt.Println("-------------Elevstate-------------")
 			singleelevator.PrintElevState(nodeView.ElevState)
 
-			
-
+		
 			//myWorldView.NodesAvailable[nodeID] = nodeView.IsAvailable
 			fmt.Println(myWorldView.NodesAvailable[nodeID])
 			myWorldView.ElevStates[nodeID] = nodeView.ElevState
@@ -118,12 +117,12 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 
 			fmt.Println("------------MyWorldView-------------")
 			PrintMyWorldView(myWorldView)
-			
+
 			ch_hraInput <- myWorldView
 			ch_remoteRequestView <- remoteRequestView
-		//default:
-			//time.Sleep(100*time.Millisecond)
+			
 		}
+		//time.Sleep(100*time.Millisecond)
 	}
 }
 

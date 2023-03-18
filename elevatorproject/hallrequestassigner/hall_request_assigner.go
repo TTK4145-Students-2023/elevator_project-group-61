@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
-	// "time"
+	"time"
 	"io/ioutil"
 )
 
@@ -126,5 +126,6 @@ func AssignHallRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hraoutput c
 		//default:
 			//time.Sleep(100*time.Millisecond)
 		}
+		time.Sleep(100*time.Millisecond)
 	}
 }

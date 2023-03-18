@@ -6,6 +6,7 @@ import (
 	"elevatorproject/nodeview"
 	"elevatorproject/singleelevator"
 	"fmt"
+	"strings"
 )
 
 type PeersAlive []string
@@ -118,3 +119,43 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 		}
 	}
 }
+
+func PrintMyWorldView(view MyWorldView) {
+	fmt.Printf("Elevators:\n")
+	for id, state := range view.ElevStates {
+		fmt.Printf("  %s\n", id)
+		fmt.Printf("    - Behaviour: %s\n", state.Behaviour)
+		fmt.Printf("    - Floor: %d\n", state.Floor)
+		fmt.Printf("    - Direction: %s\n", state.Direction)
+		fmt.Printf("    - CabRequests: %s\n", boolSliceToString(state.CabRequests))
+		fmt.Printf("    - IsAvailable: %t\n", state.IsAvailable)
+	}
+	fmt.Printf("\n")
+
+	fmt.Printf("Hall Requests:\n")
+	for i, req := range view.HallRequestView {
+		fmt.Printf("  Floor %d:\n", i+1)
+		for j, state := range req {
+			fmt.Printf("    %s Hall: %s\n", hallDirectionToString(j), nodeview.RequestStateToString(state))
+		}
+	}
+	fmt.Printf("\n")
+
+	fmt.Printf("Node Availability:\n")
+	for id, available := range view.NodesAvailable {
+		fmt.Printf("  %s: %t\n", id, available)
+	}
+}
+
+func boolSliceToString(arr []bool) string {
+	return strings.Join(strings.Split(fmt.Sprintf("%v", arr), " "), ", ")
+}
+
+func hallDirectionToString(dir int) string {
+	if dir == 0 {
+		return "Up"
+	} else {
+		return "Down"
+	}
+}
+

@@ -213,3 +213,20 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 	}
 
 }
+
+func RequestStateToString(state RequestState) string {
+	switch state {
+	case RS_Unknown:
+		return "Unknown"
+	case RS_NoOrder:
+		return "No Order"
+	case RS_Pending:
+		return "Pending"
+	case RS_Confirmed:
+		return "Confirmed"
+	case RS_Completed:
+		return "Completed"
+	default:
+		return fmt.Sprintf("%d", state)
+	}
+}

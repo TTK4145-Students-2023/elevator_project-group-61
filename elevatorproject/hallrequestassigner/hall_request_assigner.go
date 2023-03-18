@@ -10,7 +10,8 @@ package hallrequestassigner
 
 import (
 	"elevatorproject/config"
-	"elevatorproject/systemview"
+	"elevatorproject/worldview"
+	"elevatorproject/nodeview"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -33,14 +34,14 @@ type HRAInput struct {
 }
 
 // TODO: get localID from somewhere
-func transformToHRAInput(systemAwareness systemview.SystemAwareness) HRAInput {
-	transfromedHRAHallRequests := make([][2]bool, len(systemAwareness.SystemHallRequests[config.LocalID]))
-	systemHallRequests := systemAwareness.SystemHallRequests[config.LocalID]
+func transformToHRAInput(myWorldView worldview.MyWorldView) HRAInput {
+	transfromedHRAHallRequests := make([][2]bool, len(myWorldView.HallRequestView))
+	systemHallRequests := myWorldView.HallRequestView
 	for i, floor := range systemHallRequests {
 		for j, requestState := range floor {
-			if requestState == systemview.RS_Confirmed {
+			if requestState == nodeview.RS_Confirmed {
 				transfromedHRAHallRequests[i][j] = true
-			} else if requestState == systemview.RS_Pending && len(systemAwareness.SystemElevState) == 1 {
+			} else if requestState == nodeview.RS_Pending && len(myWorldView.ElevStates) == 1 {
 				transfromedHRAHallRequests[i][j] = true
 			} else {
 				transfromedHRAHallRequests[i][j] = false
@@ -49,9 +50,9 @@ func transformToHRAInput(systemAwareness systemview.SystemAwareness) HRAInput {
 	}
 
 	transfromedHRAStates := make(map[string]HRAElevState)
-	systemElevState := systemAwareness.SystemElevState
+	systemElevState := myWorldView.ElevStates
 	//systemCabRequests := systemAwareness.SystemCabRequests
-	systemNodesAvailable := systemAwareness.SystemNodesAvailable
+	systemNodesAvailable := myWorldView.NodesAvailable
 	for id, elevState := range systemElevState {
 		if systemNodesAvailable[id] {
 			newHRAElevState := HRAElevState{
@@ -71,7 +72,7 @@ func transformToHRAInput(systemAwareness systemview.SystemAwareness) HRAInput {
 	return transfromedHRAInput
 }
 
-func AssignHallRequests(ch_hraInput <-chan systemview.SystemAwareness, ch_hraoutput chan<- [][2]bool) {
+func AssignHallRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hraoutput chan<- [][2]bool) {
 	for {
 		select {
 		case systemAwareness := <-ch_hraInput:

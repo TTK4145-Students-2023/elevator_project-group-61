@@ -12,7 +12,7 @@ type PeersAlive []string
 
 type MyWorldView struct {
 	ElevStates     map[string]singleelevator.ElevState
-	HallRequestViews   map[string][][2]nodeview.RequestState
+	HallRequestView   [][2]nodeview.RequestState
 	NodesAvailable map[string]bool
 }
 
@@ -28,7 +28,7 @@ func (peersAlive PeersAlive) IsPeerAlive(nodeID string) bool {
 
 func (myWorldView *MyWorldView) initMyWorldView() {
 	myWorldView.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
-	myWorldView.HallRequestViews = make(map[string][][2]nodeview.RequestState, config.NumElevators)
+	myWorldView.HallRequestView = make([][2]nodeview.RequestState, config.NumElevators)
 	myWorldView.NodesAvailable = make(map[string]bool, config.NumElevators)
 	myWorldView.NodesAvailable[config.LocalID] = true
 }
@@ -79,8 +79,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 				if lostPeer != config.LocalID {
 					delete(myWorldView.NodesAvailable, lostPeer)
 					delete(myWorldView.ElevStates, lostPeer)
-					delete(myWorldView.HallRequestViews, lostPeer)
-
+	
 					delete(remoteRequestView.RemoteHallRequestViews, lostPeer)
 					delete(remoteRequestView.RemoteCabRequests, lostPeer)
 				}
@@ -100,11 +99,12 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 
 			myWorldView.NodesAvailable[nodeID] = nodeView.IsAvailable
 			myWorldView.ElevStates[nodeID] = nodeView.ElevState
-			myWorldView.HallRequestViews[nodeID] = nodeView.HallRequests
 
 			if nodeID != config.LocalID {
 				remoteRequestView.RemoteHallRequestViews[nodeID] = nodeView.HallRequests
 				remoteRequestView.RemoteCabRequests[nodeID] = nodeView.ElevState.CabRequests
+			} else {
+				myWorldView.HallRequestView = nodeView.HallRequests
 			}
 
 			ch_hraInput <- myWorldView

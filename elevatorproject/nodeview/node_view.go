@@ -54,16 +54,6 @@ func convertHallRequestStateToBool(hallRequests [][2]RequestState, singleElevato
 	return hallRequestsBool
 }
 
-// Function that changes all NoOrder to Unknown as a method of the NodeAwareness struct
-func (myNodeView *MyNodeView) ChangeNoOrderAndConfirmedToUnknown() {
-	for row := 0; row < len(myNodeView.HallRequests); row++ {
-		for col := 0; col < len(myNodeView.HallRequests[row]); col++ {
-			if myNodeView.HallRequests[row][col] == RS_NoOrder || myNodeView.HallRequests[row][col] == RS_Confirmed {
-				myNodeView.HallRequests[row][col] = RS_Unknown
-			}
-		}
-	}
-}
 
 func updateMyHallRequestView(myHallRequestView [][2]RequestState, remoteHallRequestView map[string][][2]RequestState) [][2]RequestState {
 	for row := 0; row < len(myHallRequestView); row++ {
@@ -125,6 +115,21 @@ func updateMyHallRequestView(myHallRequestView [][2]RequestState, remoteHallRequ
 	return myHallRequestView
 }
 
+func (myNodeView *MyNodeView) ChangeNoOrderAndConfirmedToUnknown() {
+	for row := 0; row < len(myNodeView.HallRequests); row++ {
+		for col := 0; col < len(myNodeView.HallRequests[row]); col++ {
+			if myNodeView.HallRequests[row][col] == RS_NoOrder || myNodeView.HallRequests[row][col] == RS_Confirmed {
+				myNodeView.HallRequests[row][col] = RS_Unknown
+			}
+		}
+	}
+}
+
+func (remoteRequestView *RemoteRequestView) InitRemoteRequestView() {
+	remoteRequestView.RemoteHallRequestViews = make(map[string][][2]RequestState)
+	remoteRequestView.RemoteCabRequests = make(map[string][]bool)
+}
+
 func printNodeAwareness(node MyNodeView) {
 	fmt.Printf("ID: %s\n", node.ID)
 	fmt.Printf("IsAvailable: %v\n", node.IsAvailable)
@@ -157,10 +162,15 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 		case remoteRequestView := <-ch_remoteRequestView:
 			fmt.Println("nodeview: remoteRequestView")
 
-			if len(remoteRequestView.RemoteHallRequestViews) > 0 {
-				isSingleElevMode = false
-				myNodeView.RemoteCabRequests = remoteRequestView.RemoteCabRequests
+			numRemoteNodes := len(ch_remoteRequestView)
+
+			if numRemoteNodes > 0 {
+				if isSingleElevMode {
+					isSingleElevMode = false
+					myNodeView.ChangeNoOrderAndConfirmedToUnknown()
+				}
 				myNodeView.HallRequests = updateMyHallRequestView(myNodeView.HallRequests, remoteRequestView.RemoteHallRequestViews)
+				myNodeView.RemoteCabRequests = remoteRequestView.RemoteCabRequests
 			} else {
 				isSingleElevMode = true
 			}
@@ -187,7 +197,11 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 
 		case <-time.After(50 * time.Millisecond):
 			ch_sendMyNodeView <- myNodeView
+
+		default:
+
 		}
+	
 	}
 
 }

@@ -5,17 +5,15 @@ import (
 	"elevatorproject/network/peers"
 	"elevatorproject/nodeview"
 	"elevatorproject/singleelevator"
-	"elevatorproject/singleelevator/elevio"
 	"fmt"
-	"time"
 )
 
 type PeersAlive []string
 
 type MyWorldView struct {
-	SystemElevState      map[string]singleelevator.ElevState
-	SystemHallRequests   map[string][][2]nodeview.RequestState
-	SystemNodesAvailable map[string]bool
+	ElevStates     map[string]singleelevator.ElevState
+	HallRequestViews   map[string][][2]nodeview.RequestState
+	NodesAvailable map[string]bool
 }
 
 // Function that returns false if nodeID (input) is not in peersALive
@@ -28,11 +26,11 @@ func (peersAlive PeersAlive) IsPeerAlive(nodeID string) bool {
 	return false
 }
 
-func (systemAwareness *MyWorldView) InitSystemAwareness() {
-	systemAwareness.SystemElevState = make(map[string]singleelevator.ElevState, config.NumElevators)
-	systemAwareness.SystemHallRequests = make(map[string][][2]RequestState, config.NumElevators)
-	systemAwareness.SystemNodesAvailable = make(map[string]bool, config.NumElevators)
-	systemAwareness.SystemNodesAvailable[config.LocalID] = true
+func (myWorldView *MyWorldView) initMyWorldView() {
+	myWorldView.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
+	myWorldView.HallRequestViews = make(map[string][][2]nodeview.RequestState, config.NumElevators)
+	myWorldView.NodesAvailable = make(map[string]bool, config.NumElevators)
+	myWorldView.NodesAvailable[config.LocalID] = true
 }
 
 func printNodeView(node nodeview.MyNodeView) {
@@ -45,114 +43,74 @@ func printNodeView(node nodeview.MyNodeView) {
 		fmt.Printf("  Floor %d: Up=%v Down=%v\n", i+1, requests[0], requests[1])
 	}
 	fmt.Printf("CabRequests:\n")
-	for id, requests := range node.CabRequests {
+	for id, requests := range node.RemoteCabRequests {
 		fmt.Printf("  Cab %s: %v\n", id, requests)
 	}
 }
 
-func WorldView(ch_sendNodeView chan<- NodeView,
-	ch_receiveNodeView <-chan NodeView,
+func WorldView(ch_receiveRemoteNodeView <-chan nodeview.MyNodeView,
 	ch_receivePeerUpdate <-chan peers.PeerUpdate,
-	ch_setTransmitEnable chan<- bool,
-	ch_newHallRequest <-chan elevio.ButtonEvent,
-	ch_compledtedHallRequest <-chan elevio.ButtonEvent,
-	ch_elevState <-chan singleelevator.ElevState,
-	ch_hallRequests chan<- [][2]bool,
-	ch_initCabRequests chan<- []bool,
+	ch_setTransmitEnable chan <- bool,
+	ch_initCabRequests chan <- []bool,
+	ch_remoteRequestView chan <- nodeview.RemoteRequestView,
 	ch_hraInput chan<- MyWorldView) {
 
-	var myNodeView NodeView
-	var systemAwareness MyWorldView
-	var peersAlive PeersAlive
-	var singleElevatorMode = true
 
-	myNodeView.InitNodeView()
-	systemAwareness.InitSystemAwareness()
-// Veldig viktig å huske på at i singelelevmode så må hallcalls bli sendt til hraInput
+	var myWorldView MyWorldView
+	var peersAlive PeersAlive
+	var remoteRequestView nodeview.RemoteRequestView
+
+	myWorldView.initMyWorldView()
+	remoteRequestView.InitRemoteRequestView()
+
 	for {
 		select {
 		case peerUpdate := <-ch_receivePeerUpdate:
-			// Go to single elevator mode if at least one node left
-			peersAlive = peerUpdate.Peers
-			peersLost := peerUpdate.Lost
-			// Heller kjøre en metode som sletter her
-			if len(peersAlive) <= 1 && !singleElevatorMode {
-				singleElevatorMode = true
-				// We must stop broadcasting our node awareness. Disable the channel
-				//ch_setTransmitEnable <- false
-
-			} else if singleElevatorMode && len(peersAlive) > 1 {
-				singleElevatorMode = false
-				// We must set all no order to unknown
-				myNodeView.ChangeNoOrderAndConfirmedToUnknown()
-				// Update system awareness hall requests
-				systemAwareness.SystemHallRequests[config.LocalID] = myNodeView.HallRequests
-				fmt.Println("Kobler oss tilbake på nettverket igjen")
-				//ch_setTransmitEnable <- true
-				// else single elevator mode false
-			} //else if len(peersAlive) > 1 && singleElevatorMode {
-			//singleElevatorMode = false
-			//}
-
-			for _, lostPeer := range peersLost {
-				// If this node can be found in lostPeer, we should delete it from the systemAwareness
-				if lostPeer != config.LocalID {
-					delete(systemAwareness.SystemNodesAvailable, lostPeer)
-					delete(systemAwareness.SystemElevState, lostPeer)
-					delete(systemAwareness.SystemHallRequests, lostPeer)
-				}
-			}
-
-			// print peer update
-			fmt.Printf("Peer update:\n")
+			fmt.Println("worldview: peerUpdate")
 			fmt.Printf("  Peers:    %q\n", peerUpdate.Peers)
 			fmt.Printf("  New:      %q\n", peerUpdate.New)
 			fmt.Printf("  Lost:     %q\n", peerUpdate.Lost)
 
+			peersAlive = peerUpdate.Peers
+			peersLost := peerUpdate.Lost
+		
+			for _, lostPeer := range peersLost {
+				// If this node can be found in lostPeer, we should delete it from the systemAwareness
+				if lostPeer != config.LocalID {
+					delete(myWorldView.NodesAvailable, lostPeer)
+					delete(myWorldView.ElevStates, lostPeer)
+					delete(myWorldView.HallRequestViews, lostPeer)
+
+					delete(remoteRequestView.RemoteHallRequestViews, lostPeer)
+					delete(remoteRequestView.RemoteCabRequests, lostPeer)
+				}
+			}
 			// Here I can add if I am in an init state, I should send cab call of LocalID on channel init_cab_requests
 			// This will be done in the init state of the elevator
-		case NodeView := <-ch_receiveNodeView:
-			fmt.Println("Received from ", NodeView.ID)
-			fmt.Println(NodeView.HallRequests)
+		case nodeView := <-ch_receiveRemoteNodeView:
+			fmt.Println("worldview: remoteNodeView")
+			fmt.Println("Received from ", nodeView.ID)
 
-			nodeID := NodeView.ID
+			nodeID := nodeView.ID
+
 			// Break out of case if IsPeerAlive returns false
-			if !peersAlive.IsPeerAlive(nodeID) || nodeID == config.LocalID {
+			if !peersAlive.IsPeerAlive(nodeID) {
 				break
 			}
-			systemAwareness.SystemNodesAvailable[nodeID] = NodeView.IsAvailable
-			systemAwareness.SystemElevState[nodeID] = NodeView.ElevState
-			systemAwareness.SystemHallRequests[nodeID] = NodeView.HallRequests
-			myNodeView.CabRequests[nodeID] = NodeView.ElevState.CabRequests
 
-			// Gjennomfører sammenlikningen
-			hallRequests := updateMyHallRequestView(systemAwareness.SystemHallRequests)
+			myWorldView.NodesAvailable[nodeID] = nodeView.IsAvailable
+			myWorldView.ElevStates[nodeID] = nodeView.ElevState
+			myWorldView.HallRequestViews[nodeID] = nodeView.HallRequests
 
-			// Her skal både myNodeView og min id på systemAwareness oppdateres
-			systemAwareness.SystemHallRequests[config.LocalID] = hallRequests
-			myNodeView.HallRequests = hallRequests
+			if nodeID != config.LocalID {
+				remoteRequestView.RemoteHallRequestViews[nodeID] = nodeView.HallRequests
+				remoteRequestView.RemoteCabRequests[nodeID] = nodeView.ElevState.CabRequests
+			}
 
-			// Send systemAwareness til hra modulen
-			ch_hraInput <- systemAwareness
-
-			// Etter dette må vi sende til panelmodulen for å kunne sette lys.
-			ch_hallRequests <- convertHallRequestStateToBool(hallRequests, singleElevatorMode)
-
-			// Debug print
-
-		case elevState := <-ch_elevState:
-			// Her skal vi oppdatere vår egen elevstate
-			//fmt.Println("Inside getting elevState channel case")
-			myNodeView.ElevState = elevState
-			systemAwareness.SystemElevState[config.LocalID] = elevState
-
-			fmt.Println(systemAwareness.SystemElevState[config.LocalID])
-
-		case <-time.After(50 * time.Millisecond):
-			// Her skal vi sende vår egen NodeView på nettverket
-			ch_sendNodeView <- myNodeView
-
-			//printNodeView(myNodeView)
+			ch_hraInput <- myWorldView
+			ch_remoteRequestView <- remoteRequestView
+		default:
+			
 		}
 	}
 }

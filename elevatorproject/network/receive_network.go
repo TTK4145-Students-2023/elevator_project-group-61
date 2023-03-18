@@ -1,9 +1,10 @@
 package network
 
 import (
-	"elevatorproject/nodeview"
-	"elevatorproject/network/peers"
 	"elevatorproject/network/bcast"
+	"elevatorproject/network/peers"
+	"elevatorproject/nodeview"
+	"fmt"
 )
 
 // Network function going to take in ch_transmit, ch_receive, ch_peerUpdate, ch_peerTransmitEnable
@@ -19,11 +20,12 @@ func ReceiveNetwork(ch_receiveNodeView chan <- nodeview.MyNodeView,
 		for {
 			select {
 			case nodeview := <- ch_receive:
+				fmt.Println("receive_network: Mottar en node view")
 				ch_receiveNodeView <- nodeview
 			
 			case peerUpdate := <- ch_peerUpdate:
 				ch_receivePeerUpdate <- peerUpdate
-			default:
+			//default:
 
 			}
 		}

@@ -5,6 +5,7 @@ import (
 	"elevatorproject/network/bcast"
 	"elevatorproject/network/peers"
 	"elevatorproject/nodeview"
+	"fmt"
 )
 
 
@@ -18,11 +19,12 @@ func TransmitNetwork(ch_sendMyNodeView <- chan nodeview.MyNodeView, ch_setTransm
 	for {
 		select {
 		case myNodeView := <- ch_sendMyNodeView:
+			fmt.Println("transmit_network: sending my nodeview")
 			ch_transmit <- myNodeView
 		case setTransmitEnable := <- ch_setTransmitEnable:
 			ch_peerTransmitEnable <- setTransmitEnable
-		default:
-			
+		//default:
+
 		}
 	}
 }

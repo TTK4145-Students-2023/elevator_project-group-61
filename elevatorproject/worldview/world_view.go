@@ -97,6 +97,9 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 				break
 			}
 
+			fmt.Println("----------------------------------")
+			fmt.Println(nodeView.ElevState)
+
 			myWorldView.NodesAvailable[nodeID] = nodeView.IsAvailable
 			myWorldView.ElevStates[nodeID] = nodeView.ElevState
 
@@ -107,9 +110,10 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 				myWorldView.HallRequestView = nodeView.HallRequests
 			}
 
+			
 			ch_hraInput <- myWorldView
 			ch_remoteRequestView <- remoteRequestView
-		default:
+		//default:
 
 		}
 	}

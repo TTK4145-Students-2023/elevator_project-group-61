@@ -35,6 +35,13 @@ func (myNodeView *MyNodeView) InitMyNodeView() {
 	myNodeView.ID = config.LocalID
 	myNodeView.HallRequests = make([][2]RequestState, config.NumFloors)
 	myNodeView.RemoteCabRequests = make(map[string][]bool)
+	myNodeView.ElevState = singleelevator.ElevState{
+		Behaviour: "moving",
+		Floor : 1,
+		Direction: "up",
+		CabRequests: make([]bool, config.NumFloors),
+		IsAvailable: true,
+	}
 }
 
 // function that takes a [][2]RequestState as input and return [][2]bool
@@ -195,10 +202,11 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			fmt.Println("nodeview: elevState")
 			myNodeView.ElevState = elevState
 
-		case <-time.After(50 * time.Millisecond):
+		case <-time.After(5000 * time.Millisecond):
+			fmt.Println("nodeview: broadcaster myNodeView")
 			ch_sendMyNodeView <- myNodeView
 
-		default:
+		//default:
 
 		}
 	

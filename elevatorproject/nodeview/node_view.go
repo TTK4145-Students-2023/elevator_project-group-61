@@ -209,7 +209,7 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 		//default:
 			//time.Sleep(100*time.Millisecond)
 		}
-		time.Sleep(50*time.Millisecond)
+		//time.Sleep(50*time.Millisecond)
 	}
 
 }

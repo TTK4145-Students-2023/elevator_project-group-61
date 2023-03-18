@@ -3,16 +3,13 @@ package main
 import (
 	"elevatorproject/config"
 	"elevatorproject/hallrequestassigner"
-	"elevatorproject/network"
 	"elevatorproject/network/peers"
 	"elevatorproject/singleelevator"
 	"elevatorproject/singleelevator/elevio"
 	"elevatorproject/nodeview"
 	"elevatorproject/worldview"
 	"elevatorproject/network/bcast"
-	"elevatorproject/network/peers"
 	"fmt"
-	"time"
 )
 
 func main() {

@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"os/exec"
 	"runtime"
-	"time"
 	"io/ioutil"
 )
 
@@ -35,7 +34,7 @@ type HRAInput struct {
 
 // TODO: get localID from somewhere
 func transformToHRAInput(myWorldView worldview.MyWorldView) HRAInput {
-	transfromedHRAHallRequests := make([][2]bool, len(myWorldView.HallRequestView))
+	transfromedHRAHallRequests := make([][2]bool, config.NumFloors)
 	systemHallRequests := myWorldView.HallRequestView
 	for i, floor := range systemHallRequests {
 		for j, requestState := range floor {
@@ -96,7 +95,8 @@ func AssignHallRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hraoutput c
 			}
 
 			// Print out json to file
-			err = ioutil.WriteFile("hra_assigner_input", jsonBytes, 0644)
+			filename := "hra_assigner_input" + config.LocalID
+			err = ioutil.WriteFile(filename, jsonBytes, 0644)
 			if err != nil {
 				panic(err)
 			}
@@ -117,15 +117,15 @@ func AssignHallRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hraoutput c
 			hraOutput := (*output)[config.LocalID] //TODO: Get the local ID from somewhere
 
 			// printer output
-			fmt.Printf("output: \n")
-    		for k, v := range *output {
-        		fmt.Printf("%6v :  %+v\n", k, v)
-    		}
+			
+			// fmt.Printf("output: \n")
+    		// for k, v := range *output {
+        	// 	fmt.Printf("%6v :  %+v\n", k, v)
+    		// }
 
 			ch_hraoutput <- hraOutput
 		//default:
 			//time.Sleep(100*time.Millisecond)
 		}
-		time.Sleep(100*time.Millisecond)
 	}
 }

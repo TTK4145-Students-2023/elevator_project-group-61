@@ -183,7 +183,7 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 		case remoteRequestView := <-ch_remoteRequestView:
 			fmt.Println("nodeview: remoteRequestView")
 
-			numRemoteNodes := len(ch_remoteRequestView)
+			numRemoteNodes := len(remoteRequestView.RemoteHallRequestViews)
 
 			if numRemoteNodes > 0 {
 				if isSingleElevMode {

@@ -5,8 +5,9 @@ const NumFloors = 4
 
 // const LocalIP = "localhost:15657"
 // const LocalID = "Elevator1"
-// const SecondElev = "Elevator2"
 
-const LocalIP = "10.100.23.32:15657"
-const LocalID = "Elevator2"
-const SecondElev = "Elevator1"
+// const LocalIP = "10.100.23.32:15657"
+// const LocalID = "Elevator2"
+
+const LocalIP = "10.100.23.23:15657"
+const LocalID = "Elevator3"

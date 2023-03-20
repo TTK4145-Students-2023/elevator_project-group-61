@@ -105,7 +105,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			nodeID := nodeView.ID
 
 			// Break out of case if IsPeerAlive returns false
-			if !peersAlive.IsPeerAlive(nodeID) {
+			if !peersAlive.IsPeerAlive(nodeID) && config.LocalID != nodeID {
 				break
 			}
 

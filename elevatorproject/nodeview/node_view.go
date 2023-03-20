@@ -42,6 +42,7 @@ func (myNodeView *MyNodeView) InitMyNodeView() {
 		CabRequests: make([]bool, config.NumFloors),
 		IsAvailable: true,
 	}
+
 }
 
 // function that takes a [][2]RequestState as input and return [][2]bool

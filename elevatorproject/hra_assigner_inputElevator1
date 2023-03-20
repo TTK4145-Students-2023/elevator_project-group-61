@@ -1,1 +1,1 @@
-{"hallRequests":[[false,false],[false,false],[true,false],[false,true]],"states":{"Elevator1":{"behaviour":"doorOpen","floor":1,"direction":"stop","cabRequests":[false,false,false,false]}}}
+{"hallRequests":[[false,false],[false,false],[false,false],[false,false]],"states":{"Elevator1":{"behaviour":"idle","floor":0,"direction":"stop","cabRequests":[false,false,false,false]}}}

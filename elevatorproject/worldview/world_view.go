@@ -34,7 +34,7 @@ func (myWorldView *MyWorldView) initMyWorldView() {
 	myWorldView.HallRequestView = make([][2]nodeview.RequestState, config.NumFloors)
 	myWorldView.NodesAvailable = make(map[string]bool, config.NumElevators)
 	myWorldView.NodesAvailable[config.LocalID] = true
-	myWorldView.NodesAvailable[config.SecondElev] = true
+	//myWorldView.NodesAvailable[config.SecondElev] = true
 	myWorldView.ElevStates[config.LocalID] = singleelevator.ElevState{
 		Behaviour: "moving",
 		Floor : 1,
@@ -43,7 +43,7 @@ func (myWorldView *MyWorldView) initMyWorldView() {
 		IsAvailable: true,
 	}
 }
-
+/*
 func printNodeView(node nodeview.MyNodeView) {
 	fmt.Printf("ID: %s\n", node.ID)
 	fmt.Printf("IsAvailable: %v\n", node.IsAvailable)
@@ -58,6 +58,7 @@ func printNodeView(node nodeview.MyNodeView) {
 		fmt.Printf("  Cab %s: %v\n", id, requests)
 	}
 }
+*/
 
 func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 	ch_receivePeerUpdate <-chan peers.PeerUpdate,
@@ -112,7 +113,8 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			//singleelevator.PrintElevState(nodeView.ElevState)
 
 		
-			//myWorldView.NodesAvailable[nodeID] = nodeView.IsAvailable
+			myWorldView.NodesAvailable[nodeID] = nodeView.ElevState.IsAvailable
+			
 			//fmt.Println(myWorldView.NodesAvailable[nodeID])
 			myWorldView.ElevStates[nodeID] = nodeView.ElevState
 

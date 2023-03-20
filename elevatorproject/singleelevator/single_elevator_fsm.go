@@ -6,6 +6,7 @@ import (
 	"elevatorproject/singleelevator/elevio"
 	"fmt"
 	"strings"
+	// "time"
 )
 
 // Helper struct
@@ -233,10 +234,8 @@ func HandleNewRequests(hra [][2]bool, cab_order_floor int, elev_states States, a
 				elev_states.SetElevatorBehaviour("Moving")
 				if (elev_states.GetLastDirection() == elevio.MD_Up && orders_above) || !orders_below {
 					elev_states.SetDirection(elevio.MD_Up)
-					// fmt.Println("Moving up")
 				} else if (elev_states.GetLastDirection() == elevio.MD_Down && orders_below) || !orders_above {
 					elev_states.SetDirection(elevio.MD_Down)
-					// fmt.Println("Moving down")
 				} else {
 					panic("HandleNewRequests: No direction set")
 				}

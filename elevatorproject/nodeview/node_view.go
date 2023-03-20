@@ -31,6 +31,19 @@ type RemoteRequestView struct {
 	RemoteCabRequests      map[string][]bool
 }
 
+func CopyRemoveRequestView(remoteRequestView RemoteRequestView) RemoteRequestView {
+	var copy RemoteRequestView
+	copy.RemoteHallRequestViews = make(map[string][][2]RequestState, config.NumElevators)
+	copy.RemoteCabRequests = make(map[string][]bool, config.NumElevators)
+	for id, hallRequestView := range remoteRequestView.RemoteHallRequestViews {
+		copy.RemoteHallRequestViews[id] = hallRequestView
+	}
+	for id, cabRequestView := range remoteRequestView.RemoteCabRequests {
+		copy.RemoteCabRequests[id] = cabRequestView
+	}
+	return copy
+}
+
 func (myNodeView *MyNodeView) InitMyNodeView() {
 	myNodeView.ID = config.LocalID
 	myNodeView.HallRequests = make([][2]RequestState, config.NumFloors)

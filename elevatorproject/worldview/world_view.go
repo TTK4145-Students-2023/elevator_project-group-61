@@ -42,7 +42,6 @@ func (myWorldView *MyWorldView) initMyWorldView() {
 		CabRequests: make([]bool, config.NumFloors),
 		IsAvailable: true,
 	}
-
 }
 
 func printNodeView(node nodeview.MyNodeView) {

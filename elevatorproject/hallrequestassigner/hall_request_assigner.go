@@ -72,7 +72,19 @@ func transformToHRAInput(myWorldView worldview.MyWorldView) HRAInput {
 	return transfromedHRAInput
 }
 
+func diffHRARequests(oldHRARequests [][2]bool, newHRARequests [][2]bool) bool {
+	for i := 0; i < config.NumFloors; i++ {
+		for j := 0; j < 2; j++ {
+			if oldHRARequests[i][j] != newHRARequests[i][j] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func AssignHallRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hraoutput chan<- [][2]bool) {
+	oldHRARequests := make([][2]bool, config.NumFloors)
 	for {
 		select {
 		case systemAwareness := <-ch_hraInput:
@@ -123,7 +135,10 @@ func AssignHallRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hraoutput c
     		// for k, v := range *output {
         	// 	fmt.Printf("%6v :  %+v\n", k, v)
     		// }
-			ch_hraoutput <- hraOutput
+			if diffHRARequests(oldHRARequests, hraOutput) {
+				ch_hraoutput <- hraOutput
+				oldHRARequests = hraOutput
+			}
 		default:
 			//time.Sleep(100*time.Millisecond)
 		}

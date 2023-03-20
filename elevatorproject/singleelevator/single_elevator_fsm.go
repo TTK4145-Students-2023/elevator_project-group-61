@@ -6,7 +6,6 @@ import (
 	"elevatorproject/singleelevator/elevio"
 	"fmt"
 	"strings"
-	// "time"
 )
 
 // Helper struct

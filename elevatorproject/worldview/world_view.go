@@ -19,6 +19,21 @@ type MyWorldView struct {
 	NodesAvailable map[string]bool
 }
 
+func copyMyWorldView(myworldview MyWorldView) MyWorldView {
+	var copy MyWorldView
+	copy.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
+	copy.HallRequestView = make([][2]nodeview.RequestState, config.NumFloors)
+	copy.NodesAvailable = make(map[string]bool, config.NumElevators)
+	for id, state := range myworldview.ElevStates {
+		copy.ElevStates[id] = state
+	}
+	for id, available := range myworldview.NodesAvailable {
+		copy.NodesAvailable[id] = available
+	}
+	copy.HallRequestView = myworldview.HallRequestView
+	return copy
+}
+
 // Function that returns false if nodeID (input) is not in peersALive
 func (peersAlive PeersAlive) IsPeerAlive(nodeID string) bool {
 	for _, peer := range peersAlive {

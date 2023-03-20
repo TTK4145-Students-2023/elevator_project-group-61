@@ -18,11 +18,21 @@ type ElevState struct {
 	IsAvailable bool
 }
 
+func (elevstate *ElevState) InitElevState() {
+	elevstate.Behaviour = "idle"
+	elevstate.Floor = -1
+	elevstate.Direction = "stop"
+	elevstate.CabRequests = make([]bool, config.NumFloors)
+	for i := range elevstate.CabRequests {
+		elevstate.CabRequests[i] = false
+	}
+	elevstate.IsAvailable = true
+}
+
 // Constants
 const n_floors int = config.NumFloors
 
 // Helper functions
-
 func PrintElevState(state ElevState) {
 	fmt.Printf("Behaviour: %s\n", state.Behaviour)
 	fmt.Printf("Floor: %d\n", state.Floor)

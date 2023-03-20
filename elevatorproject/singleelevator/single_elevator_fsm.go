@@ -91,7 +91,12 @@ func DirToBtnType(dir elevio.MotorDirection) elevio.ButtonType {
 }
 
 func StatesToHRAStates(states States, cab_requests []bool, isAvailable bool) ElevState {
-	hra_states := ElevState{}
+	hra_states := ElevState{
+		Behaviour:   "idle",
+		Floor:       1,
+		Direction:   "stop",
+		CabRequests: make([]bool, n_floors),
+		IsAvailable: true}
 
 	// Floor
 	if states.GetLastFloor() == -1 {
@@ -123,7 +128,7 @@ func StatesToHRAStates(states States, cab_requests []bool, isAvailable bool) Ele
 	}
 
 	// Cab requests
-	hra_states.CabRequests = cab_requests
+	copy(hra_states.CabRequests, cab_requests)
 
 	// isAvailable
 	hra_states.IsAvailable = isAvailable

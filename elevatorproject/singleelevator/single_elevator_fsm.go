@@ -320,8 +320,6 @@ func Fsm_elevator(ch_cab_lamps chan<- []bool,
 
 	isAvailable := true
 
-	var Old_ElevState ElevState = StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
-
 	// Timers for isAvailable
 	// obstruction_timer := time.NewTimer(10*time.Second)
 	// obstruction_timer.Stop()
@@ -334,6 +332,9 @@ func Fsm_elevator(ch_cab_lamps chan<- []bool,
 	Active_orders.InitOrders()
 	InitLamps(Active_orders) //TODO: remove this because of fix by channel
 	Elev_states.InitStates()
+
+	var Old_ElevState ElevState = StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
+
 	if elevio.GetFloor() == -1 {
 		Elev_states.SetElevatorBehaviour("Moving")
 		elevio.SetMotorDirection(elevio.MD_Up)

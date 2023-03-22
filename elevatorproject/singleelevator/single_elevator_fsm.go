@@ -9,6 +9,14 @@ import (
 	// "time"
 )
 
+// TODO: Cleanup, kanskje endre fra sånne bools i fsmen til bare å bruke States. I tillegg se på hvordan bruke 
+// 	 golang timers istedenfor door timer muligens. Da kan det kanskje bare brukes rett i denne modulen. 
+//   Samt også brukes til mechanical errors.
+//	 -1 floor mech error må resettes hver gang et floor treffes (stoppes). Og startes hver gang vi er i moving.
+//	 Obstruction må startes hver gang det er obstruksjon og stoppes (cleares) når døren lukkes  (Dette gir mening
+// 	 fordi det er på mange måter simulert obstruksjon om folk spammer åpne dør knappen og heisen blir stående i den etasjen).
+
+
 // Helper struct
 type ElevState struct {
 	Behaviour   string

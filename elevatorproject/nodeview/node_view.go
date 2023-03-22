@@ -181,7 +181,7 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 	for {
 		select {
 		case remoteRequestView := <-ch_remoteRequestView:
-			fmt.Println("nodeview: remoteRequestView")
+			//fmt.Println("nodeview: remoteRequestView")
 
 			numRemoteNodes := len(remoteRequestView.RemoteHallRequestViews)
 
@@ -199,11 +199,11 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			ch_hallRequests <- convertHallRequestStateToBool(myNodeView.HallRequests, isSingleElevMode)
 
 		case newHallRequest := <-ch_newHallRequest:
-			fmt.Println("nodeview: newHallRequest")
+			//fmt.Println("nodeview: newHallRequest")
 			myNodeView.HallRequests[newHallRequest.Floor][int(newHallRequest.Button)] = RS_Pending
 
 		case completedHallRequest := <-ch_completedHallRequest:
-			fmt.Println("nodeview: completedHallRequest")
+			//fmt.Println("nodeview: completedHallRequest")
 			nextRS := RS_Completed
 
 			if isSingleElevMode {
@@ -217,7 +217,7 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			myNodeView.ElevState = elevState
 
 		case <-time.After(100 * time.Millisecond):
-			fmt.Println("nodeview: broadcaster myNodeView")
+			//fmt.Println("nodeview: broadcaster myNodeView")
 			ch_sendMyNodeView <- myNodeView
 
 		//default:

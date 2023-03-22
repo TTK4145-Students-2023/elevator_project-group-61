@@ -93,7 +93,7 @@ func AssignHallRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hraoutput c
 	for {
 		select {
 		case systemAwareness := <-ch_hraInput:
-			fmt.Println("HRA has gotten input")
+			//fmt.Println("HRA has gotten input")
 			hraInput := transformToHRAInput(systemAwareness)
 
 			hraExecutable := ""

@@ -9,5 +9,5 @@ const NumFloors = 4
 const LocalIP = "10.100.23.14:15657"
 const LocalID = "Elevator2"
 
-const LocalIP = "10.100.23.13:15657"
-const LocalID = "Elevator3"
+// const LocalIP = "10.100.23.13:15657"
+// const LocalID = "Elevator3"

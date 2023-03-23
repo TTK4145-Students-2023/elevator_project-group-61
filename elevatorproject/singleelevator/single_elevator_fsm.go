@@ -2,7 +2,7 @@ package singleelevator
 
 import (
 	"elevatorproject/config"
-	"elevatorproject/singleelevator/doortimer"
+	"elevatorproject/singleelevator/elevator_timers"
 	"elevatorproject/singleelevator/elevio"
 	"fmt"
 	"strings"
@@ -15,6 +15,20 @@ import (
 //	 -1 floor mech error må resettes hver gang et floor treffes (stoppes). Og startes hver gang vi er i moving.
 //	 Obstruction må startes hver gang det er obstruksjon og stoppes (cleares) når døren lukkes  (Dette gir mening
 // 	 fordi det er på mange måter simulert obstruksjon om folk spammer åpne dør knappen og heisen blir stående i den etasjen).
+
+// Denne TODOen er nesten done. Bruker States istedenfor bools. Har gjort litt cleanup. 
+// - Har dog ikke skjønt hvordan jeg skal bruke golang timers, så satser derfor på egen timer modul.
+// - Mechanical og obstruction er in the making.
+// - Må også håndtere cab requests initial, og eventuelt endre hvordan cab håndteres, ref Nicholas' kommentar.
+
+// Mechanical error:
+// Timer startes når heisen er i moving.
+// Timer resettes hver gang heisen treffer et floor.
+// Timer stoppes når heisen står stille.
+
+// Obstruction:
+// Timer startes når obstruction er true.
+// Timer stoppes når obstruction er false.
 
 
 // Helper struct
@@ -42,7 +56,7 @@ func boolSliceToString(arr []bool) string {
 	return strings.Join(strings.Split(fmt.Sprintf("%v", arr), " "), ", ")
 }
 
-func StopAfterSensingFloor(floor int, elev_states States, active_orders Orders) bool {
+func stopAfterSensingFloor(floor int, elev_states States, active_orders Orders) bool {
 	if floor == 0 || floor == n_floors-1 {
 		return true
 	}
@@ -67,7 +81,7 @@ func StopAfterSensingFloor(floor int, elev_states States, active_orders Orders) 
 	return false
 }
 
-func BtnTypeToDir(btn_type elevio.ButtonType) elevio.MotorDirection {
+func btnTypeToDir(btn_type elevio.ButtonType) elevio.MotorDirection { // TODO: Remove if still unused
 	switch btn_type {
 	case elevio.BT_HallUp:
 		return elevio.MD_Up
@@ -77,7 +91,7 @@ func BtnTypeToDir(btn_type elevio.ButtonType) elevio.MotorDirection {
 	return elevio.MD_Stop
 }
 
-func DirToBtnType(dir elevio.MotorDirection) elevio.ButtonType {
+func dirToBtnType(dir elevio.MotorDirection) elevio.ButtonType {
 	switch dir {
 	case elevio.MD_Up:
 		return elevio.BT_HallUp
@@ -87,7 +101,7 @@ func DirToBtnType(dir elevio.MotorDirection) elevio.ButtonType {
 	return elevio.BT_Cab
 }
 
-func StatesToHRAStates(states States, cab_requests []bool, isAvailable bool) ElevState {
+func statesToHRAStates(states States, cab_requests []bool, isAvailable bool) ElevState {
 	hra_states := ElevState{
 		Behaviour:   "idle",
 		Floor:       1,
@@ -149,20 +163,18 @@ func diffElevStateStructs(a ElevState, b ElevState) bool {
 }
 
 // Functions for handling events
-func HandleFloorSensor(floor int, elev_states States, active_orders Orders) (States, Orders, bool, []elevio.ButtonEvent) {
-	stop_bool := false
+func handleFloorSensor(floor int, elev_states States, active_orders Orders) (States, Orders, []elevio.ButtonEvent) {
 	elev_states.SetLastFloor(floor)
 
 	remove_orders_list := make([]elevio.ButtonEvent, 0)
 
-	if StopAfterSensingFloor(floor, elev_states, active_orders) {
-		stop_bool = true
+	if stopAfterSensingFloor(floor, elev_states, active_orders) {
 		elev_states.SetElevatorBehaviour("DoorOpen")
 		if active_orders.GetSpecificOrder(floor, elevio.BT_Cab) {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab})
 		}
-		if active_orders.GetSpecificOrder(floor, DirToBtnType(elev_states.GetLastDirection())) {
-			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: DirToBtnType(elev_states.GetLastDirection())})
+		if active_orders.GetSpecificOrder(floor, dirToBtnType(elev_states.GetLastDirection())) {
+			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: dirToBtnType(elev_states.GetLastDirection())})
 		}
 		if floor == 0 && active_orders.GetSpecificOrder(floor, elevio.BT_HallUp) {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallUp})
@@ -171,10 +183,10 @@ func HandleFloorSensor(floor int, elev_states States, active_orders Orders) (Sta
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallDown})
 		}
 	}
-	return elev_states, active_orders, stop_bool, remove_orders_list
+	return elev_states, active_orders, remove_orders_list
 }
 
-func HandleNewRequests(hra [][2]bool, cab_order_floor int, elev_states States, active_orders Orders) (States, Orders, bool, bool, []elevio.ButtonEvent) {
+func handleNewRequests(hra [][2]bool, cab_order_floor int, elev_states States, active_orders Orders) (States, Orders, []elevio.ButtonEvent) {
 	// If cab order
 	if cab_order_floor != -1 {
 		active_orders.SetOrder(cab_order_floor, elevio.BT_Cab, true)
@@ -185,8 +197,6 @@ func HandleNewRequests(hra [][2]bool, cab_order_floor int, elev_states States, a
 			active_orders.SetOrder(i, elevio.BT_HallDown, hra[i][1])
 		}
 	}
-	open_door_bool := false
-	set_direction_bool := false
 	remove_orders_list := make([]elevio.ButtonEvent, 0)
 
 	switch elev_states.GetElevatorBehaviour() {
@@ -194,17 +204,14 @@ func HandleNewRequests(hra [][2]bool, cab_order_floor int, elev_states States, a
 	case DoorOpen:
 		up_this_floor, down_this_floor, cab_this_floor := active_orders.GetOrdersInFloor(elev_states.GetLastFloor())
 		if cab_this_floor {
-			open_door_bool = true
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_Cab})
 		}
 		if (up_this_floor && elev_states.GetLastDirection() == elevio.MD_Up) ||
 			(elev_states.GetLastFloor() == 0 && up_this_floor) {
-			open_door_bool = true
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallUp})
 		}
 		if (down_this_floor && elev_states.GetLastDirection() == elevio.MD_Down) ||
 			(elev_states.GetLastFloor() == n_floors-1 && down_this_floor) {
-			open_door_bool = true
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallDown})
 		}
 	case Idle:
@@ -217,28 +224,24 @@ func HandleNewRequests(hra [][2]bool, cab_order_floor int, elev_states States, a
 		} else {
 			if order_in_this_floor {
 				if cab_this_floor {
-					open_door_bool = true
 					elev_states.SetElevatorBehaviour("DoorOpen")
 					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_Cab})
 				}
 				if (up_this_floor && elev_states.GetLastDirection() == elevio.MD_Up) ||
 					(up_this_floor && !down_this_floor && !active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)) ||
 					(elev_states.GetLastFloor() == 0 && up_this_floor) {
-					open_door_bool = true
 					elev_states.SetElevatorBehaviour("DoorOpen")
 					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallUp})
 				}
 				if (down_this_floor && elev_states.GetLastDirection() == elevio.MD_Down) ||
 					(down_this_floor && !up_this_floor && !active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)) ||
 					(elev_states.GetLastFloor() == n_floors-1 && down_this_floor) {
-					open_door_bool = true
 					elev_states.SetElevatorBehaviour("DoorOpen")
 					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallDown})
 				}
 
 			}
-			if !order_in_this_floor || !open_door_bool {
-				set_direction_bool = true
+			if !order_in_this_floor || elev_states.GetElevatorBehaviour() != "DoorOpen" {
 				elev_states.SetElevatorBehaviour("Moving")
 				if (elev_states.GetLastDirection() == elevio.MD_Up && orders_above) || !orders_below {
 					elev_states.SetDirection(elevio.MD_Up)
@@ -250,37 +253,31 @@ func HandleNewRequests(hra [][2]bool, cab_order_floor int, elev_states States, a
 			}
 		}
 	}
-	return elev_states, active_orders, open_door_bool, set_direction_bool, remove_orders_list
+	return elev_states, active_orders, remove_orders_list
 }
 
-func HandleDoorClosing(elev_states States, active_orders Orders) (States, Orders, bool, bool, []elevio.ButtonEvent) {
-	open_door_bool := false
-	set_direction_bool := false
-
+func handleDoorClosing(elev_states States, active_orders Orders) (States, Orders, []elevio.ButtonEvent) {
 	remove_orders_list := make([]elevio.ButtonEvent, 0)
 
 	if !active_orders.AnyOrder() {
 		elev_states.SetElevatorBehaviour("Idle")
-		return elev_states, active_orders, open_door_bool, set_direction_bool, remove_orders_list
+		return elev_states, active_orders, remove_orders_list
 	}
-	if active_orders.GetSpecificOrder(elev_states.GetLastFloor(), DirToBtnType(elev_states.GetLastDirection())) {
-		open_door_bool = true
+	if active_orders.GetSpecificOrder(elev_states.GetLastFloor(), dirToBtnType(elev_states.GetLastDirection())) {
 		if elev_states.GetLastDirection() == elevio.MD_Up {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallUp})
 		} else {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallDown})
 		}
-		return elev_states, active_orders, open_door_bool, set_direction_bool, remove_orders_list
+		return elev_states, active_orders, remove_orders_list
 	} else if active_orders.OrderInFloor(elev_states.GetLastFloor()) && !active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elev_states.GetLastDirection()) {
-		open_door_bool = true
 		if elev_states.GetLastDirection() == elevio.MD_Up {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallDown})
 		} else {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallUp})
 		}
-		return elev_states, active_orders, open_door_bool, set_direction_bool, remove_orders_list
+		return elev_states, active_orders, remove_orders_list
 	}
-	set_direction_bool = true
 	elev_states.SetElevatorBehaviour("Moving")
 	orders_up_bool := active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)
 	orders_down_bool := active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)
@@ -291,48 +288,50 @@ func HandleDoorClosing(elev_states States, active_orders Orders) (States, Orders
 	} else {
 		panic("HandleDoorClosing: No direction set")
 	}
-	return elev_states, active_orders, open_door_bool, set_direction_bool, remove_orders_list
+	return elev_states, active_orders, remove_orders_list
 }
 
-func Fsm_elevator(ch_cab_lamps chan<- []bool,
-	ch_btn <-chan elevio.ButtonEvent,
+// TODO: Fra Nicholas: cabcalls ikke skal håndteres i FSM, men at det skal sendes og cyclic osv. Dette må implementeres i fsm.
+// TODO: Implementere initial cabcall i FSM
+
+// TODO: Mech og obstruction channels trenger kanskje ikke være to stk, altså separat?
+// De kan kanskje en kombinert?
+
+// Siste endringer gjort: 15.03.2019?? Hva faen? Hvorfor er det så mange endringer??
+// Hva faen er dette? Hvorfor er det så mange endringer??
+// Hva faen er dette? Hvorfor er det så mange endringer??
+// Hvorfor i helvete er det så mange endringer??
+func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	ch_floor <-chan int,
 	ch_door <-chan int,
+	ch_mech <-chan int,
+	ch_obstruction <-chan int,
 	ch_hra <-chan [][2]bool,
 	ch_init_cab_requests <-chan []bool,
 	ch_completed_hall_req chan<- elevio.ButtonEvent,
 	ch_new_hall_req chan<- elevio.ButtonEvent,
-	ch_elevstate chan<- ElevState) {
+	ch_elevstate chan<- ElevState,
+	ch_cab_lamps chan<- []bool) {
 
-	var Elev_states States
-	var Active_orders Orders
-
+	var elevState States
+	var activeOrders Orders
 	isAvailable := true
-
-	// Timers for isAvailable
-	// obstruction_timer := time.NewTimer(10*time.Second)
-	// obstruction_timer.Stop()
-
-	// mechanical_timer := time.NewTimer(7*time.Second)
-	// mechanical_timer.Stop()
+	mech_error, obstruction_error := false, false
 
 	// Initiate elevator
-	Active_orders.InitOrders()
-	InitLamps(Active_orders) //TODO: remove this because of fix by channel
-	Elev_states.InitStates()
-
-	var Old_ElevState ElevState = StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
-
+	activeOrders.InitOrders()
+	elevState.InitStates()
+	var oldElevInfo ElevState = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
 	if elevio.GetFloor() == -1 {
-		Elev_states.SetElevatorBehaviour("Moving")
+		elevState.SetElevatorBehaviour("Moving")
 		elevio.SetMotorDirection(elevio.MD_Up)
 	} else {
-		Elev_states.SetLastFloor(elevio.GetFloor())
+		elevState.SetLastFloor(elevio.GetFloor())
 		elevio.SetFloorIndicator(elevio.GetFloor())
 	}
-	if diffElevStateStructs(Old_ElevState, StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)) {
-		Old_ElevState = StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
-		ch_elevstate <- Old_ElevState
+	if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
+		oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+		ch_elevstate <- oldElevInfo
 	}
 
 	// Finite state machine
@@ -340,114 +339,132 @@ func Fsm_elevator(ch_cab_lamps chan<- []bool,
 		select {
 		case hra := <-ch_hra:
 			fmt.Println("HandleHRA")
-			// fmt.Println(hra)
-			var open_door_bool, set_direction_bool bool
 			var remove_orders_list []elevio.ButtonEvent
-			Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleNewRequests(hra, -1, Elev_states, Active_orders)
-			if open_door_bool {
+			elevState, activeOrders, remove_orders_list = handleNewRequests(hra, -1, elevState, activeOrders)
+			if elevState.GetElevatorBehaviour() == "DoorOpen" {
 				elevio.SetDoorOpenLamp(true)
-				doortimer.StartTimer()
+				elevator_timers.StartDoorTimer()
 				for _, v := range remove_orders_list {
 					if v.Button == elevio.BT_Cab {
-						Active_orders.SetOrder(v.Floor, v.Button, false)
+						activeOrders.SetOrder(v.Floor, v.Button, false)
 					} else {
 						ch_completed_hall_req <- v
 					}
 				}
-			} else {
-				if set_direction_bool {
-					elevio.SetMotorDirection(Elev_states.GetLastDirection())
-				}
+			} else if elevState.GetElevatorBehaviour() == "Moving" && oldElevInfo.Direction == "stop" { // Vil dette forårsake "hakkete" oppførsel? Må sjekkes. (Endret til å sjekke oldElevInfo)
+				elevio.SetMotorDirection(elevState.GetLastDirection())
+				obstruction_error = false
+				elevator_timers.StartMechanicalTimer()
 			}
-			if diffElevStateStructs(Old_ElevState, StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)) {
-				Old_ElevState = StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
-				ch_elevstate <- Old_ElevState
+			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
+			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
+				oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+				ch_elevstate <- oldElevInfo
 			}
-			ch_cab_lamps <- Active_orders.GetCabRequests()
+			ch_cab_lamps <- activeOrders.GetCabRequests()
+			isAvailable = !mech_error && !obstruction_error
 		case floor := <-ch_floor:
 			fmt.Println("HandleFloorSensor")
 			elevio.SetFloorIndicator(floor)
-			var stop_bool bool
+			mech_error = false
+			elevator_timers.StartMechanicalTimer()
 			var remove_orders_list []elevio.ButtonEvent
-			Elev_states, Active_orders, stop_bool, remove_orders_list = HandleFloorSensor(floor, Elev_states, Active_orders)
-			if stop_bool {
+			elevState, activeOrders, remove_orders_list = handleFloorSensor(floor, elevState, activeOrders)
+			if elevState.GetElevatorBehaviour() == "DoorOpen" {
+				elevator_timers.StopMechanicalTimer()
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				elevio.SetDoorOpenLamp(true)
-				doortimer.StartTimer()
+				elevator_timers.StartDoorTimer()
 				for _, v := range remove_orders_list {
 					if v.Button == elevio.BT_Cab {
-						Active_orders.SetOrder(v.Floor, v.Button, false)
+						activeOrders.SetOrder(v.Floor, v.Button, false)
 					} else {
 						ch_completed_hall_req <- v
 					}
 				}
 			}
-			if diffElevStateStructs(Old_ElevState, StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)) {
-				Old_ElevState = StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
-				ch_elevstate <- Old_ElevState
+			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
+			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
+				oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+				ch_elevstate <- oldElevInfo
 			}
-			ch_cab_lamps <- Active_orders.GetCabRequests()
+			ch_cab_lamps <- activeOrders.GetCabRequests()
+			isAvailable = !mech_error && !obstruction_error
 		case <-ch_door:
 			fmt.Println("HandleDoorClosing")
 			if elevio.GetObstruction() {
-				doortimer.StartTimer()
+				elevator_timers.StartDoorTimer()
 				fmt.Println("Obstruction detected")
+				elevator_timers.StartObstructionTimer()
 				break
 			}
-			var open_door_bool, set_direction_bool bool
+			elevator_timers.StopObstructionTimer()
+			obstruction_error = false
 			var remove_orders_list []elevio.ButtonEvent
-			Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleDoorClosing(Elev_states, Active_orders)
-			if open_door_bool {
+			elevState, activeOrders, remove_orders_list = handleDoorClosing(elevState, activeOrders)
+			if elevState.GetElevatorBehaviour() == "DoorOpen" {
 				elevio.SetDoorOpenLamp(true)
-				doortimer.StartTimer()
+				elevator_timers.StartDoorTimer()
 				for _, v := range remove_orders_list {
 					if v.Button == elevio.BT_Cab {
-						Active_orders.SetOrder(v.Floor, v.Button, false)
+						activeOrders.SetOrder(v.Floor, v.Button, false)
 					} else {
 						ch_completed_hall_req <- v
 					}
 				}
 			} else {
 				elevio.SetDoorOpenLamp(false)
-				if set_direction_bool {
-					elevio.SetMotorDirection(Elev_states.GetLastDirection())
+				if elevState.GetElevatorBehaviour() == "Moving" {
+					elevio.SetMotorDirection(elevState.GetLastDirection())
+					elevator_timers.StartMechanicalTimer()
 				}
 			}
-			if diffElevStateStructs(Old_ElevState, StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)) {
-				Old_ElevState = StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
-				ch_elevstate <- Old_ElevState
+			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
+			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
+				oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+				ch_elevstate <- oldElevInfo
 			}
-			ch_cab_lamps <- Active_orders.GetCabRequests()
+			ch_cab_lamps <- activeOrders.GetCabRequests()
+			isAvailable = !mech_error && !obstruction_error
 		case btn_press := <-ch_btn:
 			fmt.Println("HandleButtonEvent")
 			if btn_press.Button == elevio.BT_Cab {
-				var open_door_bool, set_direction_bool bool
 				var remove_orders_list []elevio.ButtonEvent
 				emtpy_hra := [][2]bool{}
-				Elev_states, Active_orders, open_door_bool, set_direction_bool, remove_orders_list = HandleNewRequests(emtpy_hra, btn_press.Floor, Elev_states, Active_orders)
-				if open_door_bool {
+				elevState, activeOrders, remove_orders_list = handleNewRequests(emtpy_hra, btn_press.Floor, elevState, activeOrders)
+				if elevState.GetElevatorBehaviour() == "DoorOpen" {
 					elevio.SetDoorOpenLamp(true)
-					doortimer.StartTimer()
+					elevator_timers.StartDoorTimer()
 					for _, v := range remove_orders_list {
 						if v.Button == elevio.BT_Cab {
-							Active_orders.SetOrder(v.Floor, v.Button, false)
+							activeOrders.SetOrder(v.Floor, v.Button, false)
 						} else {
 							ch_completed_hall_req <- v
 						}
 					}
-				} else {
-					if set_direction_bool {
-						elevio.SetMotorDirection(Elev_states.GetLastDirection())
-					}
+				} else if elevState.GetElevatorBehaviour() == "Moving" && oldElevInfo.Direction == "stop"{ // Vil dette forårsake "hakkete" oppførsel? Må sjekkes. (Endret til å sjekke oldElevInfo)
+					elevio.SetMotorDirection(elevState.GetLastDirection())
+					obstruction_error = false
+					elevator_timers.StartMechanicalTimer()
 				}
-				if diffElevStateStructs(Old_ElevState, StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)) {
-					Old_ElevState = StatesToHRAStates(Elev_states, Active_orders.GetCabRequests(), isAvailable)
-					ch_elevstate <- Old_ElevState
+				// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
+				if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
+					oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+					ch_elevstate <- oldElevInfo
 				}
-				ch_cab_lamps <- Active_orders.GetCabRequests()
+				ch_cab_lamps <- activeOrders.GetCabRequests()
+				isAvailable = !mech_error && !obstruction_error
 			} else {
 				ch_new_hall_req <- elevio.ButtonEvent{Floor: btn_press.Floor, Button: btn_press.Button}
 			}
+		case <-ch_mech:
+			fmt.Println("HandleMechanicalError")
+			mech_error = true
+			isAvailable = false
+		case <-ch_obstruction:
+			fmt.Println("HandleObstructionError")
+			obstruction_error = true
+			isAvailable = false
 		case initial_cab_requests := <-ch_init_cab_requests:
 			// TODO: Implement
 			fmt.Println("HandleInitCabRequests", initial_cab_requests[0]) // Just to ignore it during testing

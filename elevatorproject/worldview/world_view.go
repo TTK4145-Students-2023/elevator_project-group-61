@@ -140,7 +140,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 
 			//fmt.Println("------------MyWorldView-------------")
 			//PrintMyWorldView(myWorldView)
-
+			
 			ch_remoteRequestView <- nodeview.CopyRemoveRequestView(remoteRequestView)
 			ch_hraInput <- copyMyWorldView(myWorldView)
 		

@@ -324,7 +324,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	for {
 		select {
 		case hra := <-ch_hra:
-			fmt.Println("HandleHRA")
+			//fmt.Println("HandleHRA")
 			var remove_orders_list []elevio.ButtonEvent
 			elevState, activeOrders, remove_orders_list = handleNewRequests(hra, -1, elevState, activeOrders)
 			if elevState.GetElevatorBehaviour() == "DoorOpen" {
@@ -377,7 +377,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			ch_cab_lamps <- activeOrders.GetCabRequests()
 			isAvailable = !mech_error && !obstruction_error
 		case <-ch_door:
-			fmt.Println("HandleDoorClosing")
+			//fmt.Println("HandleDoorClosing")
 			if elevio.GetObstruction() {
 				elevator_timers.StartDoorTimer()
 				fmt.Println("Obstruction detected")
@@ -415,7 +415,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			ch_cab_lamps <- activeOrders.GetCabRequests()
 			isAvailable = !mech_error && !obstruction_error
 		case btn_press := <-ch_btn:
-			fmt.Println("HandleButtonEvent")
+			//fmt.Println("HandleButtonEvent")
 			if btn_press.Button == elevio.BT_Cab {
 				var remove_orders_list []elevio.ButtonEvent
 				emtpy_hra := [][2]bool{}

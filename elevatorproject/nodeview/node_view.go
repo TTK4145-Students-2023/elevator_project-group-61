@@ -184,7 +184,7 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			//fmt.Println("nodeview: remoteRequestView")
 
 			numRemoteNodes := len(remoteRequestView.RemoteHallRequestViews)
-
+			fmt.Println("Is available", myNodeView.ElevState.IsAvailable)
 			if numRemoteNodes > 0 {
 				if isSingleElevMode {
 					isSingleElevMode = false

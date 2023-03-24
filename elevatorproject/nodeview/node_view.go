@@ -216,7 +216,7 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			fmt.Println("nodeview: elevState")
 			myNodeView.ElevState = elevState
 
-		case <-time.After(100 * time.Millisecond):
+		case <-time.After(50 * time.Millisecond):
 			//fmt.Println("nodeview: broadcaster myNodeView")
 			ch_sendMyNodeView <- myNodeView
 

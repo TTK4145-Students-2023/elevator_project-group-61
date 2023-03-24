@@ -16,6 +16,10 @@ func StopObstructionTimer() {
 	obstructionCounter = -1
 }
 
+func GetObstructionCounter() int64 {
+	return obstructionCounter
+}
+
 func CheckObstructionTimer(ch_timer chan int) {
 	for {
 		if obstructionCounter == -1 {

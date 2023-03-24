@@ -395,7 +395,9 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			if elevio.GetObstruction() {
 				elevator_timers.StartDoorTimer()
 				fmt.Println("Obstruction detected")
-				elevator_timers.StartObstructionTimer()
+				if elevator_timers.GetObstructionCounter() == -1 {
+					elevator_timers.StartObstructionTimer()
+				}
 				break
 			}
 			elevator_timers.StopObstructionTimer()

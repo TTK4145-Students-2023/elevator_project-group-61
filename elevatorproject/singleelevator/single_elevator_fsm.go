@@ -461,10 +461,14 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			fmt.Println("HandleMechanicalError")
 			mech_error = true
 			isAvailable = false
+			oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+			ch_elevstate <- oldElevInfo
 		case <-ch_obstruction:
 			fmt.Println("HandleObstructionError")
 			obstruction_error = true
 			isAvailable = false
+			oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+			ch_elevstate <- oldElevInfo
 		case initial_cab_requests := <-ch_init_cab_requests:
 			// TODO: Implement
 			fmt.Println("HandleInitCabRequests", initial_cab_requests[0]) // Just to ignore it during testing

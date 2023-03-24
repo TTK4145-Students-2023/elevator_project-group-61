@@ -94,6 +94,9 @@ func AssignHallRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hraoutput c
 		select {
 		case systemAwareness := <-ch_hraInput:
 			//fmt.Println("HRA has gotten input")
+			if !systemAwareness.NodesAvailable[config.LocalID] {
+				continue
+			}
 			hraInput := transformToHRAInput(systemAwareness)
 
 			hraExecutable := ""

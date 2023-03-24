@@ -350,6 +350,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			fmt.Println("HandleFloorSensor")
 			elevio.SetFloorIndicator(floor)
 			mech_error = false
+			spam_error = false // Lagt til
 			elevator_timers.StartMechanicalTimer()
 			var remove_orders_list []elevio.ButtonEvent
 			elevState, activeOrders, remove_orders_list = handleFloorSensor(floor, elevState, activeOrders)

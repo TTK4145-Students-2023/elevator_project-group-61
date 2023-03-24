@@ -1,7 +1,9 @@
 package bcast
 
 import (
+	"elevatorproject/config"
 	"elevatorproject/network/conn"
+	"elevatorproject/nodeview"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -25,7 +27,8 @@ func Transmitter(port int, chans ...interface{}) {
 	}
 
 	conn := conn.DialBroadcastUDP(port)
-	addr, _ := net.ResolveUDPAddr("udp4", fmt.Sprintf("255.255.255.255:%d", port))
+	broadcastAddr, _ := net.ResolveUDPAddr("udp4", fmt.Sprintf("255.255.255.255:%d", port))
+	localAddr, _ := net.ResolveUDPAddr("udp4", fmt.Sprintf("127.0.0.1:%d", port))
 	for {
 		chosen, value, _ := reflect.Select(selectCases)
 		jsonstr, _ := json.Marshal(value.Interface())
@@ -39,8 +42,8 @@ func Transmitter(port int, chans ...interface{}) {
 					"Either send smaller packets, or go to network/bcast/bcast.go and increase the buffer size",
 				len(ttj), bufSize, string(ttj)))
 		}
-		conn.WriteTo(ttj, addr)
-
+		conn.WriteTo(ttj, broadcastAddr)
+		conn.WriteTo(ttj, localAddr)
 	}
 }
 
@@ -56,19 +59,36 @@ func Receiver(port int, chans ...interface{}) {
 	var buf [bufSize]byte
 	conn := conn.DialBroadcastUDP(port)
 	for {
-		n, _, e := conn.ReadFrom(buf[0:])
+		n, addr, e := conn.ReadFrom(buf[0:])
 		if e != nil {
 			fmt.Printf("bcast.Receiver(%d, ...):ReadFrom() failed: \"%+v\"\n", port, e)
 		}
 
 		var ttj typeTaggedJSON
+	
+
 		json.Unmarshal(buf[0:n], &ttj)
+
+		fmt.Println("Adresse", addr.String())
+
 		ch, ok := chansMap[ttj.TypeId]
 		if !ok {
 			continue
 		}
+
+		var nodeView nodeview.MyNodeView
+		json.Unmarshal(ttj.JSON, &nodeView)
+
+		if nodeView.ID == config.LocalID && addr.String() != "127.0.0.1" {
+			continue
+		}
+
+
 		v := reflect.New(reflect.TypeOf(ch).Elem())
 		json.Unmarshal(ttj.JSON, v.Interface())
+
+
+
 		reflect.Select([]reflect.SelectCase{{
 			Dir:  reflect.SelectSend,
 			Chan: reflect.ValueOf(ch),

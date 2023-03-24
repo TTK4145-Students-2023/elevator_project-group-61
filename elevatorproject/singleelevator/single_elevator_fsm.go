@@ -264,6 +264,8 @@ func handleDoorClosing(elev_states States, active_orders Orders) (States, Orders
 	return elev_states, active_orders, remove_orders_list
 }
 
+// TODO: Legge til spam-error håndtering som er lagt til i kristian-spam-error
+
 func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	ch_floor <-chan int,
 	ch_door <-chan int,

@@ -319,12 +319,12 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				elevator_timers.StartMechanicalTimer()
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
+			isAvailable = !mech_error && !obstruction_error
 			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
 				oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
 				ch_elevstate <- oldElevInfo
 			}
 			ch_cab_lamps <- activeOrders.GetCabRequests()
-			isAvailable = !mech_error && !obstruction_error
 		case floor := <-ch_floor:
 			fmt.Println("HandleFloorSensor")
 			elevio.SetFloorIndicator(floor)
@@ -342,12 +342,12 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				}
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
+			isAvailable = !mech_error && !obstruction_error
 			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
 				oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
 				ch_elevstate <- oldElevInfo
 			}
 			ch_cab_lamps <- activeOrders.GetCabRequests()
-			isAvailable = !mech_error && !obstruction_error
 		case <-ch_door:
 			fmt.Println("HandleDoorClosing")
 			if elevio.GetObstruction() {
@@ -376,12 +376,12 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				}
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
+			isAvailable = !mech_error && !obstruction_error
 			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
 				oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
 				ch_elevstate <- oldElevInfo
 			}
 			ch_cab_lamps <- activeOrders.GetCabRequests()
-			isAvailable = !mech_error && !obstruction_error
 		case btn_press := <-ch_btn:
 			fmt.Println("HandleButtonEvent")
 			ch_new_request <- elevio.ButtonEvent{Floor: btn_press.Floor, Button: btn_press.Button}
@@ -417,12 +417,12 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				elevator_timers.StartMechanicalTimer()
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
+			isAvailable = !mech_error && !obstruction_error
 			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
 				oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
 				ch_elevstate <- oldElevInfo
 			}
 			ch_cab_lamps <- activeOrders.GetCabRequests()
-			isAvailable = !mech_error && !obstruction_error
 		}
 	}
 }

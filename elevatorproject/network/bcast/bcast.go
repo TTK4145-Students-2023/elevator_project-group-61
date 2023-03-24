@@ -14,6 +14,42 @@ const bufSize = 1024
 
 // Encodes received values from `chans` into type-tagged JSON, then broadcasts
 // it on `port`
+
+func LocalTransmitter(port int, chans ...interface{}) {
+	checkArgs(chans...)
+	typeNames := make([]string, len(chans))
+	selectCases := make([]reflect.SelectCase, len(typeNames))
+	for i, ch := range chans {
+		selectCases[i] = reflect.SelectCase{
+			Dir:  reflect.SelectRecv,
+			Chan: reflect.ValueOf(ch),
+		}
+		typeNames[i] = reflect.TypeOf(ch).Elem().String()
+	}
+
+	conn := conn.DialBroadcastUDP(port)
+	localAddr := &net.UDPAddr{
+		IP: net.IPv4(127,0,0,1),
+		Port: port,
+	}
+	for {
+		chosen, value, _ := reflect.Select(selectCases)
+		jsonstr, _ := json.Marshal(value.Interface())
+		ttj, _ := json.Marshal(typeTaggedJSON{
+			TypeId: typeNames[chosen],
+			JSON:   jsonstr,
+		})
+		if len(ttj) > bufSize {
+			panic(fmt.Sprintf(
+				"Tried to send a message longer than the buffer size (length: %d, buffer size: %d)\n\t'%s'\n"+
+					"Either send smaller packets, or go to network/bcast/bcast.go and increase the buffer size",
+				len(ttj), bufSize, string(ttj)))
+		}
+		conn.WriteTo(ttj, localAddr)
+	}
+}
+
+
 func Transmitter(port int, chans ...interface{}) {
 	checkArgs(chans...)
 	typeNames := make([]string, len(chans))
@@ -28,7 +64,6 @@ func Transmitter(port int, chans ...interface{}) {
 
 	conn := conn.DialBroadcastUDP(port)
 	broadcastAddr, _ := net.ResolveUDPAddr("udp4", fmt.Sprintf("255.255.255.255:%d", port))
-	localAddr, _ := net.ResolveUDPAddr("udp4", fmt.Sprintf("127.0.0.1:%d", port))
 	for {
 		chosen, value, _ := reflect.Select(selectCases)
 		jsonstr, _ := json.Marshal(value.Interface())
@@ -43,7 +78,6 @@ func Transmitter(port int, chans ...interface{}) {
 				len(ttj), bufSize, string(ttj)))
 		}
 		conn.WriteTo(ttj, broadcastAddr)
-		conn.WriteTo(ttj, localAddr)
 	}
 }
 

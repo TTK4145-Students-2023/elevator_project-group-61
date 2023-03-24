@@ -42,14 +42,16 @@ func main() {
 	// network out
 	ch_transmit := make(chan nodeview.MyNodeView)
 	ch_peerTransmitEnable := make(chan bool)
+	ch_localTransmit := make(chan nodeview.MyNodeView)
 	go peers.Transmitter(13200, config.LocalID, ch_peerTransmitEnable)
 	go bcast.Transmitter(12100, ch_transmit)
+	go bcast.LocalTransmitter(12100, ch_localTransmit)
 
 
 	// go routines
 
 	go worldview.WorldView(ch_receive, ch_peerUpdate, ch_peerTransmitEnable, ch_initCabRequests, ch_remoteRequestView, ch_hraInput)
-	go nodeview.NodeView(ch_transmit, ch_newHallRequests, ch_completedHallRequests, ch_elevState, ch_hallRequests, ch_remoteRequestView)
+	go nodeview.NodeView(ch_transmit, ch_localTransmit, ch_newHallRequests, ch_completedHallRequests, ch_elevState, ch_hallRequests, ch_remoteRequestView)
 
 
 	go hallrequestassigner.AssignHallRequests(ch_hraInput, ch_hraOutput)

@@ -167,6 +167,7 @@ func printNodeAwareness(node MyNodeView) {
 }
 
 func NodeView(ch_sendMyNodeView chan<- MyNodeView,
+	ch_localTransmit chan <- MyNodeView,
 	ch_newHallRequest <-chan elevio.ButtonEvent,
 	ch_completedHallRequest <-chan elevio.ButtonEvent,
 	ch_elevState <-chan singleelevator.ElevState,
@@ -219,6 +220,7 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 		case <-time.After(50 * time.Millisecond):
 			//fmt.Println("nodeview: broadcaster myNodeView")
 			ch_sendMyNodeView <- myNodeView
+			ch_localTransmit <- myNodeView
 
 		//default:
 			//time.Sleep(100*time.Millisecond)

@@ -276,6 +276,8 @@ func handleDoorClosing(elev_states States, active_orders Orders) (States, Orders
 // Skal startes når døren åpner seg og det finnes ordre i andre etasjer for denne heisen
 // Skal stoppes når heisen kommer seg av gårde, altså et sted i closing doors.
 
+// TODO: Må legge til elevator_timers.StopSpamTimer() noen steder!
+
 func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	ch_floor <-chan int,
 	ch_door <-chan int,
@@ -337,6 +339,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				elevio.SetMotorDirection(elevState.GetLastDirection())
 				obstruction_error = false
 				spam_error = false // Lagt til
+				elevator_timers.StopSpamTimer() // Lagt til
 				elevator_timers.StartMechanicalTimer()
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable

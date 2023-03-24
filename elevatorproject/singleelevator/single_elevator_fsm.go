@@ -9,27 +9,7 @@ import (
 	// "time"
 )
 
-// TODO: Cleanup, kanskje endre fra sånne bools i fsmen til bare å bruke States. I tillegg se på hvordan bruke 
-// 	 golang timers istedenfor door timer muligens. Da kan det kanskje bare brukes rett i denne modulen. 
-//   Samt også brukes til mechanical errors.
-//	 -1 floor mech error må resettes hver gang et floor treffes (stoppes). Og startes hver gang vi er i moving.
-//	 Obstruction må startes hver gang det er obstruksjon og stoppes (cleares) når døren lukkes  (Dette gir mening
-// 	 fordi det er på mange måter simulert obstruksjon om folk spammer åpne dør knappen og heisen blir stående i den etasjen).
-
-// Denne TODOen er nesten done. Bruker States istedenfor bools. Har gjort litt cleanup. 
-// - Har dog ikke skjønt hvordan jeg skal bruke golang timers, så satser derfor på egen timer modul.
-// - Mechanical og obstruction er in the making.
-// - Må også håndtere cab requests initial, og eventuelt endre hvordan cab håndteres, ref Nicholas' kommentar.
-
-// Mechanical error:
-// Timer startes når heisen er i moving.
-// Timer resettes hver gang heisen treffer et floor.
-// Timer stoppes når heisen står stille.
-
-// Obstruction:
-// Timer startes når obstruction er true.
-// Timer stoppes når obstruction er false.
-
+// TODO: Må også håndtere cab requests initial, og eventuelt endre hvordan cab håndteres, ref Nicholas' kommentar.
 
 // Helper struct
 type ElevState struct {
@@ -301,6 +281,10 @@ func handleDoorClosing(elev_states States, active_orders Orders) (States, Orders
 // Hva faen er dette? Hvorfor er det så mange endringer??
 // Hva faen er dette? Hvorfor er det så mange endringer??
 // Hvorfor i helvete er det så mange endringer??
+// Hvorfor i helvete 
+
+
+
 func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	ch_floor <-chan int,
 	ch_door <-chan int,

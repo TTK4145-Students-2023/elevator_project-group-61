@@ -315,8 +315,8 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 
 	var elevState States
 	var activeOrders Orders
-	isAvailable := true
-	mech_error, obstruction_error := false, false
+	isAvailable := false
+	mech_error, obstruction_error := true, false
 
 	// Initiate elevator
 	activeOrders.InitOrders()
@@ -328,6 +328,8 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	} else {
 		elevState.SetLastFloor(elevio.GetFloor())
 		elevio.SetFloorIndicator(elevio.GetFloor())
+		mech_error = false
+		isAvailable = true
 	}
 	if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
 		oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)

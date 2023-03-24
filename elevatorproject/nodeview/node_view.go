@@ -151,20 +151,20 @@ func (remoteRequestView *RemoteRequestView) InitRemoteRequestView() {
 	remoteRequestView.RemoteCabRequests = make(map[string][]bool)
 }
 
-func printNodeAwareness(node MyNodeView) {
-	fmt.Printf("ID: %s\n", node.ID)
-	fmt.Printf("IsAvailable: %v\n", node.IsAvailable)
-	fmt.Printf("ElevState: Behaviour=%s Floor=%d Direction=%s CabRequests=%v IsAvailable=%v\n",
-		node.ElevState.Behaviour, node.ElevState.Floor, node.ElevState.Direction, node.ElevState.CabRequests, node.ElevState.IsAvailable)
-	fmt.Printf("HallRequests:\n")
-	for i, requests := range node.HallRequests {
-		fmt.Printf("  Floor %d: Up=%v Down=%v\n", i+1, requests[0], requests[1])
-	}
-	fmt.Printf("CabRequests:\n")
-	for id, requests := range node.RemoteCabRequests {
-		fmt.Printf("  Cab %s: %v\n", id, requests)
+// function that prints myNodeView by using RequestStateToString
+func (myNodeView *MyNodeView) PrintMyNodeView() {
+	fmt.Println("MyNodeView:")
+	fmt.Println("ID: ", myNodeView.ID)
+	fmt.Println("HallRequests:")
+	for row := 0; row < len(myNodeView.HallRequests); row++ {
+		for col := 0; col < len(myNodeView.HallRequests[row]); col++ {
+			fmt.Print(RequestStateToString(myNodeView.HallRequests[row][col]), " ")
+		}
+		fmt.Println()
 	}
 }
+
+
 
 func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 	ch_newHallRequest <-chan elevio.ButtonEvent,
@@ -184,6 +184,8 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			fmt.Println("nodeview: remoteRequestView")
 
 			numRemoteNodes := len(remoteRequestView.RemoteHallRequestViews)
+			// print of numRemoteNodes is for debugging
+			fmt.Println("numRemoteNodes: ", numRemoteNodes)
 
 			if numRemoteNodes > 0 {
 				if isSingleElevMode {
@@ -192,6 +194,7 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 				}
 				myNodeView.HallRequests = updateMyHallRequestView(myNodeView.HallRequests, remoteRequestView.RemoteHallRequestViews)
 				myNodeView.RemoteCabRequests = remoteRequestView.RemoteCabRequests
+				myNodeView.PrintMyNodeView()
 			} else {
 				isSingleElevMode = true
 			}

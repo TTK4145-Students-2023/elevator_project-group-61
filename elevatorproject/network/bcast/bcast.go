@@ -69,8 +69,6 @@ func Receiver(port int, chans ...interface{}) {
 
 		json.Unmarshal(buf[0:n], &ttj)
 
-		fmt.Println("Adresse", addr.String())
-
 		ch, ok := chansMap[ttj.TypeId]
 		if !ok {
 			continue
@@ -78,12 +76,12 @@ func Receiver(port int, chans ...interface{}) {
 
 		var nodeView nodeview.MyNodeView
 		json.Unmarshal(ttj.JSON, &nodeView)
-
-		if nodeView.ID == config.LocalID && addr.String() != "127.0.0.1" {
+		newaddr := addr.String()
+		fmt.Println("Adresse", newaddr)
+		if nodeView.ID == config.LocalID && addr.String() != "127.0.0.1:12100" {
 			continue
 		}
-
-
+		
 		v := reflect.New(reflect.TypeOf(ch).Elem())
 		json.Unmarshal(ttj.JSON, v.Interface())
 

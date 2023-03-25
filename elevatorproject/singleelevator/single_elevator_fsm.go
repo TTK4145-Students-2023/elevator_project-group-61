@@ -322,7 +322,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 		case hra := <-ch_hra:
 			//fmt.Println("HandleHRA")
 			var remove_orders_list []elevio.ButtonEvent
-			dummy_request := elevio.ButtonEvent{1, elevio.BT_Cab}
+			dummy_request := elevio.ButtonEvent{Floor: 1, Button: elevio.BT_Cab}
 			elevState, activeOrders, remove_orders_list = handleNewRequests(hra, dummy_request, false, elevState, activeOrders)
 			if elevState.GetElevatorBehaviour() == "DoorOpen" {
 				elevio.SetDoorOpenLamp(true)

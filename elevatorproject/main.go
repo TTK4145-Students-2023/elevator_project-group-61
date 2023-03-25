@@ -45,6 +45,8 @@ func main() {
 	go peers.Transmitter(13200, config.LocalID, ch_peerTransmitEnable)
 	go bcast.Transmitter(12100, ch_transmit)
 
+	// NEW CHANNEL FOR SINGLE MODE TO SINGLE ELEV FSM
+	ch_single_mode := make(chan bool) // må sendes hvor du vil nicholas
 
 	// go routines
 
@@ -56,7 +58,7 @@ func main() {
 	go singleelevator.LampStateMachine(ch_hallRequests, ch_cabLamps)
 
 	fmt.Println("Starter opp singleelevator")
-	go singleelevator.RunSingleElevator(ch_cabLamps, ch_hraOutput, ch_initCabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState)
+	go singleelevator.RunSingleElevator(ch_single_mode, ch_cabLamps, ch_hraOutput, ch_initCabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState)
 
 	for {
 		select {

@@ -23,18 +23,19 @@ type MyNodeView struct {
 	IsAvailable       bool
 	ElevState         singleelevator.ElevState
 	HallRequests      [][2]RequestState // n number of floors
-	RemoteCabRequests map[string][]bool
+	CabRequests		[]RequestState
+	RemoteCabRequests map[string][]RequestState
 }
 
 type RemoteRequestView struct {
 	RemoteHallRequestViews map[string][][2]RequestState
-	RemoteCabRequests      map[string][]bool
+	RemoteCabRequests      map[string][]RequestState
 }
 
 func CopyRemoveRequestView(remoteRequestView RemoteRequestView) RemoteRequestView {
 	var copy RemoteRequestView
 	copy.RemoteHallRequestViews = make(map[string][][2]RequestState, config.NumElevators)
-	copy.RemoteCabRequests = make(map[string][]bool, config.NumElevators)
+	copy.RemoteCabRequests = make(map[string][]RequestState, config.NumElevators)
 	for id, hallRequestView := range remoteRequestView.RemoteHallRequestViews {
 		copy.RemoteHallRequestViews[id] = hallRequestView
 	}
@@ -47,7 +48,7 @@ func CopyRemoveRequestView(remoteRequestView RemoteRequestView) RemoteRequestVie
 func (myNodeView *MyNodeView) InitMyNodeView() {
 	myNodeView.ID = config.LocalID
 	myNodeView.HallRequests = make([][2]RequestState, config.NumFloors)
-	myNodeView.RemoteCabRequests = make(map[string][]bool)
+	myNodeView.RemoteCabRequests = make(map[string][]RequestState)
 	myNodeView.ElevState = singleelevator.ElevState{
 		Behaviour: "moving",
 		Floor : 1,
@@ -148,7 +149,7 @@ func (myNodeView *MyNodeView) ChangeNoOrderAndConfirmedToUnknown() {
 
 func (remoteRequestView *RemoteRequestView) InitRemoteRequestView() {
 	remoteRequestView.RemoteHallRequestViews = make(map[string][][2]RequestState)
-	remoteRequestView.RemoteCabRequests = make(map[string][]bool)
+	remoteRequestView.RemoteCabRequests = make(map[string][]RequestState)
 }
 
 func printNodeAwareness(node MyNodeView) {
@@ -218,6 +219,7 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			if isSingleElevMode {
 				ch_hallRequests <- convertHallRequestStateToBool(myNodeView.HallRequests, isSingleElevMode)
 			}
+
 		case elevState := <-ch_elevState:
 			fmt.Println("nodeview: elevState")
 			myNodeView.ElevState = elevState

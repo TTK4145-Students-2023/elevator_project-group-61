@@ -76,7 +76,7 @@ func printNodeView(node nodeview.MyNodeView) {
 func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 	ch_receivePeerUpdate <-chan peers.PeerUpdate,
 	ch_setTransmitEnable chan <- bool,
-	ch_initCabRequests chan <- []bool,
+	ch_CabRequests chan <- []bool,
 	ch_remoteRequestView chan <- nodeview.RemoteRequestView,
 	ch_hraInput chan<- MyWorldView,
 	ch_singleElevMode chan <- bool) {
@@ -110,6 +110,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 					delete(remoteRequestView.RemoteCabRequests, lostPeer)
 				}
 			}
+			//TODO: Må undersøke om denne checken er nok
 			if len(peersAlive) <= 1 {
 				ch_singleElevMode <- true
 				ch_remoteRequestView <- remoteRequestView
@@ -131,7 +132,6 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			//fmt.Println("-------------Elevstate-------------")
 			//singleelevator.PrintElevState(nodeView.ElevState)
 
-		
 			myWorldView.NodesAvailable[nodeID] = nodeView.ElevState.IsAvailable
 			
 			//fmt.Println(myWorldView.NodesAvailable[nodeID])

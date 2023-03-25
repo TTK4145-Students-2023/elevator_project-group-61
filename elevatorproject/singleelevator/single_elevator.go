@@ -7,7 +7,7 @@ import (
 
 // Har bare lagt til alt som trengs for spam
 
-func RunSingleElevator(ch_single_mode chan bool, ch_cab_lamps chan[]bool, ch_hra chan [][2]bool, ch_init_cab_requests chan []bool, ch_completed_hall_requests chan elevio.ButtonEvent, ch_new_hall_requests chan elevio.ButtonEvent, ch_elevstate chan ElevState) {
+func RunSingleElevator(ch_cab_lamps chan[]bool, ch_hra chan [][2]bool, ch_init_cab_requests chan []bool, ch_completed_hall_requests chan elevio.ButtonEvent, ch_new_hall_requests chan elevio.ButtonEvent, ch_elevstate chan ElevState, ch_singleElevMode chan bool) {
     // Channels    
     drv_buttons := make(chan elevio.ButtonEvent)
     drv_floors  := make(chan int)   
@@ -28,6 +28,6 @@ func RunSingleElevator(ch_single_mode chan bool, ch_cab_lamps chan[]bool, ch_hra
 
     // single elev mode ch lagt til
 	
-    Fsm_elevator(drv_buttons, drv_floors, ch_door, ch_mech, ch_obstruction, ch_hra, ch_single_mode, ch_init_cab_requests, ch_completed_hall_requests, ch_new_hall_requests, ch_elevstate, ch_cab_lamps)
+    Fsm_elevator(drv_buttons, drv_floors, ch_door, ch_mech, ch_obstruction, ch_hra, ch_init_cab_requests, ch_completed_hall_requests, ch_new_hall_requests, ch_elevstate, ch_cab_lamps, ch_singleElevMode)
 }
 

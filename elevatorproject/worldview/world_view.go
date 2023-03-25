@@ -78,7 +78,8 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 	ch_setTransmitEnable chan <- bool,
 	ch_initCabRequests chan <- []bool,
 	ch_remoteRequestView chan <- nodeview.RemoteRequestView,
-	ch_hraInput chan<- MyWorldView) {
+	ch_hraInput chan<- MyWorldView,
+	ch_singleElevMode chan <- bool) {
 
 
 	var myWorldView MyWorldView
@@ -109,14 +110,19 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 					delete(remoteRequestView.RemoteCabRequests, lostPeer)
 				}
 			}
+			if len(peersAlive) <= 1 {
+				ch_singleElevMode <- true
+				ch_remoteRequestView <- remoteRequestView
+			} else {
+				ch_singleElevMode <- false
+			}
 			// Here I can add if I am in an init state, I should send cab call of LocalID on channel init_cab_requests
 			// This will be done in the init state of the elevator
 		case nodeView := <-ch_receiveNodeView:
 			//fmt.Println("worldview: nodeView")
-			//fmt.Println("Received from ", nodeView.ID)
+			fmt.Println("Received from ", nodeView.ID)
 
 			nodeID := nodeView.ID
-
 			// Break out of case if IsPeerAlive returns false
 			if !peersAlive.IsPeerAlive(nodeID) && config.LocalID != nodeID {
 				break

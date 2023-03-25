@@ -284,19 +284,19 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	ch_mech <-chan int,
 	ch_obstruction <-chan int,
 	ch_hra <-chan [][2]bool,
-	ch_single_mode <-chan bool, // Lagt til
 	ch_init_cab_requests <-chan []bool,
 	ch_completed_hall_req chan<- elevio.ButtonEvent,
 	ch_new_hall_req chan<- elevio.ButtonEvent,
 	ch_elevstate chan<- ElevState,
-	ch_cab_lamps chan<- []bool) {
+	ch_cab_lamps chan<- []bool,
+	ch_single_mode <-chan bool) {
 
 	var elevState States
 	var activeOrders Orders
 	isAvailable := false
 	mech_error, obstruction_error := true, false
 
-	singleElevMode := false
+	singleElevMode := true
 
 	// Initiate elevator
 	activeOrders.InitOrders()

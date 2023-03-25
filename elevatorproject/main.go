@@ -28,6 +28,7 @@ func main() {
 	ch_hraInput := make(chan worldview.MyWorldView)
 	ch_hallRequests := make(chan [][2]bool)
 	ch_remoteRequestView := make(chan nodeview.RemoteRequestView)
+	ch_singleElevMode := make(chan bool)
 
 
 	// hra
@@ -45,12 +46,9 @@ func main() {
 	go peers.Transmitter(13200, config.LocalID, ch_peerTransmitEnable)
 	go bcast.Transmitter(12100, ch_transmit)
 
-	// NEW CHANNEL FOR SINGLE MODE TO SINGLE ELEV FSM
-	ch_single_mode := make(chan bool) // må sendes hvor du vil nicholas
-
 	// go routines
 
-	go worldview.WorldView(ch_receive, ch_peerUpdate, ch_peerTransmitEnable, ch_initCabRequests, ch_remoteRequestView, ch_hraInput)
+	go worldview.WorldView(ch_receive, ch_peerUpdate, ch_peerTransmitEnable, ch_initCabRequests, ch_remoteRequestView, ch_hraInput, ch_singleElevMode)
 	go nodeview.NodeView(ch_transmit, ch_newHallRequests, ch_completedHallRequests, ch_elevState, ch_hallRequests, ch_remoteRequestView)
 
 
@@ -58,7 +56,7 @@ func main() {
 	go singleelevator.LampStateMachine(ch_hallRequests, ch_cabLamps)
 
 	fmt.Println("Starter opp singleelevator")
-	go singleelevator.RunSingleElevator(ch_single_mode, ch_cabLamps, ch_hraOutput, ch_initCabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState)
+	go singleelevator.RunSingleElevator(ch_cabLamps, ch_hraOutput, ch_initCabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState, ch_singleElevMode)
 
 	for {
 		select {

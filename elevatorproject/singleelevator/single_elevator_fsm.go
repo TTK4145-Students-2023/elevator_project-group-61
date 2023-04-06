@@ -61,16 +61,6 @@ func stopAfterSensingFloor(floor int, elev_states States, active_orders Orders) 
 	return false
 }
 
-func btnTypeToDir(btn_type elevio.ButtonType) elevio.MotorDirection { // TODO: Remove if still unused
-	switch btn_type {
-	case elevio.BT_HallUp:
-		return elevio.MD_Up
-	case elevio.BT_HallDown:
-		return elevio.MD_Down
-	}
-	return elevio.MD_Stop
-}
-
 func dirToBtnType(dir elevio.MotorDirection) elevio.ButtonType {
 	switch dir {
 	case elevio.MD_Up:
@@ -161,76 +151,6 @@ func handleFloorSensor(floor int, elev_states States, active_orders Orders) (Sta
 		}
 		if floor == n_floors-1 && active_orders.GetSpecificOrder(floor, elevio.BT_HallDown) {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallDown})
-		}
-	}
-	return elev_states, active_orders, remove_orders_list
-}
-
-func handleNewRequests2(hra [][2]bool, order_request elevio.ButtonEvent, single_order bool, elev_states States, active_orders Orders) (States, Orders, []elevio.ButtonEvent) {
-	// If cab order
-	if single_order {
-		active_orders.SetOrder(order_request.Floor, order_request.Button, true)
-	} else {
-		// If HRA orders
-		for i := 0; i < n_floors; i++ {
-			active_orders.SetOrder(i, elevio.BT_HallUp, hra[i][0]) // First columns is up, second is down
-			active_orders.SetOrder(i, elevio.BT_HallDown, hra[i][1])
-		}
-	}
-	remove_orders_list := make([]elevio.ButtonEvent, 0)
-
-	switch elev_states.GetElevatorBehaviour() {
-	case Moving:
-	case DoorOpen:
-		up_this_floor, down_this_floor, cab_this_floor := active_orders.GetOrdersInFloor(elev_states.GetLastFloor())
-		if cab_this_floor {
-			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_Cab})
-		}
-		if (up_this_floor && elev_states.GetLastDirection() == elevio.MD_Up) ||
-			(elev_states.GetLastFloor() == 0 && up_this_floor) {
-			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallUp})
-		}
-		if (down_this_floor && elev_states.GetLastDirection() == elevio.MD_Down) ||
-			(elev_states.GetLastFloor() == n_floors-1 && down_this_floor) {
-			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallDown})
-		}
-	case Idle:
-		up_this_floor, down_this_floor, cab_this_floor := active_orders.GetOrdersInFloor(elev_states.GetLastFloor())
-		order_in_this_floor := up_this_floor || down_this_floor || cab_this_floor
-		orders_above := active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)
-		orders_below := active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)
-		if !active_orders.AnyOrder() {
-			break
-		} else {
-			if order_in_this_floor {
-				if cab_this_floor {
-					elev_states.SetElevatorBehaviour("DoorOpen")
-					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_Cab})
-				}
-				if (up_this_floor && elev_states.GetLastDirection() == elevio.MD_Up) ||
-					(up_this_floor && !down_this_floor && !active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)) ||
-					(elev_states.GetLastFloor() == 0 && up_this_floor) {
-					elev_states.SetElevatorBehaviour("DoorOpen")
-					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallUp})
-				}
-				if (down_this_floor && elev_states.GetLastDirection() == elevio.MD_Down) ||
-					(down_this_floor && !up_this_floor && !active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)) ||
-					(elev_states.GetLastFloor() == n_floors-1 && down_this_floor) {
-					elev_states.SetElevatorBehaviour("DoorOpen")
-					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallDown})
-				}
-
-			}
-			if !order_in_this_floor || elev_states.GetElevatorBehaviour() != "DoorOpen" {
-				elev_states.SetElevatorBehaviour("Moving")
-				if (elev_states.GetLastDirection() == elevio.MD_Up && orders_above) || !orders_below {
-					elev_states.SetDirection(elevio.MD_Up)
-				} else if (elev_states.GetLastDirection() == elevio.MD_Down && orders_below) || !orders_above {
-					elev_states.SetDirection(elevio.MD_Down)
-				} else {
-					panic("HandleNewRequests: No direction set")
-				}
-			}
 		}
 	}
 	return elev_states, active_orders, remove_orders_list

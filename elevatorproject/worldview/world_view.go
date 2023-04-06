@@ -14,6 +14,7 @@ type PeersAlive []string
 type MyWorldView struct {
 	ElevStates     map[string]singleelevator.ElevState
 	HallRequestView   [][2]nodeview.RequestState
+	CabRequestViews   map[string][]nodeview.RequestState
 	NodesAvailable map[string]bool
 }
 

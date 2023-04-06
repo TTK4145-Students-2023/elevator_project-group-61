@@ -56,7 +56,7 @@ func main() {
 	go singleelevator.LampStateMachine(ch_hallRequests, ch_cabLamps)
 
 	fmt.Println("Starter opp singleelevator")
-	go singleelevator.RunSingleElevator(ch_cabLamps, ch_hraOutput, ch_initCabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState, ch_singleElevMode)
+	go singleelevator.RunSingleElevator(ch_hraOutput, ch_initCabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState, ch_singleElevMode)
 
 	for {
 		select {

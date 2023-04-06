@@ -93,6 +93,14 @@ func (orders Orders) GetCabRequests() []bool {
 	return orders.Cab_orders
 }
 
+func (orders Orders) GetHallRequests() [][2]bool {
+	var hall_requests [][2]bool
+	for i := 0; i < n_floors; i++ {
+		hall_requests = append(hall_requests, [2]bool{orders.Up_orders[i], orders.Down_orders[i]})
+	}
+	return hall_requests
+}
+
 func (orders *Orders) SetOrder(floor int, btn elevio.ButtonType, value bool) {
 	switch btn {
 	case elevio.BT_HallUp:

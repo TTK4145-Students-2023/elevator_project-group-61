@@ -109,6 +109,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 	
 					delete(remoteRequestView.RemoteHallRequestViews, lostPeer)
 					delete(remoteRequestView.RemoteCabRequests, lostPeer)
+					delete(remoteRequestView.MyCabRequests, lostPeer)
 				}
 			}
 			//TODO: Må undersøke om denne checken er nok
@@ -140,7 +141,8 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 
 			if nodeID != config.LocalID {
 				remoteRequestView.RemoteHallRequestViews[nodeID] = nodeView.HallRequests
-				remoteRequestView.RemoteCabRequests[nodeID] = nodeView.ElevState.CabRequests
+				remoteRequestView.RemoteCabRequests[nodeID] = nodeView.MyCabRequests
+				remoteRequestView.MyCabRequests[nodeID] = nodeView.RemoteCabRequests[config.LocalID]
 			} else {
 				myWorldView.HallRequestView = nodeView.HallRequests
 			}

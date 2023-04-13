@@ -14,23 +14,34 @@ type PeersAlive []string
 type MyWorldView struct {
 	ElevStates     map[string]singleelevator.ElevState
 	HallRequestView   [][2]nodeview.RequestState
+	CabRequests  map[string][]nodeview.RequestState
 	NodesAvailable map[string]bool
 }
 
-func copyMyWorldView(myworldview MyWorldView) MyWorldView {
+
+// Make deap copy of MyWorldView
+
+func copyWorldView(worldView MyWorldView) MyWorldView {
 	var copy MyWorldView
 	copy.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
 	copy.HallRequestView = make([][2]nodeview.RequestState, config.NumFloors)
+	copy.CabRequests = make(map[string][]nodeview.RequestState, config.NumElevators)
 	copy.NodesAvailable = make(map[string]bool, config.NumElevators)
-	for id, state := range myworldview.ElevStates {
-		copy.ElevStates[id] = state
+	for id, elevState := range worldView.ElevStates {
+		copy.ElevStates[id] = elevState
 	}
-	for id, available := range myworldview.NodesAvailable {
-		copy.NodesAvailable[id] = available
+	for id, cabRequests := range worldView.CabRequests {
+		copy.CabRequests[id] = cabRequests
 	}
-	copy.HallRequestView = myworldview.HallRequestView
+	for id, isAvailable := range worldView.NodesAvailable {
+		copy.NodesAvailable[id] = isAvailable
+	}
+	for floor := 0; floor < config.NumElevators; floor++ {
+		copy.HallRequestView[floor] = worldView.HallRequestView[floor]
+	}
 	return copy
 }
+
 
 // Function that returns false if nodeID (input) is not in peersALive
 func (peersAlive PeersAlive) IsPeerAlive(nodeID string) bool {
@@ -55,6 +66,10 @@ func (myWorldView *MyWorldView) initMyWorldView() {
 		CabRequests: make([]bool, config.NumFloors),
 		IsAvailable: true,
 	}
+	// init cab requests
+	myWorldView.CabRequests = make(map[string][]nodeview.RequestState, config.NumElevators)
+	myWorldView.CabRequests[config.LocalID] = make([]nodeview.RequestState, config.NumFloors)
+	
 }
 /*
 func printNodeView(node nodeview.MyNodeView) {
@@ -107,7 +122,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 					delete(myWorldView.ElevStates, lostPeer)
 	
 					delete(remoteRequestView.RemoteHallRequestViews, lostPeer)
-					delete(remoteRequestView.RemoteCabRequests, lostPeer)
+					delete(remoteRequestView.RemoteCabRequestViews, lostPeer)
 				}
 			}
 			//TODO: Må undersøke om denne checken er nok
@@ -117,8 +132,6 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			} else {
 				ch_singleElevMode <- false
 			}
-			// Here I can add if I am in an init state, I should send cab call of LocalID on channel init_cab_requests
-			// This will be done in the init state of the elevator
 		case nodeView := <-ch_receiveNodeView:
 			//fmt.Println("worldview: nodeView")
 			fmt.Println("Received from ", nodeView.ID)
@@ -128,25 +141,18 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			if !peersAlive.IsPeerAlive(nodeID) && config.LocalID != nodeID {
 				break
 			}
-
-			//fmt.Println("-------------Elevstate-------------")
-			//singleelevator.PrintElevState(nodeView.ElevState)
-
 			myWorldView.NodesAvailable[nodeID] = nodeView.ElevState.IsAvailable
 			
-			//fmt.Println(myWorldView.NodesAvailable[nodeID])
 			myWorldView.ElevStates[nodeID] = nodeView.ElevState
+			myWorldView.CabRequests[nodeID] = nodeView.CabRequests[nodeID]
 
 			if nodeID != config.LocalID {
 				remoteRequestView.RemoteHallRequestViews[nodeID] = nodeView.HallRequests
-				remoteRequestView.RemoteCabRequests[nodeID] = nodeView.ElevState.CabRequests
+				remoteRequestView.RemoteCabRequestViews[nodeID] = nodeView.CabRequests
 			} else {
 				myWorldView.HallRequestView = nodeView.HallRequests
 			}
 
-			//fmt.Println("------------MyWorldView-------------")
-			//PrintMyWorldView(myWorldView)
-			
 			ch_remoteRequestView <- nodeview.CopyRemoveRequestView(remoteRequestView)
 			ch_hraInput <- copyMyWorldView(myWorldView)
 		

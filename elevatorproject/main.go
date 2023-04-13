@@ -21,12 +21,12 @@ func main() {
 	ch_completedHallRequests := make(chan elevio.ButtonEvent)
 	ch_newHallRequests := make(chan elevio.ButtonEvent)
 	ch_elevState := make(chan singleelevator.ElevState)
-	ch_cabLamps := make(chan []bool)
+	//ch_cabLamps := make(chan []bool)
 
 	//worldview
 	ch_initCabRequests := make(chan []bool)
 	ch_hraInput := make(chan worldview.MyWorldView)
-	ch_hallRequests := make(chan [][2]bool)
+	ch_lamps := make(chan [][3]bool)
 	ch_remoteRequestView := make(chan nodeview.RemoteRequestView)
 	ch_singleElevMode := make(chan bool)
 
@@ -49,11 +49,11 @@ func main() {
 	// go routines
 
 	go worldview.WorldView(ch_receive, ch_peerUpdate, ch_peerTransmitEnable, ch_initCabRequests, ch_remoteRequestView, ch_hraInput, ch_singleElevMode)
-	go nodeview.NodeView(ch_transmit, ch_newHallRequests, ch_completedHallRequests, ch_elevState, ch_hallRequests, ch_remoteRequestView)
+	go nodeview.NodeView(ch_transmit, ch_newHallRequests, ch_completedHallRequests, ch_elevState, ch_lamps, ch_remoteRequestView)
 
 
 	go hallrequestassigner.AssignHallRequests(ch_hraInput, ch_hraOutput)
-	go singleelevator.LampStateMachine(ch_hallRequests, ch_cabLamps)
+	go singleelevator.LampStateMachine(ch_lamps)
 
 	fmt.Println("Starter opp singleelevator")
 	go singleelevator.RunSingleElevator(ch_hraOutput, ch_initCabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState, ch_singleElevMode)

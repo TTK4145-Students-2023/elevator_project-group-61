@@ -21,7 +21,7 @@ type MyWorldView struct {
 
 // Make deap copy of MyWorldView
 
-func copyWorldView(worldView MyWorldView) MyWorldView {
+func copyMyWorldView(worldView MyWorldView) MyWorldView {
 	var copy MyWorldView
 	copy.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
 	copy.HallRequestView = make([][2]nodeview.RequestState, config.NumFloors)
@@ -71,22 +71,6 @@ func (myWorldView *MyWorldView) initMyWorldView() {
 	myWorldView.CabRequests[config.LocalID] = make([]nodeview.RequestState, config.NumFloors)
 	
 }
-/*
-func printNodeView(node nodeview.MyNodeView) {
-	fmt.Printf("ID: %s\n", node.ID)
-	fmt.Printf("IsAvailable: %v\n", node.IsAvailable)
-	fmt.Printf("ElevState: Behaviour=%s Floor=%d Direction=%s CabRequests=%v IsAvailable=%v\n",
-		node.ElevState.Behaviour, node.ElevState.Floor, node.ElevState.Direction, node.ElevState.CabRequests, node.ElevState.IsAvailable)
-	fmt.Printf("HallRequests:\n")
-	for i, requests := range node.HallRequests {
-		fmt.Printf("  Floor %d: Up=%v Down=%v\n", i+1, requests[0], requests[1])
-	}
-	fmt.Printf("CabRequests:\n")
-	for id, requests := range node.RemoteCabRequests {
-		fmt.Printf("  Cab %s: %v\n", id, requests)
-	}
-}
-*/
 
 func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 	ch_receivePeerUpdate <-chan peers.PeerUpdate,
@@ -100,6 +84,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 	var myWorldView MyWorldView
 	var peersAlive PeersAlive
 	var remoteRequestView nodeview.RemoteRequestView
+	var isSingleElevMode bool
 
 	myWorldView.initMyWorldView()
 	remoteRequestView.InitRemoteRequestView()
@@ -128,9 +113,11 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			//TODO: Må undersøke om denne checken er nok
 			if len(peersAlive) <= 1 {
 				ch_singleElevMode <- true
+				isSingleElevMode = true
 				ch_remoteRequestView <- remoteRequestView
 			} else {
 				ch_singleElevMode <- false
+				isSingleElevMode = false
 			}
 		case nodeView := <-ch_receiveNodeView:
 			//fmt.Println("worldview: nodeView")
@@ -154,10 +141,10 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			}
 
 			ch_remoteRequestView <- nodeview.CopyRemoveRequestView(remoteRequestView)
-			ch_hraInput <- copyMyWorldView(myWorldView)
-		
+			if !isSingleElevMode {
+				ch_hraInput <- copyMyWorldView(myWorldView)
+			}
 		}
-		//time.Sleep(100*time.Millisecond)
 	}
 }
 

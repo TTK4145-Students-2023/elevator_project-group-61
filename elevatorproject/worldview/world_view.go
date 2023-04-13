@@ -52,19 +52,19 @@ func (peersAlive PeersAlive) IsPeerAlive(nodeID string) bool {
 	return false
 }
 
-func (myWorldView *MyWorldView) initMyWorldView() {
+func (myWorldView *MyWorldView) initMyWorldView(localID string) {
 	myWorldView.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
 	myWorldView.HallRequestView = make([][2]nodeview.RequestState, config.NumFloors)
 	myWorldView.NodesAvailable = make(map[string]bool, config.NumElevators)
-	myWorldView.NodesAvailable[config.LocalID] = true
+	myWorldView.NodesAvailable[localID] = true
 	//myWorldView.NodesAvailable[config.SecondElev] = true
 	
 	var elevState singleelevator.ElevState
-	myWorldView.ElevStates[config.LocalID] = elevState
+	myWorldView.ElevStates[localID] = elevState
 
 	// init cab requests
 	myWorldView.CabRequests = make(map[string][]nodeview.RequestState, config.NumElevators)
-	myWorldView.CabRequests[config.LocalID] = make([]nodeview.RequestState, config.NumFloors)
+	myWorldView.CabRequests[localID] = make([]nodeview.RequestState, config.NumFloors)
 	
 }
 
@@ -74,7 +74,8 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 	ch_cabRequests chan <- []bool,
 	ch_remoteRequestView chan <- nodeview.RemoteRequestView,
 	ch_hraInput chan<- MyWorldView,
-	ch_singleElevMode chan <- bool) {
+	ch_singleElevMode chan <- bool,
+	localID string) {
 
 
 	var myWorldView MyWorldView
@@ -82,7 +83,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 	var remoteRequestView nodeview.RemoteRequestView
 	var isSingleElevMode bool
 
-	myWorldView.initMyWorldView()
+	myWorldView.initMyWorldView(localID)
 	remoteRequestView.InitRemoteRequestView()
 
 	for {
@@ -98,7 +99,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 		
 			for _, lostPeer := range peersLost {
 				// If this node can be found in lostPeer, we should delete it from the systemAwareness
-				if lostPeer != config.LocalID {
+				if lostPeer != localID {
 					delete(myWorldView.NodesAvailable, lostPeer)
 					delete(myWorldView.ElevStates, lostPeer)
 	
@@ -122,7 +123,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 
 			nodeID := nodeView.ID
 			// Break out of case if IsPeerAlive returns false
-			if !peersAlive.IsPeerAlive(nodeID) && config.LocalID != nodeID {
+			if !peersAlive.IsPeerAlive(nodeID) && localID != nodeID {
 				break
 			}
 			myWorldView.NodesAvailable[nodeID] = nodeView.ElevState.IsAvailable
@@ -130,7 +131,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			myWorldView.ElevStates[nodeID] = nodeView.ElevState
 			myWorldView.CabRequests[nodeID] = nodeView.CabRequests[nodeID]
 
-			if nodeID != config.LocalID {
+			if nodeID != localID {
 				remoteRequestView.RemoteHallRequestViews[nodeID] = nodeView.HallRequests
 				remoteRequestView.RemoteCabRequestViews[nodeID] = nodeView.CabRequests
 			} else {

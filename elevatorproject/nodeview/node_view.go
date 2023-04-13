@@ -53,8 +53,8 @@ func CopyRemoteRequestView(remoteRequestView RemoteRequestView) RemoteRequestVie
 	return copy
 }
 
-func (myNodeView *MyNodeView) InitMyNodeView() {
-	myNodeView.ID = config.LocalID
+func (myNodeView *MyNodeView) InitMyNodeView(localID string) {
+	myNodeView.ID = localID
 	myNodeView.HallRequests = make([][2]RequestState, config.NumFloors)
 	myNodeView.CabRequests = make(map[string][]RequestState)
 	// Run InitElevState
@@ -204,12 +204,13 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 	ch_elevState <-chan singleelevator.ElevState,
 	ch_hallLamps chan<- [][2]bool,
 	ch_cabLamps chan<- []bool,
-	ch_remoteRequestView <-chan RemoteRequestView) {
+	ch_remoteRequestView <-chan RemoteRequestView,
+	localID string) {
 
 	var myNodeView MyNodeView
 	var isSingleElevMode = true
 
-	myNodeView.InitMyNodeView()
+	myNodeView.InitMyNodeView(localID)
 
 	for {
 		select {
@@ -236,20 +237,20 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			}
 
 			ch_hallLamps <- convertHallRequests(myNodeView.HallRequests, isSingleElevMode)
-			ch_cabLamps <- convertCabRequests(myNodeView.CabRequests[config.LocalID], isSingleElevMode)
+			ch_cabLamps <- convertCabRequests(myNodeView.CabRequests[localID], isSingleElevMode)
 
 
 		case newRequest := <-ch_newRequest:
 			//fmt.Println("nodeview: newHallRequest")
 			// if newHallRequest is cabrequest, then set myNodeView.CabRequests
 			if newRequest.Button == elevio.BT_Cab {
-				myNodeView.CabRequests[config.LocalID][newRequest.Floor] = RS_Pending
+				myNodeView.CabRequests[localID][newRequest.Floor] = RS_Pending
 			} else {
 				myNodeView.HallRequests[newRequest.Floor][int(newRequest.Button)] = RS_Pending
 			}
 			if isSingleElevMode {
 				ch_hallLamps <- convertHallRequests(myNodeView.HallRequests, isSingleElevMode)
-				ch_cabLamps <- convertCabRequests(myNodeView.CabRequests[config.LocalID], isSingleElevMode)
+				ch_cabLamps <- convertCabRequests(myNodeView.CabRequests[localID], isSingleElevMode)
 			}
 
 		case completedHallRequest := <-ch_completedRequest:
@@ -261,14 +262,14 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			}
 
 			if completedHallRequest.Button == elevio.BT_Cab {
-				myNodeView.CabRequests[config.LocalID][completedHallRequest.Floor] = nextRS
+				myNodeView.CabRequests[localID][completedHallRequest.Floor] = nextRS
 			} else {
 				myNodeView.HallRequests[completedHallRequest.Floor][int(completedHallRequest.Button)] = nextRS
 			}
 
 			if isSingleElevMode {
 				ch_hallLamps <- convertHallRequests(myNodeView.HallRequests, isSingleElevMode)
-				ch_cabLamps <- convertCabRequests(myNodeView.CabRequests[config.LocalID], isSingleElevMode)
+				ch_cabLamps <- convertCabRequests(myNodeView.CabRequests[localID], isSingleElevMode)
 			}
 
 		case elevState := <-ch_elevState:

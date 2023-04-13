@@ -53,14 +53,15 @@ func CopyRemoteRequestView(remoteRequestView RemoteRequestView) RemoteRequestVie
 	return copy
 }
 
+// New initMyNodeView function that initializes the MyNodeView struct and all requests to RS_Unknown
 func (myNodeView *MyNodeView) InitMyNodeView(localID string) {
 	myNodeView.ID = localID
+	myNodeView.IsAvailable = true
+	myNodeView.ElevState = singleelevator.ElevState{IsAvailable: true, Behaviour: singleelevator.BS_Idle, Floor: 0, Direction: elevio.MD_Stop}
 	myNodeView.HallRequests = make([][2]RequestState, config.NumFloors)
-	myNodeView.CabRequests = make(map[string][]RequestState)
-	// Run InitElevState
-	myNodeView.ElevState.InitElevState();
+	myNodeView.CabRequests = make(map[string][]RequestState, config.NumElevators)
+	myNodeView.CabRequests[localID] = make([]RequestState, config.NumFloors)
 }
-
 // function that takes a [][2]RequestState as input and return [][2]bool
 
 func convertHallRequests(hallrequests [][2]RequestState, isSingleElevMode bool) [][2]bool {

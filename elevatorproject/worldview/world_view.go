@@ -6,7 +6,6 @@ import (
 	"elevatorproject/nodeview"
 	"elevatorproject/singleelevator"
 	"fmt"
-	"strings"
 )
 
 type PeersAlive []string
@@ -21,7 +20,7 @@ type MyWorldView struct {
 
 // Make deap copy of MyWorldView
 
-func copyWorldView(worldView MyWorldView) MyWorldView {
+func copyMyWorldView(worldView MyWorldView) MyWorldView {
 	var copy MyWorldView
 	copy.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
 	copy.HallRequestView = make([][2]nodeview.RequestState, config.NumFloors)
@@ -53,55 +52,38 @@ func (peersAlive PeersAlive) IsPeerAlive(nodeID string) bool {
 	return false
 }
 
-func (myWorldView *MyWorldView) initMyWorldView() {
+func (myWorldView *MyWorldView) initMyWorldView(localID string) {
 	myWorldView.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
 	myWorldView.HallRequestView = make([][2]nodeview.RequestState, config.NumFloors)
 	myWorldView.NodesAvailable = make(map[string]bool, config.NumElevators)
-	myWorldView.NodesAvailable[config.LocalID] = true
+	myWorldView.NodesAvailable[localID] = true
 	//myWorldView.NodesAvailable[config.SecondElev] = true
-	myWorldView.ElevStates[config.LocalID] = singleelevator.ElevState{
-		Behaviour: "moving",
-		Floor : 1,
-		Direction: "up",
-		CabRequests: make([]bool, config.NumFloors),
-		IsAvailable: true,
-	}
+	
+	var elevState singleelevator.ElevState
+	myWorldView.ElevStates[localID] = elevState
+
 	// init cab requests
 	myWorldView.CabRequests = make(map[string][]nodeview.RequestState, config.NumElevators)
-	myWorldView.CabRequests[config.LocalID] = make([]nodeview.RequestState, config.NumFloors)
+	myWorldView.CabRequests[localID] = make([]nodeview.RequestState, config.NumFloors)
 	
 }
-/*
-func printNodeView(node nodeview.MyNodeView) {
-	fmt.Printf("ID: %s\n", node.ID)
-	fmt.Printf("IsAvailable: %v\n", node.IsAvailable)
-	fmt.Printf("ElevState: Behaviour=%s Floor=%d Direction=%s CabRequests=%v IsAvailable=%v\n",
-		node.ElevState.Behaviour, node.ElevState.Floor, node.ElevState.Direction, node.ElevState.CabRequests, node.ElevState.IsAvailable)
-	fmt.Printf("HallRequests:\n")
-	for i, requests := range node.HallRequests {
-		fmt.Printf("  Floor %d: Up=%v Down=%v\n", i+1, requests[0], requests[1])
-	}
-	fmt.Printf("CabRequests:\n")
-	for id, requests := range node.RemoteCabRequests {
-		fmt.Printf("  Cab %s: %v\n", id, requests)
-	}
-}
-*/
 
 func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 	ch_receivePeerUpdate <-chan peers.PeerUpdate,
 	ch_setTransmitEnable chan <- bool,
-	ch_CabRequests chan <- []bool,
+	ch_cabRequests chan <- []bool,
 	ch_remoteRequestView chan <- nodeview.RemoteRequestView,
 	ch_hraInput chan<- MyWorldView,
-	ch_singleElevMode chan <- bool) {
+	ch_singleElevMode chan <- bool,
+	localID string) {
 
 
 	var myWorldView MyWorldView
 	var peersAlive PeersAlive
 	var remoteRequestView nodeview.RemoteRequestView
+	var isSingleElevMode bool
 
-	myWorldView.initMyWorldView()
+	myWorldView.initMyWorldView(localID)
 	remoteRequestView.InitRemoteRequestView()
 
 	for {
@@ -117,7 +99,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 		
 			for _, lostPeer := range peersLost {
 				// If this node can be found in lostPeer, we should delete it from the systemAwareness
-				if lostPeer != config.LocalID {
+				if lostPeer != localID {
 					delete(myWorldView.NodesAvailable, lostPeer)
 					delete(myWorldView.ElevStates, lostPeer)
 	
@@ -125,12 +107,15 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 					delete(remoteRequestView.RemoteCabRequestViews, lostPeer)
 				}
 			}
-			//TODO: Må undersøke om denne checken er nok
+			//TODO: Må undersøke om denne checken er nok, og undersøke om ch_isSingleElevMode kan 
+			// tas i bruk av nodeview.
 			if len(peersAlive) <= 1 {
 				ch_singleElevMode <- true
+				isSingleElevMode = true
 				ch_remoteRequestView <- remoteRequestView
 			} else {
 				ch_singleElevMode <- false
+				isSingleElevMode = false
 			}
 		case nodeView := <-ch_receiveNodeView:
 			//fmt.Println("worldview: nodeView")
@@ -138,7 +123,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 
 			nodeID := nodeView.ID
 			// Break out of case if IsPeerAlive returns false
-			if !peersAlive.IsPeerAlive(nodeID) && config.LocalID != nodeID {
+			if !peersAlive.IsPeerAlive(nodeID) && localID != nodeID {
 				break
 			}
 			myWorldView.NodesAvailable[nodeID] = nodeView.ElevState.IsAvailable
@@ -146,57 +131,17 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			myWorldView.ElevStates[nodeID] = nodeView.ElevState
 			myWorldView.CabRequests[nodeID] = nodeView.CabRequests[nodeID]
 
-			if nodeID != config.LocalID {
+			if nodeID != localID {
 				remoteRequestView.RemoteHallRequestViews[nodeID] = nodeView.HallRequests
 				remoteRequestView.RemoteCabRequestViews[nodeID] = nodeView.CabRequests
 			} else {
 				myWorldView.HallRequestView = nodeView.HallRequests
 			}
 
-			ch_remoteRequestView <- nodeview.CopyRemoveRequestView(remoteRequestView)
-			ch_hraInput <- copyMyWorldView(myWorldView)
-		
-		}
-		//time.Sleep(100*time.Millisecond)
-	}
-}
-
-func PrintMyWorldView(view MyWorldView) {
-	fmt.Printf("Elevators:\n")
-	for id, state := range view.ElevStates {
-		fmt.Printf("  %s\n", id)
-		fmt.Printf("    - Behaviour: %s\n", state.Behaviour)
-		fmt.Printf("    - Floor: %d\n", state.Floor)
-		fmt.Printf("    - Direction: %s\n", state.Direction)
-		fmt.Printf("    - CabRequests: %s\n", boolSliceToString(state.CabRequests))
-		fmt.Printf("    - IsAvailable: %t\n", state.IsAvailable)
-	}
-	fmt.Printf("\n")
-
-	fmt.Printf("Hall Requests:\n")
-	for i, req := range view.HallRequestView {
-		fmt.Printf("  Floor %d:\n", i+1)
-		for j, state := range req {
-			fmt.Printf("    %s Hall: %s\n", hallDirectionToString(j), nodeview.RequestStateToString(state))
+			ch_remoteRequestView <- nodeview.CopyRemoteRequestView(remoteRequestView)
+			if !isSingleElevMode {
+				ch_hraInput <- copyMyWorldView(myWorldView)
+			}
 		}
 	}
-	fmt.Printf("\n")
-
-	fmt.Printf("Node Availability:\n")
-	for id, available := range view.NodesAvailable {
-		fmt.Printf("  %s: %t\n", id, available)
-	}
 }
-
-func boolSliceToString(arr []bool) string {
-	return strings.Join(strings.Split(fmt.Sprintf("%v", arr), " "), ", ")
-}
-
-func hallDirectionToString(dir int) string {
-	if dir == 0 {
-		return "Up"
-	} else {
-		return "Down"
-	}
-}
-

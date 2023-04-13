@@ -6,7 +6,7 @@
 
 //TODO: In network module, implement I'm available channel, which truns off broadcasting for the unavailable node.
 
-package hallrequestassigner
+package requestassigner
 
 import (
 	"elevatorproject/config"
@@ -36,30 +36,37 @@ type HRAInput struct {
 // TODO: get localID from somewhere
 func transformToHRAInput(myWorldView worldview.MyWorldView) HRAInput {
 	transfromedHRAHallRequests := make([][2]bool, config.NumFloors)
+	transformedHRACabRequests := make(map[string][]bool)
 	systemHallRequests := myWorldView.HallRequestView
+	systemCabRequests := myWorldView.CabRequests
 	for i, floor := range systemHallRequests {
 		for j, requestState := range floor {
 			if requestState == nodeview.RS_Confirmed {
-				transfromedHRAHallRequests[i][j] = true
-			} else if requestState == nodeview.RS_Pending && len(myWorldView.ElevStates) == 1 {
 				transfromedHRAHallRequests[i][j] = true
 			} else {
 				transfromedHRAHallRequests[i][j] = false
 			}
 		}
 	}
-
+	for id, requestStates := range systemCabRequests {
+		for j, requestState := range requestStates {
+			if requestState == nodeview.RS_Confirmed {
+				transformedHRACabRequests[id][j] = true
+			} else {
+				transformedHRACabRequests[id][j] = false
+			}
+		}
+	}
+		
 	transfromedHRAStates := make(map[string]HRAElevState)
 	systemElevState := myWorldView.ElevStates
-	//systemCabRequests := systemAwareness.SystemCabRequests
-	systemNodesAvailable := myWorldView.NodesAvailable
 	for id, elevState := range systemElevState {
-		if systemNodesAvailable[id] {
+		if elevState.IsAvailable {
 			newHRAElevState := HRAElevState{
 				Behaviour:   elevState.Behaviour,
 				Floor:       elevState.Floor,
 				Direction:   elevState.Direction,
-				CabRequests: elevState.CabRequests,
+				CabRequests: transformedHRACabRequests[id],
 			}
 			transfromedHRAStates[id] = newHRAElevState
 		}
@@ -72,10 +79,10 @@ func transformToHRAInput(myWorldView worldview.MyWorldView) HRAInput {
 	return transfromedHRAInput
 }
 
-func diffHRARequests(oldHRARequests [][2]bool, newHRARequests [][2]bool) bool {
+func diffHallRequests(oldHallRequests [][2]bool, newHallRequests [][2]bool) bool {
 	for i := 0; i < config.NumFloors; i++ {
 		for j := 0; j < 2; j++ {
-			if oldHRARequests[i][j] != newHRARequests[i][j] {
+			if oldHallRequests[i][j] != newHallRequests[i][j] {
 				return true
 			}
 		}
@@ -83,21 +90,35 @@ func diffHRARequests(oldHRARequests [][2]bool, newHRARequests [][2]bool) bool {
 	return false
 }
 
-func AssignHallRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hraoutput chan<- [][2]bool) {
-	oldHRARequests := make([][2]bool, config.NumFloors)
+func diffCabRequests(oldCabRequests []bool, newCabRequests []bool) bool {
 	for i := 0; i < config.NumFloors; i++ {
-		for j := 0; j < 2; j++ {
-			oldHRARequests[i][j] = true
+		if oldCabRequests[i] != newCabRequests[i] {
+			return true
 		}
 	}
+	return false
+}
+
+func AssignRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hallRequest chan<- [][2]bool, ch_cabRequests chan<- []bool, localID string) {
+	oldHallRequests := make([][2]bool, config.NumFloors)
+	for i := 0; i < config.NumFloors; i++ {
+		for j := 0; j < 2; j++ {
+			oldHallRequests[i][j] = true
+		}
+	}
+	oldCabRequests := make([]bool, config.NumFloors)
+	for i := 0; i < config.NumFloors; i++ {
+		oldCabRequests[i] = true
+	}
+
 	for {
 		select {
-		case systemAwareness := <-ch_hraInput:
+		case myWorldView := <-ch_hraInput:
 			//fmt.Println("HRA has gotten input")
-			if !systemAwareness.NodesAvailable[config.LocalID] {
+			if !myWorldView.ElevStates[localID].IsAvailable {
 				continue
 			}
-			hraInput := transformToHRAInput(systemAwareness)
+			hraInput := transformToHRAInput(myWorldView)
 
 			hraExecutable := ""
 			switch runtime.GOOS {
@@ -116,7 +137,7 @@ func AssignHallRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hraoutput c
 			}
 
 			// Print out json to file
-			filename := "hra_assigner_input" + config.LocalID
+			filename := "hra_assigner_input" + localID
 			err = ioutil.WriteFile(filename, jsonBytes, 0644)
 			if err != nil {
 				panic(err)
@@ -129,13 +150,14 @@ func AssignHallRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hraoutput c
 				return
 			}
 
-			output := new(map[string][][2]bool)
-			err = json.Unmarshal(ret, &output)
+			hraOutput := new(map[string][][2]bool)
+			err = json.Unmarshal(ret, &hraOutput)
 			if err != nil {
 				fmt.Println("json.Unmarshal error: ", err)
 				return
 			}
-			hraOutput := (*output)[config.LocalID] //TODO: Get the local ID from somewhere
+			hallRequests := (*hraOutput)[localID] //TODO: Get the local ID from somewhere
+			cabRequests := hraInput.States[localID].CabRequests
 
 			// printer output
 			
@@ -143,9 +165,13 @@ func AssignHallRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hraoutput c
     		// for k, v := range *output {
         	// 	fmt.Printf("%6v :  %+v\n", k, v)
     		// }
-			if diffHRARequests(oldHRARequests, hraOutput) {
-				ch_hraoutput <- hraOutput
-				copy(oldHRARequests, hraOutput)
+			if diffHallRequests(oldHallRequests, hallRequests) {
+				ch_hallRequest <- hallRequests
+				copy(oldHallRequests, hallRequests)
+			}
+			if diffCabRequests(oldCabRequests, cabRequests) {
+				ch_cabRequests <- cabRequests
+				copy(oldCabRequests, cabRequests)
 			}
 		default:
 			time.Sleep(50*time.Millisecond)

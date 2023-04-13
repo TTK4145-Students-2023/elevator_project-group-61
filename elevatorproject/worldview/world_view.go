@@ -41,7 +41,6 @@ func copyMyWorldView(worldView MyWorldView) MyWorldView {
 	return copy
 }
 
-
 // Function that returns false if nodeID (input) is not in peersALive
 func (peersAlive PeersAlive) IsPeerAlive(nodeID string) bool {
 	for _, peer := range peersAlive {

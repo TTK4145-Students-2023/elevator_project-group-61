@@ -2,7 +2,7 @@ package main
 
 import (
 	"elevatorproject/config"
-	"elevatorproject/hallrequestassigner"
+	"elevatorproject/requestassigner"
 	"elevatorproject/network/peers"
 	"elevatorproject/singleelevator"
 	"elevatorproject/singleelevator/elevio"
@@ -36,7 +36,8 @@ func main() {
 
 
 	// hra
-	ch_hraOutput := make(chan [][2]bool)
+	ch_hallRequest := make(chan [][2]bool)
+	ch_cabRequests := make(chan []bool)
 
 	// network in
 	ch_receive := make(chan nodeview.MyNodeView)
@@ -54,16 +55,15 @@ func main() {
 	go worldview.WorldView(ch_receive, ch_peerUpdate, ch_peerTransmitEnable, ch_initCabRequests, ch_remoteRequestView, ch_hraInput, ch_singleElevMode, localID)
 	go nodeview.NodeView(ch_transmit, ch_newHallRequests, ch_completedHallRequests, ch_elevState, ch_hallLamps, ch_cabLamps, ch_remoteRequestView, localID)
 
-	go hallrequestassigner.AssignHallRequests(ch_hraInput, ch_hraOutput)
+	go requestassigner.AssignRequests(ch_hraInput, ch_hallRequest, ch_cabRequests, localID)
 	go singleelevator.LampStateMachine(ch_hallLamps, ch_cabLamps)
 
 	fmt.Println("Starter opp singleelevator")
-	go singleelevator.RunSingleElevator(ch_hraOutput, ch_initCabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState, ch_singleElevMode)
+	go singleelevator.RunSingleElevator(ch_hallRequest, ch_cabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState, ch_singleElevMode)
 
 	for {
 		select {
 		default:
 		}
 	}
-
 }

@@ -16,8 +16,14 @@ type ElevState struct {
 	Behaviour   string
 	Floor       int
 	Direction   string
-	CabRequests []bool
 	IsAvailable bool
+}
+
+func (elev_state *ElevState) InitElevState() {
+	elev_state.Behaviour = "idle"
+	elev_state.Floor = 1
+	elev_state.Direction = "stop"
+	elev_state.IsAvailable = true
 }
 
 // Constants
@@ -28,11 +34,10 @@ func PrintElevState(state ElevState) {
 	fmt.Printf("Behaviour: %s\n", state.Behaviour)
 	fmt.Printf("Floor: %d\n", state.Floor)
 	fmt.Printf("Direction: %s\n", state.Direction)
-	fmt.Printf("CabRequests: %s\n", boolSliceToString(state.CabRequests))
 	fmt.Printf("IsAvailable: %t\n", state.IsAvailable)
 }
 
-func boolSliceToString(arr []bool) string {
+func boolSliceToString(arr []bool) string { // Unused?
 	return strings.Join(strings.Split(fmt.Sprintf("%v", arr), " "), ", ")
 }
 
@@ -71,12 +76,11 @@ func dirToBtnType(dir elevio.MotorDirection) elevio.ButtonType {
 	return elevio.BT_Cab
 }
 
-func statesToHRAStates(states States, cab_requests []bool, isAvailable bool) ElevState {
+func statesToHRAStates(states States, isAvailable bool) ElevState {
 	hra_states := ElevState{
 		Behaviour:   "idle",
 		Floor:       1,
 		Direction:   "stop",
-		CabRequests: make([]bool, n_floors),
 		IsAvailable: true}
 
 	// Floor
@@ -108,9 +112,6 @@ func statesToHRAStates(states States, cab_requests []bool, isAvailable bool) Ele
 		panic("Invalid elevator behaviour")
 	}
 
-	// Cab requests
-	copy(hra_states.CabRequests, cab_requests)
-
 	// isAvailable
 	hra_states.IsAvailable = isAvailable
 
@@ -123,11 +124,6 @@ func diffElevStateStructs(a ElevState, b ElevState) bool {
 		a.Direction != b.Direction ||
 		a.IsAvailable != b.IsAvailable {
 		return true
-	}
-	for i := 0; i < n_floors; i++ {
-		if a.CabRequests[i] != b.CabRequests[i] {
-			return true
-		}
 	}
 	return false
 }
@@ -294,7 +290,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	// Initiate elevator
 	activeOrders.InitOrders()
 	elevState.InitStates()
-	var oldElevInfo ElevState = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+	var oldElevInfo ElevState = statesToHRAStates(elevState, isAvailable)
 	if elevio.GetFloor() == -1 {
 		elevState.SetElevatorBehaviour("Moving")
 		elevio.SetMotorDirection(elevio.MD_Up)
@@ -304,8 +300,8 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 		mech_error = false
 		isAvailable = true
 	}
-	if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
-		oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+	if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
+		oldElevInfo = statesToHRAStates(elevState, isAvailable)
 		ch_elevstate <- oldElevInfo
 	}
 
@@ -333,8 +329,8 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
 			isAvailable = !mech_error && !obstruction_error
-			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
-				oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
+				oldElevInfo = statesToHRAStates(elevState, isAvailable)
 				ch_elevstate <- oldElevInfo
 			}
 		case floor := <-ch_floor:
@@ -358,8 +354,8 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
 			isAvailable = !mech_error && !obstruction_error
-			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
-				oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
+				oldElevInfo = statesToHRAStates(elevState, isAvailable)
 				ch_elevstate <- oldElevInfo
 			}
 		case <-ch_door:
@@ -394,8 +390,8 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
 			isAvailable = !mech_error && !obstruction_error
-			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
-				oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
+				oldElevInfo = statesToHRAStates(elevState, isAvailable)
 				ch_elevstate <- oldElevInfo
 			}
 		case btn_press := <-ch_btn:
@@ -433,8 +429,8 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				}
 				// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
 				isAvailable = !mech_error && !obstruction_error
-				if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
-					oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+				if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
+					oldElevInfo = statesToHRAStates(elevState, isAvailable)
 					ch_elevstate <- oldElevInfo
 				}
 			} else {
@@ -444,13 +440,13 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			fmt.Println("HandleMechanicalError")
 			mech_error = true
 			isAvailable = false
-			oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+			oldElevInfo = statesToHRAStates(elevState, isAvailable)
 			ch_elevstate <- oldElevInfo
 		case <-ch_obstruction:
 			fmt.Println("HandleObstructionError")
 			obstruction_error = true
 			isAvailable = false
-			oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+			oldElevInfo = statesToHRAStates(elevState, isAvailable)
 			ch_elevstate <- oldElevInfo
 		case single_bool := <-ch_single_mode:
 			singleElevMode = single_bool
@@ -478,8 +474,8 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
 			isAvailable = !mech_error && !obstruction_error
-			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)) {
-				oldElevInfo = statesToHRAStates(elevState, activeOrders.GetCabRequests(), isAvailable)
+			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
+				oldElevInfo = statesToHRAStates(elevState, isAvailable)
 				ch_elevstate <- oldElevInfo
 			}
 		}

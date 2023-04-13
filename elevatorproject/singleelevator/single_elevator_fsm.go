@@ -261,6 +261,20 @@ func handleDoorClosing(elev_states States, active_orders Orders) (States, Orders
 	return elev_states, active_orders, remove_orders_list
 }
 
+func changeInBehaviour(oldState ElevState, currentState States) bool {
+	behaviour_translation := "idle"
+	switch currentState.GetElevatorBehaviour() {
+	case "Idle":
+		behaviour_translation = "idle"
+	case "Moving":
+		behaviour_translation = "moving"
+	case "DoorOpen":
+		behaviour_translation = "doorOpen"
+	default:
+		panic("Invalid elevator behaviour")
+	}
+	return oldState.Behaviour != behaviour_translation
+}
 
 // Fikse spam error
 // Skal startes når døren åpner seg og det finnes ordre i andre etasjer for denne heisen
@@ -268,11 +282,18 @@ func handleDoorClosing(elev_states States, active_orders Orders) (States, Orders
 
 // TODO: Må legge til elevator_timers.StopSpamTimer() noen steder!
 
+// Ny error metode fra Nicholas:
+// Kun sjekke endringer i state.
+// Hvis det finnes ordre og heisen blir for lenge i en state skal den settes til isAvailable = false.
+
+// Timeren må resettes hver gang heisen blir satt i en ny state.
+// Timeren skal stoppes hver gang det ikke er ordre.
+// Timeren skal startes hver gang det går til å finnes en ordre.
+
 func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	ch_floor <-chan int,
 	ch_door <-chan int,
-	ch_mech <-chan int,
-	ch_obstruction <-chan int,
+	ch_error <-chan int,
 	ch_hra <-chan [][2]bool,
 	ch_cab_requests <-chan []bool,
 	ch_completed_request chan<- elevio.ButtonEvent,
@@ -283,7 +304,6 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	var elevState States
 	var activeOrders Orders
 	isAvailable := false
-	mech_error, obstruction_error := true, false
 
 	singleElevMode := true
 
@@ -297,7 +317,6 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	} else {
 		elevState.SetLastFloor(elevio.GetFloor())
 		elevio.SetFloorIndicator(elevio.GetFloor())
-		mech_error = false
 		isAvailable = true
 	}
 	if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
@@ -324,11 +343,29 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				}
 			} else if elevState.GetElevatorBehaviour() == "Moving" && oldElevInfo.Direction == "stop" { // Vil dette forårsake "hakkete" oppførsel? Må sjekkes. (Endret til å sjekke oldElevInfo)
 				elevio.SetMotorDirection(elevState.GetLastDirection())
-				obstruction_error = false
-				elevator_timers.StartMechanicalTimer()
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
-			isAvailable = !mech_error && !obstruction_error
+			// Error handling start
+			// -- Hvis det ikke er noen ordre skal timeren stoppes. 
+			// -- -- isAvailable settes true.
+			// -- Hvis timeren er i gang og det skjer en endring i behaviour så skal timeren resettes.
+			// -- -- isAvailable settes true.
+			// -- Hvis timeren ikke er i gang og det er ordre i systemet skal timeren startes.
+			if elevator_timers.GetErrorCounter() == -1 {
+				if activeOrders.AnyOrder() {
+					elevator_timers.StartErrorTimer()
+					isAvailable = true
+				}
+			} else {
+				if !activeOrders.AnyOrder() {
+					elevator_timers.StopErrorTimer()
+					isAvailable = true
+				} else if changeInBehaviour(oldElevInfo, elevState) {
+					elevator_timers.StartErrorTimer()
+					isAvailable = true
+				}
+			}
+			// Error handling end
 			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
 				oldElevInfo = statesToHRAStates(elevState, isAvailable)
 				ch_elevstate <- oldElevInfo
@@ -336,12 +373,9 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 		case floor := <-ch_floor:
 			fmt.Println("HandleFloorSensor")
 			elevio.SetFloorIndicator(floor)
-			mech_error = false
-			elevator_timers.StartMechanicalTimer()
 			var remove_orders_list []elevio.ButtonEvent
 			elevState, activeOrders, remove_orders_list = handleFloorSensor(floor, elevState, activeOrders)
 			if elevState.GetElevatorBehaviour() == "DoorOpen" {
-				elevator_timers.StopMechanicalTimer()
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				elevio.SetDoorOpenLamp(true)
 				elevator_timers.StartDoorTimer()
@@ -353,7 +387,27 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				}
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
-			isAvailable = !mech_error && !obstruction_error
+			// Error handling start
+			// -- Hvis det ikke er noen ordre skal timeren stoppes. 
+			// -- -- isAvailable settes true.
+			// -- Hvis timeren er i gang og det skjer en endring i behaviour så skal timeren resettes.
+			// -- -- isAvailable settes true.
+			// -- Hvis timeren ikke er i gang og det er ordre i systemet skal timeren startes.
+			if elevator_timers.GetErrorCounter() == -1 {
+				if activeOrders.AnyOrder() {
+					elevator_timers.StartErrorTimer()
+					isAvailable = true
+				}
+			} else {
+				if !activeOrders.AnyOrder() {
+					elevator_timers.StopErrorTimer()
+					isAvailable = true
+				} else if changeInBehaviour(oldElevInfo, elevState) {
+					elevator_timers.StartErrorTimer()
+					isAvailable = true
+				}
+			}
+			// Error handling end
 			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
 				oldElevInfo = statesToHRAStates(elevState, isAvailable)
 				ch_elevstate <- oldElevInfo
@@ -363,13 +417,8 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			if elevio.GetObstruction() {
 				elevator_timers.StartDoorTimer()
 				fmt.Println("Obstruction detected")
-				if elevator_timers.GetObstructionCounter() == -1 {
-					elevator_timers.StartObstructionTimer()
-				}
 				break
 			}
-			elevator_timers.StopObstructionTimer()
-			obstruction_error = false
 			var remove_orders_list []elevio.ButtonEvent
 			elevState, activeOrders, remove_orders_list = handleDoorClosing(elevState, activeOrders)
 			if elevState.GetElevatorBehaviour() == "DoorOpen" {
@@ -385,11 +434,30 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				elevio.SetDoorOpenLamp(false)
 				if elevState.GetElevatorBehaviour() == "Moving" {
 					elevio.SetMotorDirection(elevState.GetLastDirection())
-					elevator_timers.StartMechanicalTimer()
 				}
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
-			isAvailable = !mech_error && !obstruction_error
+			// Error handling start
+			// -- Hvis det ikke er noen ordre skal timeren stoppes. 
+			// -- -- isAvailable settes true.
+			// -- Hvis timeren er i gang og det skjer en endring i behaviour så skal timeren resettes.
+			// -- -- isAvailable settes true.
+			// -- Hvis timeren ikke er i gang og det er ordre i systemet skal timeren startes.
+			if elevator_timers.GetErrorCounter() == -1 {
+				if activeOrders.AnyOrder() {
+					elevator_timers.StartErrorTimer()
+					isAvailable = true
+				}
+			} else {
+				if !activeOrders.AnyOrder() {
+					elevator_timers.StopErrorTimer()
+					isAvailable = true
+				} else if changeInBehaviour(oldElevInfo, elevState) {
+					elevator_timers.StartErrorTimer()
+					isAvailable = true
+				}
+			}
+			// Error handling end
 			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
 				oldElevInfo = statesToHRAStates(elevState, isAvailable)
 				ch_elevstate <- oldElevInfo
@@ -424,11 +492,29 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 					}
 				} else if elevState.GetElevatorBehaviour() == "Moving" && oldElevInfo.Direction == "stop"{ // Vil dette forårsake "hakkete" oppførsel? Må sjekkes. (Endret til å sjekke oldElevInfo)
 					elevio.SetMotorDirection(elevState.GetLastDirection())
-					obstruction_error = false
-					elevator_timers.StartMechanicalTimer()
 				}
 				// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
-				isAvailable = !mech_error && !obstruction_error
+				// Error handling start
+				// -- Hvis det ikke er noen ordre skal timeren stoppes. 
+				// -- -- isAvailable settes true.
+				// -- Hvis timeren er i gang og det skjer en endring i behaviour så skal timeren resettes.
+				// -- -- isAvailable settes true.
+				// -- Hvis timeren ikke er i gang og det er ordre i systemet skal timeren startes.
+				if elevator_timers.GetErrorCounter() == -1 {
+					if activeOrders.AnyOrder() {
+						elevator_timers.StartErrorTimer()
+						isAvailable = true
+					}
+				} else {
+					if !activeOrders.AnyOrder() {
+						elevator_timers.StopErrorTimer()
+						isAvailable = true
+					} else if changeInBehaviour(oldElevInfo, elevState) {
+						elevator_timers.StartErrorTimer()
+						isAvailable = true
+					}
+				}
+				// Error handling end
 				if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
 					oldElevInfo = statesToHRAStates(elevState, isAvailable)
 					ch_elevstate <- oldElevInfo
@@ -436,15 +522,8 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			} else {
 				ch_new_request <- elevio.ButtonEvent{Floor: btn_press.Floor, Button: btn_press.Button}
 			}
-		case <-ch_mech:
-			fmt.Println("HandleMechanicalError")
-			mech_error = true
-			isAvailable = false
-			oldElevInfo = statesToHRAStates(elevState, isAvailable)
-			ch_elevstate <- oldElevInfo
-		case <-ch_obstruction:
-			fmt.Println("HandleObstructionError")
-			obstruction_error = true
+		case <-ch_error:
+			fmt.Println("HandleError")
 			isAvailable = false
 			oldElevInfo = statesToHRAStates(elevState, isAvailable)
 			ch_elevstate <- oldElevInfo
@@ -469,11 +548,29 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 				}
 			} else if elevState.GetElevatorBehaviour() == "Moving" && oldElevInfo.Direction == "stop" {
 				elevio.SetMotorDirection(elevState.GetLastDirection())
-				obstruction_error = false
-				elevator_timers.StartMechanicalTimer()
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
-			isAvailable = !mech_error && !obstruction_error
+			// Error handling start
+			// -- Hvis det ikke er noen ordre skal timeren stoppes. 
+			// -- -- isAvailable settes true.
+			// -- Hvis timeren er i gang og det skjer en endring i behaviour så skal timeren resettes.
+			// -- -- isAvailable settes true.
+			// -- Hvis timeren ikke er i gang og det er ordre i systemet skal timeren startes.
+			if elevator_timers.GetErrorCounter() == -1 {
+				if activeOrders.AnyOrder() {
+					elevator_timers.StartErrorTimer()
+					isAvailable = true
+				}
+			} else {
+				if !activeOrders.AnyOrder() {
+					elevator_timers.StopErrorTimer()
+					isAvailable = true
+				} else if changeInBehaviour(oldElevInfo, elevState) {
+					elevator_timers.StartErrorTimer()
+					isAvailable = true
+				}
+			}
+			// Error handling end
 			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
 				oldElevInfo = statesToHRAStates(elevState, isAvailable)
 				ch_elevstate <- oldElevInfo

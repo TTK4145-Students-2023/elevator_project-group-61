@@ -12,9 +12,7 @@ func RunSingleElevator(ch_hra chan [][2]bool, ch_init_cab_requests chan []bool, 
     drv_buttons := make(chan elevio.ButtonEvent)
     drv_floors  := make(chan int)   
 	ch_door := make(chan int)
-    ch_obstruction := make(chan int)
-    ch_mech := make(chan int)
-    ch_spam := make(chan int)
+    ch_error := make(chan int)
     
     // Elevio
     go elevio.PollButtons(drv_buttons)
@@ -22,12 +20,9 @@ func RunSingleElevator(ch_hra chan [][2]bool, ch_init_cab_requests chan []bool, 
 
     // Elevator timers
     go elevator_timers.CheckDoorTimer(ch_door)
-    go elevator_timers.CheckMechanicalTimer(ch_mech)
-    go elevator_timers.CheckObstructionTimer(ch_obstruction)
-    go elevator_timers.CheckSpamTimer(ch_spam)
+    go elevator_timers.CheckErrorTimer(ch_error)
 
     // single elev mode ch lagt til
-	
-    Fsm_elevator(drv_buttons, drv_floors, ch_door, ch_mech, ch_obstruction, ch_hra, ch_init_cab_requests, ch_completed_hall_requests, ch_new_hall_requests, ch_elevstate, ch_singleElevMode)
+    Fsm_elevator(drv_buttons, drv_floors, ch_door, ch_error, ch_hra, ch_init_cab_requests, ch_completed_hall_requests, ch_new_hall_requests, ch_elevstate, ch_singleElevMode)
 }
 

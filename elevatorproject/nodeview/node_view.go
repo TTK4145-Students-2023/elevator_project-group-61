@@ -19,33 +19,36 @@ const (
 )
 
 type MyNodeView struct {
-	ID                string
-	IsAvailable       bool
-	ElevState         singleelevator.ElevState
-	HallRequests      [][2]RequestState // n number of floors
-	MyCabRequests     []RequestState
-	RemoteCabRequests map[string][]RequestState
+	ID           string
+	IsAvailable  bool
+	ElevState    singleelevator.ElevState
+	HallRequests [][2]RequestState // n number of floors
+	CabRequests  map[string][]RequestState
 }
 
 type RemoteRequestView struct {
 	RemoteHallRequestViews map[string][][2]RequestState
-	RemoteCabRequests      map[string][]RequestState
-	MyCabRequests          map[string][]RequestState
+	RemoteCabRequestViews  map[string]map[string][]RequestState
 }
 
 func CopyRemoveRequestView(remoteRequestView RemoteRequestView) RemoteRequestView {
 	var copy RemoteRequestView
 	copy.RemoteHallRequestViews = make(map[string][][2]RequestState, config.NumElevators)
-	copy.RemoteCabRequests = make(map[string][]RequestState, config.NumElevators)
-	copy.MyCabRequests = make(map[string][]RequestState, config.NumElevators)
-	for id, hallRequestView := range remoteRequestView.RemoteHallRequestViews {
-		copy.RemoteHallRequestViews[id] = hallRequestView
+	copy.RemoteCabRequestViews = make(map[string]map[string][]RequestState, config.NumElevators)
+	for id, hallRequests := range remoteRequestView.RemoteHallRequestViews {
+		copy.RemoteHallRequestViews[id] = make([][2]RequestState, config.NumFloors)
+		for floor := 0; floor < config.NumFloors; floor++ {
+			copy.RemoteHallRequestViews[id][floor] = hallRequests[floor]
+		}
 	}
-	for id, cabRequestView := range remoteRequestView.RemoteCabRequests {
-		copy.RemoteCabRequests[id] = cabRequestView
-	}
-	for id, cabRequestView := range remoteRequestView.MyCabRequests {
-		copy.MyCabRequests[id] = cabRequestView
+	for id, cabRequests := range remoteRequestView.RemoteCabRequestViews {
+		copy.RemoteCabRequestViews[id] = make(map[string][]RequestState, config.NumElevators)
+		for id2, cabRequests2 := range cabRequests {
+			copy.RemoteCabRequestViews[id][id2] = make([]RequestState, config.NumFloors)
+			for floor := 0; floor < config.NumFloors; floor++ {
+				copy.RemoteCabRequestViews[id][id2][floor] = cabRequests2[floor]
+			}
+		}
 	}
 	return copy
 }
@@ -53,7 +56,7 @@ func CopyRemoveRequestView(remoteRequestView RemoteRequestView) RemoteRequestVie
 func (myNodeView *MyNodeView) InitMyNodeView() {
 	myNodeView.ID = config.LocalID
 	myNodeView.HallRequests = make([][2]RequestState, config.NumFloors)
-	myNodeView.RemoteCabRequests = make(map[string][]RequestState)
+	myNodeView.CabRequests = make(map[string][]RequestState)
 	myNodeView.ElevState = singleelevator.ElevState{
 		Behaviour:   "moving",
 		Floor:       1,
@@ -189,23 +192,7 @@ func (myNodeView *MyNodeView) ChangeNoOrderAndConfirmedToUnknown() {
 
 func (remoteRequestView *RemoteRequestView) InitRemoteRequestView() {
 	remoteRequestView.RemoteHallRequestViews = make(map[string][][2]RequestState)
-	remoteRequestView.RemoteCabRequests = make(map[string][]RequestState)
-	remoteRequestView.MyCabRequests = make(map[string][]RequestState)
-}
-
-func printNodeAwareness(node MyNodeView) {
-	fmt.Printf("ID: %s\n", node.ID)
-	fmt.Printf("IsAvailable: %v\n", node.IsAvailable)
-	fmt.Printf("ElevState: Behaviour=%s Floor=%d Direction=%s CabRequests=%v IsAvailable=%v\n",
-		node.ElevState.Behaviour, node.ElevState.Floor, node.ElevState.Direction, node.ElevState.CabRequests, node.ElevState.IsAvailable)
-	fmt.Printf("HallRequests:\n")
-	for i, requests := range node.HallRequests {
-		fmt.Printf("  Floor %d: Up=%v Down=%v\n", i+1, requests[0], requests[1])
-	}
-	fmt.Printf("CabRequests:\n")
-	for id, requests := range node.RemoteCabRequests {
-		fmt.Printf("  Cab %s: %v\n", id, requests)
-	}
+	remoteRequestView.RemoteCabRequestViews = make(map[string]map[string][]RequestState)
 }
 
 func NodeView(ch_sendMyNodeView chan<- MyNodeView,
@@ -232,25 +219,32 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 					isSingleElevMode = false
 					myNodeView.ChangeNoOrderAndConfirmedToUnknown()
 				}
+				// Run update my cab request view on every node in myNodeView.CabRequests
+				for id, myCabRequestView := range myNodeView.CabRequests {
+					remoteCabRequestView := make(map[string][]RequestState)
+					for remoteID, remoteCabRequestView := range remoteRequestView.RemoteCabRequestViews {
+						remoteCabRequestView[remoteID] = remoteCabRequestView[id]
+					}
+					myNodeView.CabRequests[id] = updateMyCabRequestView(myCabRequestView, remoteCabRequestView)
+				}
 				myNodeView.HallRequests = updateMyHallRequestView(myNodeView.HallRequests, remoteRequestView.RemoteHallRequestViews)
-				myNodeView.MyCabRequests = updateMyCabRequestView(myNodeView.MyCabRequests, remoteRequestView.MyCabRequests)
-				myNodeView.RemoteCabRequests = remoteRequestView.RemoteCabRequests
+
 			} else {
 				isSingleElevMode = true
 			}
 
-			ch_lamps <- convertRequestsToBool(myNodeView.HallRequests, myNodeView.MyCabRequests, isSingleElevMode)
+			ch_lamps <- convertRequestsToBool(myNodeView.HallRequests, myNodeView.CabRequests[config.LocalID], isSingleElevMode)
 
 		case newRequest := <-ch_newRequest:
 			//fmt.Println("nodeview: newHallRequest")
 			// if newHallRequest is cabrequest, then set myNodeView.CabRequests
 			if newRequest.Button == elevio.BT_Cab {
-				myNodeView.MyCabRequests[newRequest.Floor] = RS_Pending
+				myNodeView.CabRequests[config.LocalID][newRequest.Floor] = RS_Pending
 			} else {
 				myNodeView.HallRequests[newRequest.Floor][int(newRequest.Button)] = RS_Pending
 			}
 			if isSingleElevMode {
-				ch_lamps <- convertRequestsToBool(myNodeView.HallRequests, myNodeView.MyCabRequests, isSingleElevMode)
+				ch_lamps <- convertRequestsToBool(myNodeView.HallRequests, myNodeView.CabRequests[config.LocalID], isSingleElevMode)
 			}
 
 		case completedHallRequest := <-ch_completedRequest:
@@ -262,13 +256,13 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			}
 
 			if completedHallRequest.Button == elevio.BT_Cab {
-				myNodeView.MyCabRequests[completedHallRequest.Floor] = nextRS
+				myNodeView.CabRequests[config.LocalID][completedHallRequest.Floor] = nextRS
 			} else {
 				myNodeView.HallRequests[completedHallRequest.Floor][int(completedHallRequest.Button)] = nextRS
 			}
 
 			if isSingleElevMode {
-				ch_lamps <- convertRequestsToBool(myNodeView.HallRequests, myNodeView.MyCabRequests, isSingleElevMode)
+				ch_lamps <- convertRequestsToBool(myNodeView.HallRequests, myNodeView.CabRequests[config.LocalID], isSingleElevMode)
 			}
 
 		case elevState := <-ch_elevState:

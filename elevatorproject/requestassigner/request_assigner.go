@@ -36,7 +36,7 @@ type HRAInput struct {
 // TODO: get localID from somewhere
 func transformToHRAInput(myWorldView worldview.MyWorldView) HRAInput {
 	transfromedHRAHallRequests := make([][2]bool, config.NumFloors)
-	transformedHRACabRequests := make(map[string][]bool)
+	transformedHRACabRequests := make(map[string][]bool, config.NumElevators)
 	systemHallRequests := myWorldView.HallRequestView
 	systemCabRequests := myWorldView.CabRequests
 	for i, floor := range systemHallRequests {
@@ -49,13 +49,15 @@ func transformToHRAInput(myWorldView worldview.MyWorldView) HRAInput {
 		}
 	}
 	for id, requestStates := range systemCabRequests {
-		for j, requestState := range requestStates {
+		transformedRequestStates := make([]bool, config.NumFloors)
+		for floor, requestState := range requestStates {
 			if requestState == nodeview.RS_Confirmed {
-				transformedHRACabRequests[id][j] = true
+				transformedRequestStates[floor] = true
 			} else {
-				transformedHRACabRequests[id][j] = false
+				transformedRequestStates[floor] = false
 			}
 		}
+		transformedHRACabRequests[id] = transformedRequestStates
 	}
 		
 	transfromedHRAStates := make(map[string]HRAElevState)

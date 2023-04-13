@@ -2,38 +2,50 @@ package main
 
 import (
 	"elevatorproject/config"
-	"elevatorproject/requestassigner"
+	"elevatorproject/network/bcast"
 	"elevatorproject/network/peers"
+	"elevatorproject/nodeview"
+	"elevatorproject/requestassigner"
 	"elevatorproject/singleelevator"
 	"elevatorproject/singleelevator/elevio"
-	"elevatorproject/nodeview"
 	"elevatorproject/worldview"
-	"elevatorproject/network/bcast"
+	//"flag"
 	"fmt"
 )
 
 func main() {
-	var localID string
-	fmt.Println("Enter elevator ID: ")
-	fmt.Scanln(&localID)
+	// var localID string
+	// var elevPort string
+
+	// flag.StringVar(&localID, "id", "", "id for this peer")
+	// flag.StringVar(&elevPort, "port", "", "port of this peer")
+	// flag.Parse()
+
+	// localIP := "localhost:" + elevPort
+
+	// localIP := "localhost:15657"
+	// localID := "elev1"
+
+	// localIP := "localhost:17000"
+	// localID := "elev2"
+
+	localIP := "localhost:18000"
+	localID := "elev3"
 
 	fmt.Printf("Starter programmet")
-	elevio.Init(config.LocalIP, config.NumFloors)
+	elevio.Init(localIP, config.NumFloors)
 
 	//singleelevator
 	ch_completedHallRequests := make(chan elevio.ButtonEvent)
 	ch_newHallRequests := make(chan elevio.ButtonEvent)
 	ch_elevState := make(chan singleelevator.ElevState)
-	//ch_cabLamps := make(chan []bool)
 
 	//worldview
-	ch_initCabRequests := make(chan []bool)
 	ch_hraInput := make(chan worldview.MyWorldView)
 	ch_hallLamps := make(chan [][2]bool)
 	ch_cabLamps := make(chan []bool)
 	ch_remoteRequestView := make(chan nodeview.RemoteRequestView)
 	ch_singleElevMode := make(chan bool)
-
 
 	// hra
 	ch_hallRequest := make(chan [][2]bool)
@@ -52,7 +64,7 @@ func main() {
 	go bcast.Transmitter(12100, ch_transmit)
 
 	// go routines
-	go worldview.WorldView(ch_receive, ch_peerUpdate, ch_peerTransmitEnable, ch_initCabRequests, ch_remoteRequestView, ch_hraInput, ch_singleElevMode, localID)
+	go worldview.WorldView(ch_receive, ch_peerUpdate, ch_remoteRequestView, ch_hraInput, ch_singleElevMode, localID)
 	go nodeview.NodeView(ch_transmit, ch_newHallRequests, ch_completedHallRequests, ch_elevState, ch_hallLamps, ch_cabLamps, ch_remoteRequestView, localID)
 
 	go requestassigner.AssignRequests(ch_hraInput, ch_hallRequest, ch_cabRequests, localID)

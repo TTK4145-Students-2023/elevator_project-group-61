@@ -11,11 +11,11 @@ import (
 type RequestState int
 
 const (
-	RS_Unknown   RequestState = -1
-	RS_NoOrder   RequestState = 0
-	RS_Pending   RequestState = 1
-	RS_Confirmed RequestState = 2
-	RS_Completed RequestState = 3
+	RS_Unknown   RequestState = 0
+	RS_NoOrder   RequestState = 1
+	RS_Pending   RequestState = 2
+	RS_Confirmed RequestState = 3
+	RS_Completed RequestState = 4
 )
 
 type MyNodeView struct {
@@ -57,7 +57,7 @@ func CopyRemoteRequestView(remoteRequestView RemoteRequestView) RemoteRequestVie
 func (myNodeView *MyNodeView) InitMyNodeView(localID string) {
 	myNodeView.ID = localID
 	myNodeView.IsAvailable = true
-	myNodeView.ElevState = singleelevator.ElevState{IsAvailable: true, Behaviour: singleelevator.BS_Idle, Floor: 0, Direction: elevio.MD_Stop}
+	myNodeView.ElevState.InitElevState()
 	myNodeView.HallRequests = make([][2]RequestState, config.NumFloors)
 	myNodeView.CabRequests = make(map[string][]RequestState, config.NumElevators)
 	myNodeView.CabRequests[localID] = make([]RequestState, config.NumFloors)

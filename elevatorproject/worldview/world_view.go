@@ -16,6 +16,21 @@ type MyWorldView struct {
 	CabRequests     map[string][config.NumFloors]nodeview.RequestState
 }
 
+func copyMyWorldView(myWorldView MyWorldView) MyWorldView {
+	var copyWorldView MyWorldView
+	copyWorldView.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
+	copyWorldView.CabRequests = make(map[string][config.NumFloors]nodeview.RequestState, config.NumElevators)
+
+	for key, value := range myWorldView.ElevStates {
+		copyWorldView.ElevStates[key] = value
+	}
+	for key, value := range myWorldView.CabRequests {
+		copyWorldView.CabRequests[key] = value
+	}
+	copyWorldView.HallRequestView = myWorldView.HallRequestView
+	return copyWorldView
+}
+
 // Function that returns false if nodeID (input) is not in peersALive
 func (peersAlive PeersAlive) IsPeerAlive(nodeID string) bool {
 	for _, peer := range peersAlive {
@@ -90,7 +105,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			fmt.Println("Received from ", nodeView.ID)
 
 			nodeID := nodeView.ID
-			
+
 			// Break out of case if IsPeerAlive returns false
 			if !peersAlive.IsPeerAlive(nodeID) && localID != nodeID {
 				break

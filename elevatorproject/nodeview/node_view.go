@@ -31,6 +31,37 @@ type RemoteRequestView struct {
 	RemoteCabRequestViews  map[string]map[string][config.NumFloors]RequestState
 }
 
+// make function that returns a deep copy of myNodeView
+
+func copyMyNodeView(myNodeView MyNodeView) MyNodeView {
+	copyNodeView := MyNodeView{}
+	copyNodeView.ID = myNodeView.ID
+	copyNodeView.IsAvailable = myNodeView.IsAvailable
+	copyNodeView.ElevState = myNodeView.ElevState
+	//copyNodeView.ElevState = singleelevator.CopyElevState(myNodeView.ElevState)
+	copyNodeView.HallRequests = myNodeView.HallRequests
+	copyNodeView.CabRequests = make(map[string][config.NumFloors]RequestState)
+	for key, value := range myNodeView.CabRequests {
+		copyNodeView.CabRequests[key] = value
+	}
+	return copyNodeView
+}
+
+func CopyRemoteRequestView(remoteRequestView RemoteRequestView) RemoteRequestView {
+	copyRemoteRequestView := RemoteRequestView{}
+	copyRemoteRequestView.RemoteHallRequestViews = make(map[string][config.NumFloors][2]RequestState)
+	for key, value := range remoteRequestView.RemoteHallRequestViews {
+		copyRemoteRequestView.RemoteHallRequestViews[key] = value
+	}
+	copyRemoteRequestView.RemoteCabRequestViews = make(map[string]map[string][config.NumFloors]RequestState)
+	for key, value := range remoteRequestView.RemoteCabRequestViews {
+		copyRemoteRequestView.RemoteCabRequestViews[key] = make(map[string][config.NumFloors]RequestState)
+		for key2, value2 := range value {
+			copyRemoteRequestView.RemoteCabRequestViews[key][key2] = value2
+		}
+	}
+	return copyRemoteRequestView
+}
 
 // New initMyNodeView function that initializes the MyNodeView struct and all requests to RS_Unknown
 func (myNodeView *MyNodeView) InitMyNodeView(localID string) {
@@ -270,7 +301,7 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 
 		case <-time.After(100 * time.Millisecond):
 			fmt.Println("nodeview: broadcaster myNodeView")
-			ch_sendMyNodeView <- myNodeView
+			ch_sendMyNodeView <- copyMyNodeView(myNodeView)
 
 			//default:
 			//time.Sleep(100*time.Millisecond)
@@ -279,19 +310,3 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 
 }
 
-func RequestStateToString(state RequestState) string {
-	switch state {
-	case RS_Unknown:
-		return "Unknown"
-	case RS_NoOrder:
-		return "No Order"
-	case RS_Pending:
-		return "Pending"
-	case RS_Confirmed:
-		return "Confirmed"
-	case RS_Completed:
-		return "Completed"
-	default:
-		return fmt.Sprintf("%d", state)
-	}
-}

@@ -1,4 +1,4 @@
-package nodeview
+package peerview
 
 import (
 	"elevatorproject/config"
@@ -18,9 +18,8 @@ const (
 	RS_Completed RequestState = 4
 )
 
-type MyNodeView struct {
+type MyPeerView struct {
 	ID           string
-	IsAvailable  bool
 	ElevState    singleelevator.ElevState
 	HallRequests [config.NumFloors][2]RequestState // n number of floors
 	CabRequests  map[string][config.NumFloors]RequestState
@@ -33,18 +32,17 @@ type RemoteRequestView struct {
 
 // make function that returns a deep copy of myNodeView
 
-func copyMyNodeView(myNodeView MyNodeView) MyNodeView {
-	copyNodeView := MyNodeView{}
-	copyNodeView.ID = myNodeView.ID
-	copyNodeView.IsAvailable = myNodeView.IsAvailable
-	copyNodeView.ElevState = myNodeView.ElevState
+func copyMyPeerView(myPeerView MyPeerView) MyPeerView {
+	copyPeerView := MyPeerView{}
+	copyPeerView.ID = myPeerView.ID
+	copyPeerView.ElevState = myPeerView.ElevState
 	//copyNodeView.ElevState = singleelevator.CopyElevState(myNodeView.ElevState)
-	copyNodeView.HallRequests = myNodeView.HallRequests
-	copyNodeView.CabRequests = make(map[string][config.NumFloors]RequestState)
-	for key, value := range myNodeView.CabRequests {
-		copyNodeView.CabRequests[key] = value
+	copyPeerView.HallRequests = myPeerView.HallRequests
+	copyPeerView.CabRequests = make(map[string][config.NumFloors]RequestState)
+	for key, value := range myPeerView.CabRequests {
+		copyPeerView.CabRequests[key] = value
 	}
-	return copyNodeView
+	return copyPeerView
 }
 
 func CopyRemoteRequestView(remoteRequestView RemoteRequestView) RemoteRequestView {
@@ -64,13 +62,12 @@ func CopyRemoteRequestView(remoteRequestView RemoteRequestView) RemoteRequestVie
 }
 
 // New initMyNodeView function that initializes the MyNodeView struct and all requests to RS_Unknown
-func (myNodeView *MyNodeView) InitMyNodeView(localID string) {
-	myNodeView.ID = localID
-	myNodeView.IsAvailable = true
-	myNodeView.ElevState.InitElevState()
-	myNodeView.HallRequests = [config.NumFloors][2]RequestState{}
-	myNodeView.CabRequests = make(map[string][config.NumFloors]RequestState)
-	myNodeView.CabRequests[localID] = [config.NumFloors]RequestState{}
+func (myPeerView *MyPeerView) InitMyPeerView(localID string) {
+	myPeerView.ID = localID
+	myPeerView.ElevState.InitElevState()
+	myPeerView.HallRequests = [config.NumFloors][2]RequestState{}
+	myPeerView.CabRequests = make(map[string][config.NumFloors]RequestState)
+	myPeerView.CabRequests[localID] = [config.NumFloors]RequestState{}
 }
 // function that takes a [][2]RequestState as input and return [][2]bool
 
@@ -159,14 +156,14 @@ func updateSingleRequest(myRequest RequestState, remoteRequest map[string]Reques
 }
 
 func updateMyHallRequestView(myHallRequestView [config.NumFloors][2]RequestState, remoteHallRequestView map[string][config.NumFloors][2]RequestState) [config.NumFloors][2]RequestState {
-	for row := 0; row < len(myHallRequestView); row++ {
-		for col := 0; col < len(myHallRequestView[row]); col++ {
-			hallRequest := myHallRequestView[row][col]
+	for floor := 0; floor < len(myHallRequestView); floor++ {
+		for btn := 0; btn < len(myHallRequestView[floor]); btn++ {
+			hallRequest := myHallRequestView[floor][btn]
 			remoteHallRequest := make(map[string]RequestState)
 			for id, hallRequestView := range remoteHallRequestView {
-				remoteHallRequest[id] = hallRequestView[row][col]
+				remoteHallRequest[id] = hallRequestView[floor][btn]
 			}
-			myHallRequestView[row][col] = updateSingleRequest(hallRequest, remoteHallRequest)
+			myHallRequestView[floor][btn] = updateSingleRequest(hallRequest, remoteHallRequest)
 		}
 	}
 	return myHallRequestView
@@ -185,11 +182,11 @@ func updateMyCabRequestView(myCabRequestView [config.NumFloors]RequestState, rem
 	return myCabRequestView
 }
 
-func (myNodeView *MyNodeView) ChangeNoOrderAndConfirmedToUnknown() {
-	for row := 0; row < len(myNodeView.HallRequests); row++ {
-		for col := 0; col < len(myNodeView.HallRequests[row]); col++ {
-			if myNodeView.HallRequests[row][col] == RS_NoOrder || myNodeView.HallRequests[row][col] == RS_Confirmed {
-				myNodeView.HallRequests[row][col] = RS_Unknown
+func (myNodeView *MyPeerView) ChangeNoOrderAndConfirmedToUnknown() {
+	for floor := 0; floor < len(myNodeView.HallRequests); floor++ {
+		for btn := 0; btn < len(myNodeView.HallRequests[floor]); btn++ {
+			if myNodeView.HallRequests[floor][btn] == RS_NoOrder || myNodeView.HallRequests[floor][btn] == RS_Confirmed {
+				myNodeView.HallRequests[floor][btn] = RS_Unknown
 			}
 		}
 	}
@@ -210,7 +207,7 @@ func (remoteRequestView *RemoteRequestView) InitRemoteRequestView() {
 	remoteRequestView.RemoteCabRequestViews = make(map[string]map[string][config.NumFloors]RequestState)
 }
 
-func NodeView(ch_sendMyNodeView chan<- MyNodeView,
+func NodeView(ch_sendMyPeerView chan<- MyPeerView,
 	ch_newRequest <-chan elevio.ButtonEvent,
 	ch_completedRequest <-chan elevio.ButtonEvent,
 	ch_elevState <-chan singleelevator.ElevState,
@@ -219,21 +216,21 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 	ch_remoteRequestView <-chan RemoteRequestView,
 	localID string) {
 
-	var myNodeView MyNodeView
+	var myPeerView MyPeerView
 	var isSingleElevMode = true
 
-	myNodeView.InitMyNodeView(localID)
+	myPeerView.InitMyPeerView(localID)
 
 	for {
 		select {
 		case remoteRequestView := <-ch_remoteRequestView:
 			numRemoteNodes := len(remoteRequestView.RemoteHallRequestViews)
-			fmt.Println("Is available", myNodeView.ElevState.IsAvailable)
+			fmt.Println("Is available", myPeerView.ElevState.IsAvailable)
 
 			
 			for remoteID := range remoteRequestView.RemoteCabRequestViews {
-				if _, ok := myNodeView.CabRequests[remoteID]; !ok {
-					myNodeView.CabRequests[remoteID] = [config.NumFloors]RequestState{}
+				if _, ok := myPeerView.CabRequests[remoteID]; !ok {
+					myPeerView.CabRequests[remoteID] = [config.NumFloors]RequestState{}
 				}
 			}
 			
@@ -241,31 +238,26 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			if numRemoteNodes > 0 {
 				if isSingleElevMode {
 					isSingleElevMode = false
-					myNodeView.ChangeNoOrderAndConfirmedToUnknown()
+					myPeerView.ChangeNoOrderAndConfirmedToUnknown()
 				}
 				// Run update my cab request view on every node in myNodeView.CabRequests
-
-				if numRemoteNodes > 1 {
-					fmt.Println("hei")
-				}
-
-				for id, myCabRequestView := range myNodeView.CabRequests {
+				for id, myCabRequestView := range myPeerView.CabRequests {
 					specificPeerRemoteCabRequestViews := make(map[string][config.NumFloors]RequestState)
 					for remoteID, remoteCabRequestViews := range remoteRequestView.RemoteCabRequestViews {
 						if remoteCabRequestView, ok := remoteCabRequestViews[id]; ok {
 							specificPeerRemoteCabRequestViews[remoteID] = remoteCabRequestView
 						}
 					}
-					myNodeView.CabRequests[id] = updateMyCabRequestView(myCabRequestView, specificPeerRemoteCabRequestViews)
+					myPeerView.CabRequests[id] = updateMyCabRequestView(myCabRequestView, specificPeerRemoteCabRequestViews)
 				}
-				myNodeView.HallRequests = updateMyHallRequestView(myNodeView.HallRequests, remoteRequestView.RemoteHallRequestViews)
+				myPeerView.HallRequests = updateMyHallRequestView(myPeerView.HallRequests, remoteRequestView.RemoteHallRequestViews)
 
 			} else {
 				isSingleElevMode = true
 			}
 
-			ch_hallLamps <- convertHallRequests(myNodeView.HallRequests, isSingleElevMode)
-			ch_cabLamps <- convertCabRequests(myNodeView.CabRequests[localID], isSingleElevMode)
+			ch_hallLamps <- convertHallRequests(myPeerView.HallRequests, isSingleElevMode)
+			ch_cabLamps <- convertCabRequests(myPeerView.CabRequests[localID], isSingleElevMode)
 
 
 		case newRequest := <-ch_newRequest:
@@ -273,15 +265,15 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			// if newHallRequest is cabrequest, then set myNodeView.CabRequests
 			if newRequest.Button == elevio.BT_Cab {
 				// set all cab calls for localID to pending
-				cabs := myNodeView.CabRequests[localID]
+				cabs := myPeerView.CabRequests[localID]
 				cabs[newRequest.Floor] = RS_Pending
-				myNodeView.CabRequests[localID] = cabs
+				myPeerView.CabRequests[localID] = cabs
 			} else {
-				myNodeView.HallRequests[newRequest.Floor][int(newRequest.Button)] = RS_Pending
+				myPeerView.HallRequests[newRequest.Floor][int(newRequest.Button)] = RS_Pending
 			}
 			if isSingleElevMode {
-				ch_hallLamps <- convertHallRequests(myNodeView.HallRequests, isSingleElevMode)
-				ch_cabLamps <- convertCabRequests(myNodeView.CabRequests[localID], isSingleElevMode)
+				ch_hallLamps <- convertHallRequests(myPeerView.HallRequests, isSingleElevMode)
+				ch_cabLamps <- convertCabRequests(myPeerView.CabRequests[localID], isSingleElevMode)
 			}
 
 		case completedRequest := <-ch_completedRequest:
@@ -293,28 +285,24 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			}
 
 			if completedRequest.Button == elevio.BT_Cab {
-				cabs := myNodeView.CabRequests[localID]
+				cabs := myPeerView.CabRequests[localID]
 				cabs[completedRequest.Floor] = nextRS
-				myNodeView.CabRequests[localID] = cabs
+				myPeerView.CabRequests[localID] = cabs
 			} else {
-				myNodeView.HallRequests[completedRequest.Floor][int(completedRequest.Button)] = nextRS
+				myPeerView.HallRequests[completedRequest.Floor][int(completedRequest.Button)] = nextRS
 			}
 
 			if isSingleElevMode {
-				ch_hallLamps <- convertHallRequests(myNodeView.HallRequests, isSingleElevMode)
-				ch_cabLamps <- convertCabRequests(myNodeView.CabRequests[localID], isSingleElevMode)
+				ch_hallLamps <- convertHallRequests(myPeerView.HallRequests, isSingleElevMode)
+				ch_cabLamps <- convertCabRequests(myPeerView.CabRequests[localID], isSingleElevMode)
 			}
 
 		case elevState := <-ch_elevState:
-			fmt.Println("nodeview: elevState")
-			myNodeView.ElevState = elevState
+			myPeerView.ElevState = elevState
 
 		case <-time.After(25 * time.Millisecond):
 			fmt.Println("nodeview: broadcaster myNodeView")
-			ch_sendMyNodeView <- copyMyNodeView(myNodeView)
-
-			//default:
-			//time.Sleep(100*time.Millisecond)
+			ch_sendMyPeerView <- copyMyPeerView(myPeerView)
 		}
 	}
 

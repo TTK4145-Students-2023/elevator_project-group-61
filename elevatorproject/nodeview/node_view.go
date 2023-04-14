@@ -267,7 +267,10 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			//fmt.Println("nodeview: newHallRequest")
 			// if newHallRequest is cabrequest, then set myNodeView.CabRequests
 			if newRequest.Button == elevio.BT_Cab {
-				myNodeView.CabRequests[localID][newRequest.Floor] = RS_Pending
+				// set all cab calls for localID to pending
+				cabs := myNodeView.CabRequests[localID]
+				cabs[newRequest.Floor] = RS_Pending
+				myNodeView.CabRequests[localID] = cabs
 			} else {
 				myNodeView.HallRequests[newRequest.Floor][int(newRequest.Button)] = RS_Pending
 			}
@@ -285,7 +288,9 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			}
 
 			if completedHallRequest.Button == elevio.BT_Cab {
-				myNodeView.CabRequests[localID][completedHallRequest.Floor] = nextRS
+				cabs := myNodeView.CabRequests[localID]
+				cabs[completedHallRequest.Floor] = nextRS
+				myNodeView.CabRequests[localID] = cabs
 			} else {
 				myNodeView.HallRequests[completedHallRequest.Floor][int(completedHallRequest.Button)] = nextRS
 			}

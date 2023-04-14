@@ -69,6 +69,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 
 	myWorldView.initMyWorldView(localID)
 	remoteRequestView.InitRemoteRequestView()
+	fmt.Println(" ")
 
 	for {
 		select {
@@ -110,7 +111,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			if !peersAlive.IsPeerAlive(nodeID) && localID != nodeID {
 				break
 			}
-		
+
 			myWorldView.ElevStates[nodeID] = nodeView.ElevState
 			myWorldView.CabRequests[nodeID] = nodeView.CabRequests[nodeID]
 

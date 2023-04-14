@@ -10,31 +10,31 @@ package requestassigner
 
 import (
 	"elevatorproject/config"
-	"elevatorproject/worldview"
 	"elevatorproject/nodeview"
+	"elevatorproject/worldview"
 	"encoding/json"
 	"fmt"
-	"time"
+	"io/ioutil"
 	"os/exec"
 	"runtime"
-	"io/ioutil"
+	"time"
 )
 
 type HRAElevState struct {
-	Behaviour   string `json:"behaviour"`
-	Floor       int    `json:"floor"`
-	Direction   string `json:"direction"`
+	Behaviour   string                 `json:"behaviour"`
+	Floor       int                    `json:"floor"`
+	Direction   string                 `json:"direction"`
 	CabRequests [config.NumFloors]bool `json:"cabRequests"` //Dont need this for ElevState
 }
 
 // The HallRequests are all the requests in the system, but from this nodes point of view.
 type HRAInput struct {
-	HallRequests [config.NumFloors][2]bool               `json:"hallRequests"`
-	States       map[string]HRAElevState `json:"states"`
+	HallRequests [config.NumFloors][2]bool `json:"hallRequests"`
+	States       map[string]HRAElevState   `json:"states"`
 }
 
 // TODO: get localID from somewhere
-func transformToHRAInput(myWorldView worldview.MyWorldView) HRAInput {
+func transformToHRAInput(myWorldView worldview.MyWorldView, localID string) HRAInput {
 	//make array of bools for each floor, and then make a map of those arrays
 	transfromedHRAHallRequests := [config.NumFloors][2]bool{}
 	transformedHRACabRequests := make(map[string][config.NumFloors]bool, config.NumElevators)
@@ -60,11 +60,11 @@ func transformToHRAInput(myWorldView worldview.MyWorldView) HRAInput {
 		}
 		transformedHRACabRequests[id] = transformedRequestStates
 	}
-		
-	transfromedHRAStates := make(map[string]HRAElevState, config.NumElevators)
+
+	transfromedHRAStates := make(map[string]HRAElevState)
 	systemElevState := myWorldView.ElevStates
 	for id, elevState := range systemElevState {
-		if elevState.IsAvailable {
+		if elevState.IsAvailable && id != localID {
 			newHRAElevState := HRAElevState{
 				Behaviour:   elevState.Behaviour,
 				Floor:       elevState.Floor,
@@ -110,10 +110,10 @@ func AssignRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hallRequest cha
 		select {
 		case myWorldView := <-ch_hraInput:
 			//fmt.Println("HRA has gotten input")
-			if !myWorldView.ElevStates[localID].IsAvailable {
-				continue
-			}
-			hraInput := transformToHRAInput(myWorldView)
+			//if !myWorldView.ElevStates[localID].IsAvailable && {
+			//continue
+			//}
+			hraInput := transformToHRAInput(myWorldView, localID)
 
 			hraExecutable := ""
 			switch runtime.GOOS {
@@ -145,31 +145,31 @@ func AssignRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hallRequest cha
 				return
 			}
 
-			hraOutput := new(map[string][config.NumFloors][2]bool, config.NumElevators)
+			hraOutput := new(map[string][config.NumFloors][2]bool)
 			err = json.Unmarshal(ret, &hraOutput)
 			if err != nil {
 				fmt.Println("json.Unmarshal error: ", err)
 				return
 			}
-			hallRequests := (*hraOutput)[localID] 
+			hallRequests := (*hraOutput)[localID]
 			cabRequests := hraInput.States[localID].CabRequests
 
 			// printer output
-			
+
 			// fmt.Printf("output: \n")
-    		// for k, v := range *output {
-        	// 	fmt.Printf("%6v :  %+v\n", k, v)
-    		// }
+			// for k, v := range *output {
+			// 	fmt.Printf("%6v :  %+v\n", k, v)
+			// }
 			if diffHallRequests(oldHallRequests, hallRequests) {
 				ch_hallRequest <- hallRequests
-				copy(oldHallRequests, hallRequests)
+				oldHallRequests = hallRequests
 			}
 			if diffCabRequests(oldCabRequests, cabRequests) {
 				ch_cabRequests <- cabRequests
-				copy(oldCabRequests, cabRequests)
+				oldCabRequests = cabRequests
 			}
 		default:
-			time.Sleep(50*time.Millisecond)
+			time.Sleep(50 * time.Millisecond)
 		}
 	}
 }

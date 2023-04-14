@@ -23,14 +23,14 @@ func main() {
 
 	// localIP := "localhost:" + elevPort
 
-	// localIP := "localhost:15657"
-	// localID := "elev1"
+	localIP := "localhost:15657"
+	localID := "elev1"
 
 	// localIP := "localhost:17000"
 	// localID := "elev2"
 
-	localIP := "localhost:18000"
-	localID := "elev3"
+	//localIP := "localhost:18000"
+	//localID := "elev3"
 
 	fmt.Printf("Starter programmet")
 	elevio.Init(localIP, config.NumFloors)

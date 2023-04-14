@@ -36,8 +36,8 @@ func main() {
 	elevio.Init(localIP, config.NumFloors)
 
 	//singleelevator
-	ch_completedHallRequests := make(chan elevio.ButtonEvent)
-	ch_newHallRequests := make(chan elevio.ButtonEvent)
+	ch_completedRequest := make(chan elevio.ButtonEvent)
+	ch_newRequest := make(chan elevio.ButtonEvent)
 	ch_elevState := make(chan singleelevator.ElevState)
 
 	//worldview
@@ -48,7 +48,7 @@ func main() {
 	ch_singleElevMode := make(chan bool)
 
 	// hra
-	ch_hallRequest := make(chan [config.NumFloors][2]bool)
+	ch_hallRequests := make(chan [config.NumFloors][2]bool)
 	ch_cabRequests := make(chan [config.NumFloors]bool)
 
 	// network in
@@ -65,13 +65,13 @@ func main() {
 
 	// go routines
 	go worldview.WorldView(ch_receive, ch_peerUpdate, ch_remoteRequestView, ch_hraInput, ch_singleElevMode, localID)
-	go nodeview.NodeView(ch_transmit, ch_newHallRequests, ch_completedHallRequests, ch_elevState, ch_hallLamps, ch_cabLamps, ch_remoteRequestView, localID)
+	go nodeview.NodeView(ch_transmit, ch_newRequest, ch_completedRequest, ch_elevState, ch_hallLamps, ch_cabLamps, ch_remoteRequestView, localID)
 
-	go requestassigner.AssignRequests(ch_hraInput, ch_hallRequest, ch_cabRequests, localID)
+	go requestassigner.AssignRequests(ch_hraInput, ch_hallRequests, ch_cabRequests, localID)
 	go singleelevator.LampStateMachine(ch_hallLamps, ch_cabLamps)
 
 	fmt.Println("Starter opp singleelevator")
-	go singleelevator.RunSingleElevator(ch_hallRequest, ch_cabRequests, ch_completedHallRequests, ch_newHallRequests, ch_elevState, ch_singleElevMode)
+	go singleelevator.RunSingleElevator(ch_hallRequests, ch_cabRequests, ch_completedRequest, ch_newRequest, ch_elevState, ch_singleElevMode)
 
 	for {
 		select {

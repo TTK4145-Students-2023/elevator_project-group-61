@@ -12,32 +12,8 @@ type PeersAlive []string
 
 type MyWorldView struct {
 	ElevStates      map[string]singleelevator.ElevState
-	HallRequestView [][2]nodeview.RequestState
-	CabRequests     map[string][]nodeview.RequestState
-	NodesAvailable  map[string]bool
-}
-
-// Make deap copy of MyWorldView
-
-func copyMyWorldView(worldView MyWorldView) MyWorldView {
-	var copy MyWorldView
-	copy.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
-	copy.HallRequestView = make([][2]nodeview.RequestState, config.NumFloors)
-	copy.CabRequests = make(map[string][]nodeview.RequestState, config.NumElevators)
-	copy.NodesAvailable = make(map[string]bool, config.NumElevators)
-	for id, elevState := range worldView.ElevStates {
-		copy.ElevStates[id] = elevState
-	}
-	for id, cabRequests := range worldView.CabRequests {
-		copy.CabRequests[id] = cabRequests
-	}
-	for id, isAvailable := range worldView.NodesAvailable {
-		copy.NodesAvailable[id] = isAvailable
-	}
-	for floor := 0; floor < config.NumFloors; floor++ {
-		copy.HallRequestView[floor] = worldView.HallRequestView[floor]
-	}
-	return copy
+	HallRequestView [config.NumFloors][2]nodeview.RequestState
+	CabRequests     map[string][config.NumFloors]nodeview.RequestState
 }
 
 // Function that returns false if nodeID (input) is not in peersALive
@@ -52,19 +28,16 @@ func (peersAlive PeersAlive) IsPeerAlive(nodeID string) bool {
 
 func (myWorldView *MyWorldView) initMyWorldView(localID string) {
 	myWorldView.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
-	myWorldView.HallRequestView = make([][2]nodeview.RequestState, config.NumFloors)
-	myWorldView.NodesAvailable = make(map[string]bool, config.NumElevators)
-	myWorldView.NodesAvailable[localID] = true
-	//myWorldView.NodesAvailable[config.SecondElev] = true
+	myWorldView.HallRequestView = [config.NumFloors][2]nodeview.RequestState{}
 
 	var elevState singleelevator.ElevState
 	elevState.InitElevState()
 	myWorldView.ElevStates[localID] = elevState
 
 	// init cab requests
-	myWorldView.CabRequests = make(map[string][]nodeview.RequestState, config.NumElevators)
-	myWorldView.CabRequests[localID] = make([]nodeview.RequestState, config.NumFloors)
-
+	myWorldView.CabRequests = make(map[string][config.NumFloors]nodeview.RequestState, config.NumElevators)
+	// TODO: Sjekke om denne er nødvendig
+	myWorldView.CabRequests[localID] = [config.NumFloors]nodeview.RequestState{}
 }
 
 func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
@@ -96,7 +69,6 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			for _, lostPeer := range peersLost {
 				// If this node can be found in lostPeer, we should delete it from the systemAwareness
 				if lostPeer != localID {
-					delete(myWorldView.NodesAvailable, lostPeer)
 					delete(myWorldView.ElevStates, lostPeer)
 
 					delete(remoteRequestView.RemoteHallRequestViews, lostPeer)
@@ -118,12 +90,12 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 			fmt.Println("Received from ", nodeView.ID)
 
 			nodeID := nodeView.ID
+			
 			// Break out of case if IsPeerAlive returns false
 			if !peersAlive.IsPeerAlive(nodeID) && localID != nodeID {
 				break
 			}
-			myWorldView.NodesAvailable[nodeID] = nodeView.ElevState.IsAvailable
-
+		
 			myWorldView.ElevStates[nodeID] = nodeView.ElevState
 			myWorldView.CabRequests[nodeID] = nodeView.CabRequests[nodeID]
 

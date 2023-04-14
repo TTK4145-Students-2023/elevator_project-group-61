@@ -343,7 +343,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
 			// Error handling start
-			// -- Hvis det ikke er noen ordre skal timeren stoppes. 
+			// -- Hvis det ikke er noen ordre skal timeren stoppes.
 			// -- -- isAvailable settes true.
 			// -- Hvis timeren er i gang og det skjer en endring i behaviour så skal timeren resettes.
 			// -- -- isAvailable settes true.
@@ -385,7 +385,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
 			// Error handling start
-			// -- Hvis det ikke er noen ordre skal timeren stoppes. 
+			// -- Hvis det ikke er noen ordre skal timeren stoppes.
 			// -- -- isAvailable settes true.
 			// -- Hvis timeren er i gang og det skjer en endring i behaviour så skal timeren resettes.
 			// -- -- isAvailable settes true.
@@ -435,7 +435,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
 			// Error handling start
-			// -- Hvis det ikke er noen ordre skal timeren stoppes. 
+			// -- Hvis det ikke er noen ordre skal timeren stoppes.
 			// -- -- isAvailable settes true.
 			// -- Hvis timeren er i gang og det skjer en endring i behaviour så skal timeren resettes.
 			// -- -- isAvailable settes true.
@@ -484,12 +484,12 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 						activeOrders.SetOrder(v.Floor, v.Button, false)
 						ch_completed_request <- v
 					}
-				} else if elevState.GetElevatorBehaviour() == "Moving" && oldElevInfo.Direction == "stop"{ // Vil dette forårsake "hakkete" oppførsel? Må sjekkes. (Endret til å sjekke oldElevInfo)
+				} else if elevState.GetElevatorBehaviour() == "Moving" && oldElevInfo.Direction == "stop" { // Vil dette forårsake "hakkete" oppførsel? Må sjekkes. (Endret til å sjekke oldElevInfo)
 					elevio.SetMotorDirection(elevState.GetLastDirection())
 				}
 				// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
 				// Error handling start
-				// -- Hvis det ikke er noen ordre skal timeren stoppes. 
+				// -- Hvis det ikke er noen ordre skal timeren stoppes.
 				// -- -- isAvailable settes true.
 				// -- Hvis timeren er i gang og det skjer en endring i behaviour så skal timeren resettes.
 				// -- -- isAvailable settes true.
@@ -542,7 +542,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
 			// Error handling start
-			// -- Hvis det ikke er noen ordre skal timeren stoppes. 
+			// -- Hvis det ikke er noen ordre skal timeren stoppes.
 			// -- -- isAvailable settes true.
 			// -- Hvis timeren er i gang og det skjer en endring i behaviour så skal timeren resettes.
 			// -- -- isAvailable settes true.

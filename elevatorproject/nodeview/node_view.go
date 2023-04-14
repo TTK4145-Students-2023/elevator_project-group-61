@@ -230,12 +230,14 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			numRemoteNodes := len(remoteRequestView.RemoteHallRequestViews)
 			fmt.Println("Is available", myNodeView.ElevState.IsAvailable)
 
+			
 			for remoteID, _ := range remoteRequestView.RemoteCabRequestViews {
 				if _, ok := myNodeView.CabRequests[remoteID]; !ok {
 					myNodeView.CabRequests[remoteID] = [config.NumFloors]RequestState{}
 				}
 			}
-			fmt.Println("hi")
+			
+			//fmt.Println("hi")
 			if numRemoteNodes > 0 {
 				if isSingleElevMode {
 					isSingleElevMode = false

@@ -64,7 +64,7 @@ func transformToHRAInput(myWorldView worldview.MyWorldView, localID string) HRAI
 	transfromedHRAStates := make(map[string]HRAElevState)
 	systemElevState := myWorldView.ElevStates
 	for id, elevState := range systemElevState {
-		if elevState.IsAvailable && id != localID {
+		if elevState.IsAvailable || id == localID {
 			newHRAElevState := HRAElevState{
 				Behaviour:   elevState.Behaviour,
 				Floor:       elevState.Floor,

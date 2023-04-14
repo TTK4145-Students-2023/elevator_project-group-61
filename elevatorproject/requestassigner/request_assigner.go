@@ -24,19 +24,20 @@ type HRAElevState struct {
 	Behaviour   string `json:"behaviour"`
 	Floor       int    `json:"floor"`
 	Direction   string `json:"direction"`
-	CabRequests []bool `json:"cabRequests"` //Dont need this for ElevState
+	CabRequests [config.NumFloors]bool `json:"cabRequests"` //Dont need this for ElevState
 }
 
 // The HallRequests are all the requests in the system, but from this nodes point of view.
 type HRAInput struct {
-	HallRequests [][2]bool               `json:"hallRequests"`
+	HallRequests [config.NumFloors][2]bool               `json:"hallRequests"`
 	States       map[string]HRAElevState `json:"states"`
 }
 
 // TODO: get localID from somewhere
 func transformToHRAInput(myWorldView worldview.MyWorldView) HRAInput {
-	transfromedHRAHallRequests := make([][2]bool, config.NumFloors)
-	transformedHRACabRequests := make(map[string][]bool, config.NumElevators)
+	//make array of bools for each floor, and then make a map of those arrays
+	transfromedHRAHallRequests := [config.NumFloors][2]bool{}
+	transformedHRACabRequests := make(map[string][config.NumFloors]bool, config.NumElevators)
 	systemHallRequests := myWorldView.HallRequestView
 	systemCabRequests := myWorldView.CabRequests
 	for i, floor := range systemHallRequests {
@@ -49,7 +50,7 @@ func transformToHRAInput(myWorldView worldview.MyWorldView) HRAInput {
 		}
 	}
 	for id, requestStates := range systemCabRequests {
-		transformedRequestStates := make([]bool, config.NumFloors)
+		transformedRequestStates := [config.NumFloors]bool{}
 		for floor, requestState := range requestStates {
 			if requestState == nodeview.RS_Confirmed {
 				transformedRequestStates[floor] = true
@@ -60,7 +61,7 @@ func transformToHRAInput(myWorldView worldview.MyWorldView) HRAInput {
 		transformedHRACabRequests[id] = transformedRequestStates
 	}
 		
-	transfromedHRAStates := make(map[string]HRAElevState)
+	transfromedHRAStates := make(map[string]HRAElevState, config.NumElevators)
 	systemElevState := myWorldView.ElevStates
 	for id, elevState := range systemElevState {
 		if elevState.IsAvailable {
@@ -81,7 +82,7 @@ func transformToHRAInput(myWorldView worldview.MyWorldView) HRAInput {
 	return transfromedHRAInput
 }
 
-func diffHallRequests(oldHallRequests [][2]bool, newHallRequests [][2]bool) bool {
+func diffHallRequests(oldHallRequests [config.NumFloors][2]bool, newHallRequests [config.NumFloors][2]bool) bool {
 	for i := 0; i < config.NumFloors; i++ {
 		for j := 0; j < 2; j++ {
 			if oldHallRequests[i][j] != newHallRequests[i][j] {
@@ -92,7 +93,7 @@ func diffHallRequests(oldHallRequests [][2]bool, newHallRequests [][2]bool) bool
 	return false
 }
 
-func diffCabRequests(oldCabRequests []bool, newCabRequests []bool) bool {
+func diffCabRequests(oldCabRequests [config.NumFloors]bool, newCabRequests [config.NumFloors]bool) bool {
 	for i := 0; i < config.NumFloors; i++ {
 		if oldCabRequests[i] != newCabRequests[i] {
 			return true
@@ -101,17 +102,9 @@ func diffCabRequests(oldCabRequests []bool, newCabRequests []bool) bool {
 	return false
 }
 
-func AssignRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hallRequest chan<- [][2]bool, ch_cabRequests chan<- []bool, localID string) {
-	oldHallRequests := make([][2]bool, config.NumFloors)
-	for i := 0; i < config.NumFloors; i++ {
-		for j := 0; j < 2; j++ {
-			oldHallRequests[i][j] = true
-		}
-	}
-	oldCabRequests := make([]bool, config.NumFloors)
-	for i := 0; i < config.NumFloors; i++ {
-		oldCabRequests[i] = true
-	}
+func AssignRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hallRequest chan<- [config.NumFloors][2]bool, ch_cabRequests chan<- [config.NumFloors]bool, localID string) {
+	oldHallRequests := [config.NumFloors][2]bool{}
+	oldCabRequests := [config.NumFloors]bool{}
 
 	for {
 		select {
@@ -152,13 +145,13 @@ func AssignRequests(ch_hraInput <-chan worldview.MyWorldView, ch_hallRequest cha
 				return
 			}
 
-			hraOutput := new(map[string][][2]bool)
+			hraOutput := new(map[string][config.NumFloors][2]bool, config.NumElevators)
 			err = json.Unmarshal(ret, &hraOutput)
 			if err != nil {
 				fmt.Println("json.Unmarshal error: ", err)
 				return
 			}
-			hallRequests := (*hraOutput)[localID] //TODO: Get the local ID from somewhere
+			hallRequests := (*hraOutput)[localID] 
 			cabRequests := hraInput.States[localID].CabRequests
 
 			// printer output

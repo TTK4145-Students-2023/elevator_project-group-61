@@ -207,7 +207,7 @@ func (remoteRequestView *RemoteRequestView) InitRemoteRequestView() {
 	remoteRequestView.RemoteCabRequestViews = make(map[string]map[string][config.NumFloors]RequestState)
 }
 
-func NodeView(ch_sendMyPeerView chan<- MyPeerView,
+func PeerView(ch_sendMyPeerView chan<- MyPeerView,
 	ch_newRequest <-chan elevio.ButtonEvent,
 	ch_completedRequest <-chan elevio.ButtonEvent,
 	ch_elevState <-chan singleelevator.ElevState,

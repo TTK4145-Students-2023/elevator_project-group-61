@@ -4,7 +4,7 @@ import (
 	"elevatorproject/config"
 	"elevatorproject/network/bcast"
 	"elevatorproject/network/peers"
-	"elevatorproject/nodeview"
+	"elevatorproject/peerview"
 	"elevatorproject/requestassigner"
 	"elevatorproject/singleelevator"
 	"elevatorproject/singleelevator/elevio"
@@ -45,7 +45,7 @@ func main() {
 	ch_hraInput := make(chan worldview.MyWorldView)
 	ch_hallLamps := make(chan [config.NumFloors][2]bool)
 	ch_cabLamps := make(chan [config.NumFloors]bool)
-	ch_remoteRequestView := make(chan nodeview.RemoteRequestView)
+	ch_remoteRequestView := make(chan peerview.RemoteRequestView)
 	ch_singleElevMode := make(chan bool)
 
 	// hra
@@ -53,20 +53,20 @@ func main() {
 	ch_cabRequests := make(chan [config.NumFloors]bool)
 
 	// network in
-	ch_receive := make(chan nodeview.MyNodeView)
+	ch_receive := make(chan peerview.MyPeerView)
 	ch_peerUpdate := make(chan peers.PeerUpdate)
 	go peers.Receiver(13200, ch_peerUpdate)
 	go bcast.Receiver(12100, ch_receive)
 
 	// network out
-	ch_transmit := make(chan nodeview.MyNodeView)
+	ch_transmit := make(chan peerview.MyPeerView)
 	ch_peerTransmitEnable := make(chan bool)
 	go peers.Transmitter(13200, localID, ch_peerTransmitEnable)
 	go bcast.Transmitter(12100, ch_transmit)
 
 	// go routines
 	go worldview.WorldView(ch_receive, ch_peerUpdate, ch_remoteRequestView, ch_hraInput, ch_singleElevMode, localID)
-	go nodeview.NodeView(ch_transmit, ch_newRequest, ch_completedRequest, ch_elevState, ch_hallLamps, ch_cabLamps, ch_remoteRequestView, localID)
+	go peerview.PeerView(ch_transmit, ch_newRequest, ch_completedRequest, ch_elevState, ch_hallLamps, ch_cabLamps, ch_remoteRequestView, localID)
 
 	go requestassigner.AssignRequests(ch_hraInput, ch_hallRequests, ch_cabRequests, localID)
 	go singleelevator.LampStateMachine(ch_hallLamps, ch_cabLamps)

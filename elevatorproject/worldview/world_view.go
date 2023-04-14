@@ -3,7 +3,7 @@ package worldview
 import (
 	"elevatorproject/config"
 	"elevatorproject/network/peers"
-	"elevatorproject/nodeview"
+	"elevatorproject/peerview"
 	"elevatorproject/singleelevator"
 	"fmt"
 )
@@ -12,14 +12,14 @@ type PeersAlive []string
 
 type MyWorldView struct {
 	ElevStates      map[string]singleelevator.ElevState
-	HallRequestView [config.NumFloors][2]nodeview.RequestState
-	CabRequests     map[string][config.NumFloors]nodeview.RequestState
+	HallRequestView [config.NumFloors][2]peerview.RequestState
+	CabRequests     map[string][config.NumFloors]peerview.RequestState
 }
 
 func copyMyWorldView(myWorldView MyWorldView) MyWorldView {
 	var copyWorldView MyWorldView
 	copyWorldView.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
-	copyWorldView.CabRequests = make(map[string][config.NumFloors]nodeview.RequestState, config.NumElevators)
+	copyWorldView.CabRequests = make(map[string][config.NumFloors]peerview.RequestState, config.NumElevators)
 
 	for key, value := range myWorldView.ElevStates {
 		copyWorldView.ElevStates[key] = value
@@ -43,28 +43,28 @@ func (peersAlive PeersAlive) IsPeerAlive(nodeID string) bool {
 
 func (myWorldView *MyWorldView) initMyWorldView(localID string) {
 	myWorldView.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
-	myWorldView.HallRequestView = [config.NumFloors][2]nodeview.RequestState{}
+	myWorldView.HallRequestView = [config.NumFloors][2]peerview.RequestState{}
 
 	var elevState singleelevator.ElevState
 	elevState.InitElevState()
 	myWorldView.ElevStates[localID] = elevState
 
 	// init cab requests
-	myWorldView.CabRequests = make(map[string][config.NumFloors]nodeview.RequestState, config.NumElevators)
+	myWorldView.CabRequests = make(map[string][config.NumFloors]peerview.RequestState, config.NumElevators)
 	// TODO: Sjekke om denne er nødvendig
-	myWorldView.CabRequests[localID] = [config.NumFloors]nodeview.RequestState{}
+	myWorldView.CabRequests[localID] = [config.NumFloors]peerview.RequestState{}
 }
 
-func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
+func WorldView(ch_receiveNodeView <-chan peerview.MyPeerView,
 	ch_receivePeerUpdate <-chan peers.PeerUpdate,
-	ch_remoteRequestView chan<- nodeview.RemoteRequestView,
+	ch_remoteRequestView chan<- peerview.RemoteRequestView,
 	ch_hraInput chan<- MyWorldView,
 	ch_singleElevMode chan<- bool,
 	localID string) {
 
 	var myWorldView MyWorldView
 	var peersAlive PeersAlive
-	var remoteRequestView nodeview.RemoteRequestView
+	var remoteRequestView peerview.RemoteRequestView
 	var isSingleElevMode bool
 
 	myWorldView.initMyWorldView(localID)
@@ -122,7 +122,7 @@ func WorldView(ch_receiveNodeView <-chan nodeview.MyNodeView,
 				myWorldView.HallRequestView = nodeView.HallRequests
 			}
 
-			ch_remoteRequestView <- nodeview.CopyRemoteRequestView(remoteRequestView)
+			ch_remoteRequestView <- peerview.CopyRemoteRequestView(remoteRequestView)
 			if !isSingleElevMode {
 				ch_hraInput <- copyMyWorldView(myWorldView)
 			}

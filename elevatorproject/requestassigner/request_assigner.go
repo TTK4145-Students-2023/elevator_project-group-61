@@ -10,7 +10,7 @@ package requestassigner
 
 import (
 	"elevatorproject/config"
-	"elevatorproject/nodeview"
+	"elevatorproject/peerview"
 	"elevatorproject/worldview"
 	"encoding/json"
 	"fmt"
@@ -42,7 +42,7 @@ func transformToHRAInput(myWorldView worldview.MyWorldView, localID string) HRAI
 	systemCabRequests := myWorldView.CabRequests
 	for i, floor := range systemHallRequests {
 		for j, requestState := range floor {
-			if requestState == nodeview.RS_Confirmed {
+			if requestState == peerview.RS_Confirmed {
 				transfromedHRAHallRequests[i][j] = true
 			} else {
 				transfromedHRAHallRequests[i][j] = false
@@ -52,7 +52,7 @@ func transformToHRAInput(myWorldView worldview.MyWorldView, localID string) HRAI
 	for id, requestStates := range systemCabRequests {
 		transformedRequestStates := [config.NumFloors]bool{}
 		for floor, requestState := range requestStates {
-			if requestState == nodeview.RS_Confirmed {
+			if requestState == peerview.RS_Confirmed {
 				transformedRequestStates[floor] = true
 			} else {
 				transformedRequestStates[floor] = false

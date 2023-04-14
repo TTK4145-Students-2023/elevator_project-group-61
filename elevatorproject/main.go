@@ -9,6 +9,7 @@ import (
 	"elevatorproject/singleelevator"
 	"elevatorproject/singleelevator/elevio"
 	"elevatorproject/worldview"
+
 	//"flag"
 	"fmt"
 )
@@ -26,7 +27,7 @@ func main() {
 	//localIP := "localhost:15657"
 	//localID := "elev1"
 
-	//localIP := "localhost:1700"
+	//localIP := "localhost:15657"
 	//localID := "elev2"
 
 	localIP := "localhost:1800"

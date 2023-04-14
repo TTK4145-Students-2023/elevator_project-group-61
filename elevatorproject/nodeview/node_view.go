@@ -231,7 +231,7 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			fmt.Println("Is available", myNodeView.ElevState.IsAvailable)
 
 			
-			for remoteID, _ := range remoteRequestView.RemoteCabRequestViews {
+			for remoteID := range remoteRequestView.RemoteCabRequestViews {
 				if _, ok := myNodeView.CabRequests[remoteID]; !ok {
 					myNodeView.CabRequests[remoteID] = [config.NumFloors]RequestState{}
 				}
@@ -245,6 +245,9 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 				}
 				// Run update my cab request view on every node in myNodeView.CabRequests
 
+				if numRemoteNodes > 1 {
+					fmt.Println("hei")
+				}
 
 				for id, myCabRequestView := range myNodeView.CabRequests {
 					specificPeerRemoteCabRequestViews := make(map[string][config.NumFloors]RequestState)
@@ -306,7 +309,7 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 			fmt.Println("nodeview: elevState")
 			myNodeView.ElevState = elevState
 
-		case <-time.After(100 * time.Millisecond):
+		case <-time.After(25 * time.Millisecond):
 			fmt.Println("nodeview: broadcaster myNodeView")
 			ch_sendMyNodeView <- copyMyNodeView(myNodeView)
 

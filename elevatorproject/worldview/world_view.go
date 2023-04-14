@@ -96,6 +96,7 @@ func WorldView(ch_receiveNodeView <-chan peerview.MyPeerView,
 			if len(peersAlive) <= 1 {
 				ch_singleElevMode <- true
 				isSingleElevMode = true
+				ch_hraInput <- copyMyWorldView(myWorldView)
 				ch_remoteRequestView <- remoteRequestView
 			} else {
 				ch_singleElevMode <- false

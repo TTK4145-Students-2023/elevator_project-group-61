@@ -2,6 +2,7 @@ package singleelevator
 
 import (
 	"elevatorproject/singleelevator/elevio"
+	"elevatorproject/config"
 	// "encoding/json"
 	// "io/ioutil"
 )
@@ -89,14 +90,19 @@ func (orders *Orders) AddOrder(btn elevio.ButtonEvent) {
 	// SaveElevatorOrdersToFile(*orders)
 }
 
-func (orders Orders) GetCabRequests() []bool {
-	return orders.Cab_orders
+func (orders Orders) GetCabRequests() [config.NumFloors]bool {
+	var cab_requests [config.NumFloors]bool
+	for i := 0; i < n_floors; i++ {
+		cab_requests[i] = orders.Cab_orders[i]
+	}
+	return cab_requests
 }
 
-func (orders Orders) GetHallRequests() [][2]bool {
-	var hall_requests [][2]bool
+func (orders Orders) GetHallRequests() [config.NumFloors][2]bool {
+	var hall_requests [config.NumFloors][2]bool
 	for i := 0; i < n_floors; i++ {
-		hall_requests = append(hall_requests, [2]bool{orders.Up_orders[i], orders.Down_orders[i]})
+		hall_requests[i][0] = orders.Up_orders[i]
+		hall_requests[i][1] = orders.Down_orders[i]
 	}
 	return hall_requests
 }

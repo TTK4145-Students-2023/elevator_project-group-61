@@ -2,9 +2,10 @@ package singleelevator
 
 import (
 	"elevatorproject/singleelevator/elevio"
+	"elevatorproject/config"
 )
 
-func LampStateMachine(ch_hall_requests chan [][2]bool, ch_cab_requests chan []bool) {
+func LampStateMachine(ch_hall_requests chan [config.NumFloors][2]bool, ch_cab_requests chan [config.NumFloors]bool) {
 	// Init lamps (turn them off)
 	elevio.SetDoorOpenLamp(false)
 	for floor_num := 0; floor_num < n_floors; floor_num++ {

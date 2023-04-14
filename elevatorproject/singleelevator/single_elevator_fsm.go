@@ -6,12 +6,9 @@ import (
 	"elevatorproject/singleelevator/elevio"
 	"fmt"
 	"strings"
-	// "time"
 )
 
-// TODO: Må også håndtere cab requests initial, og eventuelt endre hvordan cab håndteres, ref Nicholas' kommentar.
-
-// Helper struct
+// Helper structs
 type ElevState struct {
 	Behaviour   string
 	Floor       int
@@ -37,7 +34,7 @@ func PrintElevState(state ElevState) {
 	fmt.Printf("IsAvailable: %t\n", state.IsAvailable)
 }
 
-func boolSliceToString(arr []bool) string { // Unused?
+func boolSliceToString(arr [config.NumFloors]bool) string { // Unused?
 	return strings.Join(strings.Split(fmt.Sprintf("%v", arr), " "), ", ")
 }
 
@@ -152,7 +149,7 @@ func handleFloorSensor(floor int, elev_states States, active_orders Orders) (Sta
 	return elev_states, active_orders, remove_orders_list
 }
 
-func handleNewRequests(hra [][2]bool, cab_call []bool, hra_or_cab string, elev_states States, active_orders Orders) (States, Orders, []elevio.ButtonEvent) {
+func handleNewRequests(hra [config.NumFloors][2]bool, cab_call [config.NumFloors]bool, hra_or_cab string, elev_states States, active_orders Orders) (States, Orders, []elevio.ButtonEvent) {
 	if hra_or_cab == "cab" {
 		// If cab orders
 		for i := 0; i < n_floors; i++ {
@@ -294,8 +291,8 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	ch_floor <-chan int,
 	ch_door <-chan int,
 	ch_error <-chan int,
-	ch_hra <-chan [][2]bool,
-	ch_cab_requests <-chan []bool,
+	ch_hra <-chan [config.NumFloors][2]bool,
+	ch_cab_requests <-chan [config.NumFloors]bool,
 	ch_completed_request chan<- elevio.ButtonEvent,
 	ch_new_request chan<- elevio.ButtonEvent,
 	ch_elevstate chan<- ElevState,
@@ -330,7 +327,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 		case hra := <-ch_hra: // SPM: Mottas det HRA om heisen er i single elev mode??
 			//fmt.Println("HandleHRA")
 			var remove_orders_list []elevio.ButtonEvent
-			empty_cab_list := make([]bool, config.NumElevators)
+			empty_cab_list := [config.NumFloors]bool{false, false, false, false}
 			elevState, activeOrders, remove_orders_list = handleNewRequests(hra, empty_cab_list, "hra", elevState, activeOrders)
 			if elevState.GetElevatorBehaviour() == "DoorOpen" {
 				elevio.SetDoorOpenLamp(true)
@@ -468,11 +465,8 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 			if singleElevMode {
 				activeOrders.SetOrder(btn_press.Floor, btn_press.Button, true)
 
-				cab_req_list := make([]bool, config.NumElevators)
-				hall_req_list := make([][2]bool, config.NumFloors)
-				for i := 0; i < config.NumElevators; i++ {
-					hall_req_list[i] = [2]bool{false, false}
-				}
+				cab_req_list := [config.NumFloors]bool{false, false, false, false}
+				hall_req_list := [config.NumFloors][2]bool{{false, false}, {false, false}, {false, false}, {false, false}}
 				cab_or_hra := "cab"
 
 				if btn_press.Button != elevio.BT_Cab {
@@ -532,10 +526,7 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 		case cab := <-ch_cab_requests:
 			fmt.Println("HandleCabRequests")
 			var remove_orders_list []elevio.ButtonEvent
-			empty_hra_list := make([][2]bool, config.NumElevators)
-			for i := 0; i < config.NumElevators; i++ {
-				empty_hra_list[i] = [2]bool{false, false}
-			}
+			empty_hra_list := [config.NumFloors][2]bool{{false, false}, {false, false}, {false, false}, {false, false}}
 			elevState, activeOrders, remove_orders_list = handleNewRequests(empty_hra_list, cab, "cab", elevState, activeOrders)
 			if elevState.GetElevatorBehaviour() == "DoorOpen" {
 				elevio.SetDoorOpenLamp(true)

@@ -218,18 +218,29 @@ func NodeView(ch_sendMyNodeView chan<- MyNodeView,
 		case remoteRequestView := <-ch_remoteRequestView:
 			numRemoteNodes := len(remoteRequestView.RemoteHallRequestViews)
 			fmt.Println("Is available", myNodeView.ElevState.IsAvailable)
+
+			for remoteID, _ := range remoteRequestView.RemoteCabRequestViews {
+				if _, ok := myNodeView.CabRequests[remoteID]; !ok {
+					myNodeView.CabRequests[remoteID] = make([]RequestState, config.NumFloors)
+				}
+			}
+			fmt.Println("hi")
 			if numRemoteNodes > 0 {
 				if isSingleElevMode {
 					isSingleElevMode = false
 					myNodeView.ChangeNoOrderAndConfirmedToUnknown()
 				}
 				// Run update my cab request view on every node in myNodeView.CabRequests
+
+
 				for id, myCabRequestView := range myNodeView.CabRequests {
-					remoteCabRequestView := make(map[string][]RequestState)
-					for remoteID, remoteCabRequestView := range remoteRequestView.RemoteCabRequestViews {
-						remoteCabRequestView[remoteID] = remoteCabRequestView[id]
+					specificPeerRemoteCabRequestViews := make(map[string][]RequestState)
+					for remoteID, remoteCabRequestViews := range remoteRequestView.RemoteCabRequestViews {
+						if remoteCabRequestView, ok := remoteCabRequestViews[id]; ok {
+							specificPeerRemoteCabRequestViews[remoteID] = remoteCabRequestView
+						}
 					}
-					myNodeView.CabRequests[id] = updateMyCabRequestView(myCabRequestView, remoteCabRequestView)
+					myNodeView.CabRequests[id] = updateMyCabRequestView(myCabRequestView, specificPeerRemoteCabRequestViews)
 				}
 				myNodeView.HallRequests = updateMyHallRequestView(myNodeView.HallRequests, remoteRequestView.RemoteHallRequestViews)
 

@@ -349,7 +349,7 @@ func fsmElevator(
 
 				// Error handling
 				if elevatortimers.GetErrorCounter() == -1 {
-					if myActiveOrders.anyOrder() {
+					if myActiveOrders.anyOrder() && changeInBehaviour(oldElevState, myLocalState) {
 						elevatortimers.StartErrorTimer()
 						isAvailable = true
 					}
@@ -391,7 +391,7 @@ func fsmElevator(
 
 			// Error handling
 			if elevatortimers.GetErrorCounter() == -1 {
-				if myActiveOrders.anyOrder() {
+				if myActiveOrders.anyOrder() && changeInBehaviour(oldElevState, myLocalState) {
 					elevatortimers.StartErrorTimer()
 					isAvailable = true
 				}
@@ -436,7 +436,7 @@ func fsmElevator(
 
 			// Error handling
 			if elevatortimers.GetErrorCounter() == -1 {
-				if myActiveOrders.anyOrder() {
+				if myActiveOrders.anyOrder() && changeInBehaviour(oldElevState, myLocalState) {
 					elevatortimers.StartErrorTimer()
 					isAvailable = true
 				}
@@ -485,7 +485,7 @@ func fsmElevator(
 
 			// Error handling
 			if elevatortimers.GetErrorCounter() == -1 {
-				if myActiveOrders.anyOrder() {
+				if myActiveOrders.anyOrder() && changeInBehaviour(oldElevState, myLocalState) {
 					elevatortimers.StartErrorTimer()
 					isAvailable = true
 				}
@@ -534,7 +534,7 @@ func fsmElevator(
 
 			// Error handling
 			if elevatortimers.GetErrorCounter() == -1 {
-				if myActiveOrders.anyOrder() {
+				if myActiveOrders.anyOrder() && changeInBehaviour(oldElevState, myLocalState) {
 					elevatortimers.StartErrorTimer()
 					isAvailable = true
 				}

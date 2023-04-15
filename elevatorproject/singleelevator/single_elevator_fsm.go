@@ -1,12 +1,14 @@
 package singleelevator
 
 import (
-	"fmt"
-	"strings"
 	"elevatorproject/config"
 	"elevatorproject/singleelevator/elevator_timers"
 	"elevatorproject/singleelevator/elevio"
+	"fmt"
 )
+
+// Constants
+const n_floors int = config.NumFloors
 
 // Helper structs
 type ElevState struct {
@@ -23,39 +25,24 @@ func (elev_state *ElevState) InitElevState() {
 	elev_state.IsAvailable = true
 }
 
-// Constants
-const n_floors int = config.NumFloors
-
-// Helper functions
-func PrintElevState(state ElevState) {
-	fmt.Printf("Behaviour: %s\n", state.Behaviour)
-	fmt.Printf("Floor: %d\n", state.Floor)
-	fmt.Printf("Direction: %s\n", state.Direction)
-	fmt.Printf("IsAvailable: %t\n", state.IsAvailable)
-}
-
-func boolSliceToString(arr [config.NumFloors]bool) string { // Unused?
-	return strings.Join(strings.Split(fmt.Sprintf("%v", arr), " "), ", ")
-}
-
-func stopAfterSensingFloor(floor int, elev_states States, active_orders Orders) bool {
+func stopAfterSensingFloor(floor int, elev_states localElevState, active_orders activeOrders) bool {
 	if floor == 0 || floor == n_floors-1 {
 		return true
 	}
-	if !active_orders.AnyOrder() {
+	if !active_orders.anyOrder() {
 		return true
 	}
-	if active_orders.GetSpecificOrder(floor, elevio.BT_Cab) {
+	if active_orders.getSpecificOrder(floor, elevio.BT_Cab) {
 		return true
 	}
 	switch elev_states.GetLastDirection() {
 	case elevio.MD_Up:
-		if active_orders.GetSpecificOrder(floor, elevio.BT_HallUp) || !active_orders.AnyOrderPastFloorInDir(floor, elevio.MD_Up) {
+		if active_orders.getSpecificOrder(floor, elevio.BT_HallUp) || !active_orders.anyOrderPastFloorInDir(floor, elevio.MD_Up) {
 			return true
 		}
 		return false
 	case elevio.MD_Down:
-		if active_orders.GetSpecificOrder(floor, elevio.BT_HallDown) || !active_orders.AnyOrderPastFloorInDir(floor, elevio.MD_Down) {
+		if active_orders.getSpecificOrder(floor, elevio.BT_HallDown) || !active_orders.anyOrderPastFloorInDir(floor, elevio.MD_Down) {
 			return true
 		}
 		return false
@@ -73,7 +60,7 @@ func dirToBtnType(dir elevio.MotorDirection) elevio.ButtonType {
 	return elevio.BT_Cab
 }
 
-func statesToHRAStates(states States, isAvailable bool) ElevState {
+func localStateToElevState(states localElevState, isAvailable bool) ElevState {
 	hra_states := ElevState{
 		Behaviour:   "idle",
 		Floor:       1,
@@ -126,40 +113,40 @@ func diffElevStateStructs(a ElevState, b ElevState) bool {
 }
 
 // Functions for handling events
-func handleFloorSensor(floor int, elev_states States, active_orders Orders) (States, Orders, []elevio.ButtonEvent) {
+func handleFloorSensor(floor int, elev_states localElevState, active_orders activeOrders) (localElevState, activeOrders, []elevio.ButtonEvent) {
 	elev_states.SetLastFloor(floor)
 
 	remove_orders_list := make([]elevio.ButtonEvent, 0)
 
 	if stopAfterSensingFloor(floor, elev_states, active_orders) {
 		elev_states.SetElevatorBehaviour("DoorOpen")
-		if active_orders.GetSpecificOrder(floor, elevio.BT_Cab) {
+		if active_orders.getSpecificOrder(floor, elevio.BT_Cab) {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab})
 		}
-		if active_orders.GetSpecificOrder(floor, dirToBtnType(elev_states.GetLastDirection())) {
+		if active_orders.getSpecificOrder(floor, dirToBtnType(elev_states.GetLastDirection())) {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: dirToBtnType(elev_states.GetLastDirection())})
 		}
-		if floor == 0 && active_orders.GetSpecificOrder(floor, elevio.BT_HallUp) {
+		if floor == 0 && active_orders.getSpecificOrder(floor, elevio.BT_HallUp) {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallUp})
 		}
-		if floor == n_floors-1 && active_orders.GetSpecificOrder(floor, elevio.BT_HallDown) {
+		if floor == n_floors-1 && active_orders.getSpecificOrder(floor, elevio.BT_HallDown) {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallDown})
 		}
 	}
 	return elev_states, active_orders, remove_orders_list
 }
 
-func handleNewRequests(hra [config.NumFloors][2]bool, cab_call [config.NumFloors]bool, hra_or_cab string, elev_states States, active_orders Orders) (States, Orders, []elevio.ButtonEvent) {
+func handleNewRequests(hra [config.NumFloors][2]bool, cab_call [config.NumFloors]bool, hra_or_cab string, elev_states localElevState, active_orders activeOrders) (localElevState, activeOrders, []elevio.ButtonEvent) {
 	if hra_or_cab == "cab" {
 		// If cab orders
 		for i := 0; i < n_floors; i++ {
-			active_orders.SetOrder(i, elevio.BT_Cab, cab_call[i])
+			active_orders.setOrder(i, elevio.BT_Cab, cab_call[i])
 		}
 	} else if hra_or_cab == "hra" {
 		// If HRA orders
 		for i := 0; i < n_floors; i++ {
-			active_orders.SetOrder(i, elevio.BT_HallUp, hra[i][0]) // First columns is up, second is down
-			active_orders.SetOrder(i, elevio.BT_HallDown, hra[i][1])
+			active_orders.setOrder(i, elevio.BT_HallUp, hra[i][0]) // First columns is up, second is down
+			active_orders.setOrder(i, elevio.BT_HallDown, hra[i][1])
 		}
 	} else {
 		panic("handleNewRequests: hra_or_cab must be 'cab' or 'hra'")
@@ -169,7 +156,7 @@ func handleNewRequests(hra [config.NumFloors][2]bool, cab_call [config.NumFloors
 	switch elev_states.GetElevatorBehaviour() {
 	case Moving:
 	case DoorOpen:
-		up_this_floor, down_this_floor, cab_this_floor := active_orders.GetOrdersInFloor(elev_states.GetLastFloor())
+		up_this_floor, down_this_floor, cab_this_floor := active_orders.getOrdersInFloor(elev_states.GetLastFloor())
 		if cab_this_floor {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_Cab})
 		}
@@ -182,11 +169,11 @@ func handleNewRequests(hra [config.NumFloors][2]bool, cab_call [config.NumFloors
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallDown})
 		}
 	case Idle:
-		up_this_floor, down_this_floor, cab_this_floor := active_orders.GetOrdersInFloor(elev_states.GetLastFloor())
+		up_this_floor, down_this_floor, cab_this_floor := active_orders.getOrdersInFloor(elev_states.GetLastFloor())
 		order_in_this_floor := up_this_floor || down_this_floor || cab_this_floor
-		orders_above := active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)
-		orders_below := active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)
-		if !active_orders.AnyOrder() {
+		orders_above := active_orders.anyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)
+		orders_below := active_orders.anyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)
+		if !active_orders.anyOrder() {
 			break
 		} else {
 			if order_in_this_floor {
@@ -195,13 +182,13 @@ func handleNewRequests(hra [config.NumFloors][2]bool, cab_call [config.NumFloors
 					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_Cab})
 				}
 				if (up_this_floor && elev_states.GetLastDirection() == elevio.MD_Up) ||
-					(up_this_floor && !down_this_floor && !active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)) ||
+					(up_this_floor && !down_this_floor && !active_orders.anyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)) ||
 					(elev_states.GetLastFloor() == 0 && up_this_floor) {
 					elev_states.SetElevatorBehaviour("DoorOpen")
 					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallUp})
 				}
 				if (down_this_floor && elev_states.GetLastDirection() == elevio.MD_Down) ||
-					(down_this_floor && !up_this_floor && !active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)) ||
+					(down_this_floor && !up_this_floor && !active_orders.anyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)) ||
 					(elev_states.GetLastFloor() == n_floors-1 && down_this_floor) {
 					elev_states.SetElevatorBehaviour("DoorOpen")
 					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallDown})
@@ -223,21 +210,21 @@ func handleNewRequests(hra [config.NumFloors][2]bool, cab_call [config.NumFloors
 	return elev_states, active_orders, remove_orders_list
 }
 
-func handleDoorClosing(elev_states States, active_orders Orders) (States, Orders, []elevio.ButtonEvent) {
+func handleDoorClosing(elev_states localElevState, active_orders activeOrders) (localElevState, activeOrders, []elevio.ButtonEvent) {
 	remove_orders_list := make([]elevio.ButtonEvent, 0)
 
-	if !active_orders.AnyOrder() {
+	if !active_orders.anyOrder() {
 		elev_states.SetElevatorBehaviour("Idle")
 		return elev_states, active_orders, remove_orders_list
 	}
-	if active_orders.GetSpecificOrder(elev_states.GetLastFloor(), dirToBtnType(elev_states.GetLastDirection())) {
+	if active_orders.getSpecificOrder(elev_states.GetLastFloor(), dirToBtnType(elev_states.GetLastDirection())) {
 		if elev_states.GetLastDirection() == elevio.MD_Up {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallUp})
 		} else {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallDown})
 		}
 		return elev_states, active_orders, remove_orders_list
-	} else if active_orders.OrderInFloor(elev_states.GetLastFloor()) && !active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elev_states.GetLastDirection()) {
+	} else if active_orders.orderInFloor(elev_states.GetLastFloor()) && !active_orders.anyOrderPastFloorInDir(elev_states.GetLastFloor(), elev_states.GetLastDirection()) {
 		if elev_states.GetLastDirection() == elevio.MD_Up {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallDown})
 		} else {
@@ -246,8 +233,8 @@ func handleDoorClosing(elev_states States, active_orders Orders) (States, Orders
 		return elev_states, active_orders, remove_orders_list
 	}
 	elev_states.SetElevatorBehaviour("Moving")
-	orders_up_bool := active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)
-	orders_down_bool := active_orders.AnyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)
+	orders_up_bool := active_orders.anyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)
+	orders_down_bool := active_orders.anyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)
 	if (elev_states.GetLastDirection() == elevio.MD_Up && orders_up_bool) || !orders_down_bool {
 		elev_states.SetDirection(elevio.MD_Up)
 	} else if (elev_states.GetLastDirection() == elevio.MD_Down && orders_down_bool) || !orders_up_bool {
@@ -258,7 +245,7 @@ func handleDoorClosing(elev_states States, active_orders Orders) (States, Orders
 	return elev_states, active_orders, remove_orders_list
 }
 
-func changeInBehaviour(oldState ElevState, currentState States) bool {
+func changeInBehaviour(oldState ElevState, currentState localElevState) bool {
 	behaviour_translation := "idle"
 	switch currentState.GetElevatorBehaviour() {
 	case "Idle":
@@ -294,22 +281,22 @@ func Fsm_elevator(
 	ch_error <-chan int,
 	ch_hra <-chan [config.NumFloors][2]bool,
 	ch_cab_requests <-chan [config.NumFloors]bool,
+	ch_single_mode <-chan bool,
 	ch_completed_request chan<- elevio.ButtonEvent,
 	ch_new_request chan<- elevio.ButtonEvent,
 	ch_elevstate chan<- ElevState,
-	ch_single_mode <-chan bool,
 ) {
 
-	var elevState States
-	var activeOrders Orders
+	var elevState localElevState
+	var activeOrders activeOrders
 	isAvailable := false
 
 	singleElevMode := true
 
 	// Initiate elevator
-	activeOrders.InitOrders()
-	elevState.InitStates()
-	var oldElevInfo ElevState = statesToHRAStates(elevState, isAvailable)
+	activeOrders.initOrders()
+	elevState.InitLocalElevState()
+	var oldElevInfo ElevState = localStateToElevState(elevState, isAvailable)
 	if elevio.GetFloor() == -1 {
 		elevState.SetElevatorBehaviour("Moving")
 		elevio.SetMotorDirection(elevio.MD_Up)
@@ -318,8 +305,8 @@ func Fsm_elevator(
 		elevio.SetFloorIndicator(elevio.GetFloor())
 		isAvailable = true
 	}
-	if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
-		oldElevInfo = statesToHRAStates(elevState, isAvailable)
+	if diffElevStateStructs(oldElevInfo, localStateToElevState(elevState, isAvailable)) {
+		oldElevInfo = localStateToElevState(elevState, isAvailable)
 		ch_elevstate <- oldElevInfo
 	}
 
@@ -336,7 +323,7 @@ func Fsm_elevator(
 				elevator_timers.StartDoorTimer()
 				for _, v := range remove_orders_list {
 					if singleElevMode {
-						activeOrders.SetOrder(v.Floor, v.Button, false)
+						activeOrders.setOrder(v.Floor, v.Button, false)
 					}
 					ch_completed_request <- v
 				}
@@ -351,12 +338,12 @@ func Fsm_elevator(
 			// -- -- isAvailable settes true.
 			// -- Hvis timeren ikke er i gang og det er ordre i systemet skal timeren startes.
 			if elevator_timers.GetErrorCounter() == -1 {
-				if activeOrders.AnyOrder() {
+				if activeOrders.anyOrder() {
 					elevator_timers.StartErrorTimer()
 					isAvailable = true
 				}
 			} else {
-				if !activeOrders.AnyOrder() {
+				if !activeOrders.anyOrder() {
 					elevator_timers.StopErrorTimer()
 					isAvailable = true
 				} else if changeInBehaviour(oldElevInfo, elevState) {
@@ -365,8 +352,8 @@ func Fsm_elevator(
 				}
 			}
 			// Error handling end
-			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
-				oldElevInfo = statesToHRAStates(elevState, isAvailable)
+			if diffElevStateStructs(oldElevInfo, localStateToElevState(elevState, isAvailable)) {
+				oldElevInfo = localStateToElevState(elevState, isAvailable)
 				ch_elevstate <- oldElevInfo
 			}
 		case floor := <-ch_floor:
@@ -380,7 +367,7 @@ func Fsm_elevator(
 				elevator_timers.StartDoorTimer()
 				for _, v := range remove_orders_list {
 					if singleElevMode {
-						activeOrders.SetOrder(v.Floor, v.Button, false)
+						activeOrders.setOrder(v.Floor, v.Button, false)
 					}
 					ch_completed_request <- v
 				}
@@ -393,12 +380,12 @@ func Fsm_elevator(
 			// -- -- isAvailable settes true.
 			// -- Hvis timeren ikke er i gang og det er ordre i systemet skal timeren startes.
 			if elevator_timers.GetErrorCounter() == -1 {
-				if activeOrders.AnyOrder() {
+				if activeOrders.anyOrder() {
 					elevator_timers.StartErrorTimer()
 					isAvailable = true
 				}
 			} else {
-				if !activeOrders.AnyOrder() {
+				if !activeOrders.anyOrder() {
 					elevator_timers.StopErrorTimer()
 					isAvailable = true
 				} else if changeInBehaviour(oldElevInfo, elevState) {
@@ -407,8 +394,8 @@ func Fsm_elevator(
 				}
 			}
 			// Error handling end
-			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
-				oldElevInfo = statesToHRAStates(elevState, isAvailable)
+			if diffElevStateStructs(oldElevInfo, localStateToElevState(elevState, isAvailable)) {
+				oldElevInfo = localStateToElevState(elevState, isAvailable)
 				ch_elevstate <- oldElevInfo
 			}
 		case <-ch_door:
@@ -425,7 +412,7 @@ func Fsm_elevator(
 				elevator_timers.StartDoorTimer()
 				for _, v := range remove_orders_list {
 					if singleElevMode {
-						activeOrders.SetOrder(v.Floor, v.Button, false)
+						activeOrders.setOrder(v.Floor, v.Button, false)
 					}
 					ch_completed_request <- v
 				}
@@ -443,12 +430,12 @@ func Fsm_elevator(
 			// -- -- isAvailable settes true.
 			// -- Hvis timeren ikke er i gang og det er ordre i systemet skal timeren startes.
 			if elevator_timers.GetErrorCounter() == -1 {
-				if activeOrders.AnyOrder() {
+				if activeOrders.anyOrder() {
 					elevator_timers.StartErrorTimer()
 					isAvailable = true
 				}
 			} else {
-				if !activeOrders.AnyOrder() {
+				if !activeOrders.anyOrder() {
 					elevator_timers.StopErrorTimer()
 					isAvailable = true
 				} else if changeInBehaviour(oldElevInfo, elevState) {
@@ -457,15 +444,15 @@ func Fsm_elevator(
 				}
 			}
 			// Error handling end
-			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
-				oldElevInfo = statesToHRAStates(elevState, isAvailable)
+			if diffElevStateStructs(oldElevInfo, localStateToElevState(elevState, isAvailable)) {
+				oldElevInfo = localStateToElevState(elevState, isAvailable)
 				ch_elevstate <- oldElevInfo
 			}
 		case btn_press := <-ch_btn:
 			//fmt.Println("HandleButtonEvent")
 			ch_new_request <- elevio.ButtonEvent{Floor: btn_press.Floor, Button: btn_press.Button}
 			if singleElevMode {
-				activeOrders.SetOrder(btn_press.Floor, btn_press.Button, true)
+				activeOrders.setOrder(btn_press.Floor, btn_press.Button, true)
 
 				cab_req_list := [config.NumFloors]bool{false, false, false, false}
 				hall_req_list := [config.NumFloors][2]bool{{false, false}, {false, false}, {false, false}, {false, false}}
@@ -473,9 +460,9 @@ func Fsm_elevator(
 
 				if btn_press.Button != elevio.BT_Cab {
 					cab_or_hra = "hra"
-					hall_req_list = activeOrders.GetHallRequests()
+					hall_req_list = activeOrders.getHallRequests()
 				} else {
-					cab_req_list = activeOrders.GetCabRequests()
+					cab_req_list = activeOrders.getCabRequests()
 				}
 				var remove_orders_list []elevio.ButtonEvent
 				elevState, activeOrders, remove_orders_list = handleNewRequests(hall_req_list, cab_req_list, cab_or_hra, elevState, activeOrders)
@@ -483,7 +470,7 @@ func Fsm_elevator(
 					elevio.SetDoorOpenLamp(true)
 					elevator_timers.StartDoorTimer()
 					for _, v := range remove_orders_list {
-						activeOrders.SetOrder(v.Floor, v.Button, false)
+						activeOrders.setOrder(v.Floor, v.Button, false)
 						ch_completed_request <- v
 					}
 				} else if elevState.GetElevatorBehaviour() == "Moving" && oldElevInfo.Direction == "stop" { // Vil dette forårsake "hakkete" oppførsel? Må sjekkes. (Endret til å sjekke oldElevInfo)
@@ -497,12 +484,12 @@ func Fsm_elevator(
 				// -- -- isAvailable settes true.
 				// -- Hvis timeren ikke er i gang og det er ordre i systemet skal timeren startes.
 				if elevator_timers.GetErrorCounter() == -1 {
-					if activeOrders.AnyOrder() {
+					if activeOrders.anyOrder() {
 						elevator_timers.StartErrorTimer()
 						isAvailable = true
 					}
 				} else {
-					if !activeOrders.AnyOrder() {
+					if !activeOrders.anyOrder() {
 						elevator_timers.StopErrorTimer()
 						isAvailable = true
 					} else if changeInBehaviour(oldElevInfo, elevState) {
@@ -511,8 +498,8 @@ func Fsm_elevator(
 					}
 				}
 				// Error handling end
-				if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
-					oldElevInfo = statesToHRAStates(elevState, isAvailable)
+				if diffElevStateStructs(oldElevInfo, localStateToElevState(elevState, isAvailable)) {
+					oldElevInfo = localStateToElevState(elevState, isAvailable)
 					ch_elevstate <- oldElevInfo
 				}
 			} else {
@@ -521,7 +508,7 @@ func Fsm_elevator(
 		case <-ch_error:
 			fmt.Println("HandleError")
 			isAvailable = false
-			oldElevInfo = statesToHRAStates(elevState, isAvailable)
+			oldElevInfo = localStateToElevState(elevState, isAvailable)
 			ch_elevstate <- oldElevInfo
 		case single_bool := <-ch_single_mode:
 			singleElevMode = single_bool
@@ -535,7 +522,7 @@ func Fsm_elevator(
 				elevator_timers.StartDoorTimer()
 				for _, v := range remove_orders_list {
 					if singleElevMode { // SPM: Er denne i det hele tatt nødvendig? Altså kan man få cab liste i single elev?
-						activeOrders.SetOrder(v.Floor, v.Button, false)
+						activeOrders.setOrder(v.Floor, v.Button, false)
 					}
 					ch_completed_request <- v
 				}
@@ -550,12 +537,12 @@ func Fsm_elevator(
 			// -- -- isAvailable settes true.
 			// -- Hvis timeren ikke er i gang og det er ordre i systemet skal timeren startes.
 			if elevator_timers.GetErrorCounter() == -1 {
-				if activeOrders.AnyOrder() {
+				if activeOrders.anyOrder() {
 					elevator_timers.StartErrorTimer()
 					isAvailable = true
 				}
 			} else {
-				if !activeOrders.AnyOrder() {
+				if !activeOrders.anyOrder() {
 					elevator_timers.StopErrorTimer()
 					isAvailable = true
 				} else if changeInBehaviour(oldElevInfo, elevState) {
@@ -564,8 +551,8 @@ func Fsm_elevator(
 				}
 			}
 			// Error handling end
-			if diffElevStateStructs(oldElevInfo, statesToHRAStates(elevState, isAvailable)) {
-				oldElevInfo = statesToHRAStates(elevState, isAvailable)
+			if diffElevStateStructs(oldElevInfo, localStateToElevState(elevState, isAvailable)) {
+				oldElevInfo = localStateToElevState(elevState, isAvailable)
 				ch_elevstate <- oldElevInfo
 			}
 		}

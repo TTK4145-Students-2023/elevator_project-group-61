@@ -9,29 +9,22 @@ import (
 	"elevatorproject/singleelevator"
 	"elevatorproject/singleelevator/elevio"
 	"elevatorproject/worldview"
+	"elevatorproject/lamps"
+	"flag"
 	"fmt"
 )
 
 func main() {
-	// var localID string
-	// var elevPort string
+	var localID string
+	var elevPort string
 
-	// flag.StringVar(&localID, "id", "", "id for this peer")
-	// flag.StringVar(&elevPort, "port", "", "port of this peer")
-	// flag.Parse()
+	flag.StringVar(&localID, "id", "", "id of this peer")
+	flag.StringVar(&elevPort, "port", "", "port of this peer")
+	flag.Parse()	
 
-	// localIP := "localhost:" + elevPort
+	localIP := "localhost:" + elevPort
 
-	// localIP := "localhost:15657"
-	// localID := "elev1"
-
-	// localIP := "localhost:1700"
-	// localID := "elev2"
-
-	localIP := "localhost:1800"
-	localID := "elev3"
-
-	fmt.Printf("Starter programmet")
+	fmt.Printf("Starting program")
 	elevio.Init(localIP, config.NumFloors)
 
 	//singleelevator
@@ -67,7 +60,7 @@ func main() {
 	go peerview.PeerView(ch_transmit, ch_newRequest, ch_completedRequest, ch_elevState, ch_hallLamps, ch_cabLamps, ch_remoteRequestView, localID)
 
 	go requestassigner.AssignRequests(ch_myWorldView, ch_hallRequests, ch_cabRequests, localID)
-	go singleelevator.LampStateMachine(ch_hallLamps, ch_cabLamps)
+	go lamps.LampStateMachine(ch_hallLamps, ch_cabLamps)
 
 	fmt.Println("Starter opp singleelevator")
 	go singleelevator.RunSingleElevator(ch_hallRequests, ch_cabRequests, ch_singleElevMode, ch_completedRequest, ch_newRequest, ch_elevState)

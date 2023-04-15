@@ -1,4 +1,4 @@
-package elevator_timers
+package elevatortimers
 
 import "time"
 

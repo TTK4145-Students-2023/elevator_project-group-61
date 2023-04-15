@@ -40,7 +40,7 @@ func main() {
 	ch_elevState := make(chan singleelevator.ElevState)
 
 	//worldview
-	ch_hraInput := make(chan worldview.MyWorldView)
+	ch_myWorldView := make(chan worldview.MyWorldView)
 	ch_hallLamps := make(chan [config.NumFloors][2]bool)
 	ch_cabLamps := make(chan [config.NumFloors]bool)
 	ch_remoteRequestView := make(chan peerview.RemoteRequestViews)
@@ -63,10 +63,10 @@ func main() {
 	go bcast.Transmitter(12100, ch_transmit)
 
 	// go routines
-	go worldview.WorldView(ch_receive, ch_peerUpdate, ch_remoteRequestView, ch_hraInput, ch_singleElevMode, localID)
+	go worldview.WorldView(ch_receive, ch_peerUpdate, ch_remoteRequestView, ch_myWorldView, ch_singleElevMode, localID)
 	go peerview.PeerView(ch_transmit, ch_newRequest, ch_completedRequest, ch_elevState, ch_hallLamps, ch_cabLamps, ch_remoteRequestView, localID)
 
-	go requestassigner.AssignRequests(ch_hraInput, ch_hallRequests, ch_cabRequests, localID)
+	go requestassigner.AssignRequests(ch_myWorldView, ch_hallRequests, ch_cabRequests, localID)
 	go singleelevator.LampStateMachine(ch_hallLamps, ch_cabLamps)
 
 	fmt.Println("Starter opp singleelevator")

@@ -25,7 +25,6 @@ func (states *States) InitStates() {
 
 func (states *States) SetLastFloor(floor int) {
 	states.Last_floor = floor
-	// elevio.SetFloorIndicator(floor)
 }
 
 func (states *States) SetDirection(dir elevio.MotorDirection) {
@@ -33,24 +32,16 @@ func (states *States) SetDirection(dir elevio.MotorDirection) {
 	case elevio.MD_Up:
 		states.Last_direction = elevio.MD_Up
 		states.ElevatorBehaviour = Moving
-		// elevio.SetMotorDirection(elevio.MD_Up)
 	case elevio.MD_Down:
 		states.Last_direction = elevio.MD_Down
 		states.ElevatorBehaviour = Moving
-		// elevio.SetMotorDirection(elevio.MD_Down)
 	case elevio.MD_Stop:
-		// elevio.SetMotorDirection(elevio.MD_Stop)
 	}
 }
 
 func (states *States) SetElevatorBehaviour(behaviour string) {
 	states.ElevatorBehaviour = behaviour
 }
-
-// func (states *States) SetDoorOpen(open bool) {
-// 	states.ElevatorBehaviour = DoorOpen
-// 	// elevio.SetDoorOpenLamp(open)
-// }
 
 func (states States) GetLastFloor() int {
 	return states.Last_floor

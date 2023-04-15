@@ -1,8 +1,7 @@
 package elevator_timers
 
-import (
-	"time"
-)
+import "time"
+
 
 const standardErrorWait = 12000 // 12 seconds
 

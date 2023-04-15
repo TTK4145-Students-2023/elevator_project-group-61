@@ -1,11 +1,11 @@
 package singleelevator
 
 import (
+	"fmt"
+	"strings"
 	"elevatorproject/config"
 	"elevatorproject/singleelevator/elevator_timers"
 	"elevatorproject/singleelevator/elevio"
-	"fmt"
-	"strings"
 )
 
 // Helper structs
@@ -287,7 +287,8 @@ func changeInBehaviour(oldState ElevState, currentState States) bool {
 // Timeren skal stoppes hver gang det ikke er ordre.
 // Timeren skal startes hver gang det går til å finnes en ordre.
 
-func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
+func Fsm_elevator(
+	ch_btn <-chan elevio.ButtonEvent,
 	ch_floor <-chan int,
 	ch_door <-chan int,
 	ch_error <-chan int,
@@ -296,7 +297,8 @@ func Fsm_elevator(ch_btn <-chan elevio.ButtonEvent,
 	ch_completed_request chan<- elevio.ButtonEvent,
 	ch_new_request chan<- elevio.ButtonEvent,
 	ch_elevstate chan<- ElevState,
-	ch_single_mode <-chan bool) {
+	ch_single_mode <-chan bool,
+) {
 
 	var elevState States
 	var activeOrders Orders

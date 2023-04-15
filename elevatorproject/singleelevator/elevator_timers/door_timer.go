@@ -1,10 +1,9 @@
 package elevator_timers
 
-import (
-	"time"
-)
+import "time"
 
 const standardDoorWait = 3000 // 3 seconds
+
 var doorCounter int64 = -1
 
 func StartDoorTimer() {

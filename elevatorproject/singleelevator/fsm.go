@@ -113,7 +113,15 @@ func diffElevStateStructs(a ElevState, b ElevState) bool {
 }
 
 // Functions for handling events
-func handleFloorSensor(floor int, state localElevState, orders activeOrders) (localElevState, activeOrders, []elevio.ButtonEvent) {
+func handleFloorSensor(
+	floor int, 
+	state localElevState, 
+	orders activeOrders,
+) (
+	localElevState, 
+	activeOrders, 
+	[]elevio.ButtonEvent,
+) {
 	state.setLastFloor(floor)
 	completedOrdersList := make([]elevio.ButtonEvent, 0)
 
@@ -135,7 +143,17 @@ func handleFloorSensor(floor int, state localElevState, orders activeOrders) (lo
 	return state, orders, completedOrdersList
 }
 
-func handleNewRequests(hallRequests [config.NumFloors][2]bool, cabRequests [config.NumFloors]bool, cabOrHall string, state localElevState, orders activeOrders) (localElevState, activeOrders, []elevio.ButtonEvent) {
+func handleNewRequests(
+	hallRequests [nFloors][2]bool, 
+	cabRequests [nFloors]bool, 
+	cabOrHall string, 
+	state localElevState, 
+	orders activeOrders,
+) (
+	localElevState, 
+	activeOrders, 
+	[]elevio.ButtonEvent,
+) {
 	if cabOrHall == "cab" {
 		for i := 0; i < nFloors; i++ {
 			orders.setOrder(i, elevio.BT_Cab, cabRequests[i])
@@ -262,8 +280,8 @@ func fsmElevator(
 	ch_floor 			<-chan int,
 	ch_door 			<-chan int,
 	ch_error            <-chan int,
-	ch_hallRequests     <-chan [config.NumFloors][2]bool,
-	ch_cabRequests      <-chan [config.NumFloors]bool,
+	ch_hallRequests     <-chan [nFloors][2]bool,
+	ch_cabRequests      <-chan [nFloors]bool,
 	ch_singleElevMode   <-chan bool,
 	ch_completedRequest chan<- elevio.ButtonEvent,
 	ch_newRequest       chan<- elevio.ButtonEvent,
@@ -300,8 +318,13 @@ func fsmElevator(
 			if singleElevMode {
 				myActiveOrders.setOrder(btnPress.Floor, btnPress.Button, true)
 
-				cabReqList := [config.NumFloors]bool{false, false, false, false}
-				hallReqList := [config.NumFloors][2]bool{{false, false}, {false, false}, {false, false}, {false, false}}
+				cabReqList := [nFloors]bool{false, false, false, false}
+				hallReqList := [nFloors][2]bool{
+										{false, false}, 
+										{false, false}, 
+										{false, false}, 
+										{false, false},
+									}
 				cabOrHall := "cab"
 
 				if btnPress.Button != elevio.BT_Cab {
@@ -311,7 +334,12 @@ func fsmElevator(
 					cabReqList = myActiveOrders.getCabRequests()
 				}
 				var completedOrdersList []elevio.ButtonEvent
-				myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(hallReqList, cabReqList, cabOrHall, myLocalState, myActiveOrders)
+				myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(hallReqList, 
+																						cabReqList, 
+																						cabOrHall, 
+																						myLocalState, 
+																						myActiveOrders,
+																					)
 				if myLocalState.getElevatorBehaviour() == "DoorOpen" {
 					elevio.SetDoorOpenLamp(true)
 					elevatortimers.StartDoorTimer()
@@ -439,8 +467,13 @@ func fsmElevator(
 
 		case hallRequests := <-ch_hallRequests:
 			var completedOrdersList []elevio.ButtonEvent
-			emtpyCabList := [config.NumFloors]bool{false, false, false, false}
-			myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(hallRequests, emtpyCabList, "hall", myLocalState, myActiveOrders)
+			emtpyCabList := [nFloors]bool{false, false, false, false}
+			myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(hallRequests, 
+																					emtpyCabList, 
+																					"hall", 
+																					myLocalState, 
+																					myActiveOrders,
+																				)
 			if myLocalState.getElevatorBehaviour() == "DoorOpen" {
 				elevio.SetDoorOpenLamp(true)
 				elevatortimers.StartDoorTimer()
@@ -478,8 +511,18 @@ func fsmElevator(
 
 		case cab := <-ch_cabRequests:
 			var completedOrdersList []elevio.ButtonEvent
-			emptyHallList := [config.NumFloors][2]bool{{false, false}, {false, false}, {false, false}, {false, false}}
-			myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(emptyHallList, cab, "cab", myLocalState, myActiveOrders)
+			emptyHallList := [nFloors][2]bool{
+										{false, false}, 
+										{false, false}, 
+										{false, false}, 
+										{false, false},
+									}
+			myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(emptyHallList, 
+																					cab, 
+																					"cab", 
+																					myLocalState, 
+																					myActiveOrders,
+																				)
 			if myLocalState.getElevatorBehaviour() == "DoorOpen" {
 				elevio.SetDoorOpenLamp(true)
 				elevatortimers.StartDoorTimer()

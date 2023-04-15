@@ -257,6 +257,19 @@ func handleDoorClosing(state localElevState, orders activeOrders) (localElevStat
 	return state, orders, completedOrdersList
 }
 
+func checkChangeLocalStates(a localElevState, b localElevState) bool {
+	if a.getLastFloor() != b.getLastFloor() {
+		return true
+	}
+	if a.getLastDirection() != b.getLastDirection() {
+		return true
+	}
+	if a.getElevatorBehaviour() != b.getElevatorBehaviour() {
+		return true
+	}
+	return false
+}
+
 func fsmElevator(
 	ch_btn 				<-chan elevio.ButtonEvent,
 	ch_floor 			<-chan int,
@@ -274,7 +287,8 @@ func fsmElevator(
 	isAvailable := false
 	singleElevMode := true
 	errorTimer := time.Now().UnixMilli()
-	oldBehaviour := "Idle"
+	var oldLocalState localElevState
+	oldLocalState.initLocalElevState()
 
 	// Initiate elevator
 	myActiveOrders.initOrders()
@@ -459,9 +473,9 @@ func fsmElevator(
 		case singleBool := <-ch_singleElevMode:
 			singleElevMode = singleBool
 		case <-time.After(25 * time.Millisecond):
-			if myLocalState.getElevatorBehaviour() != oldBehaviour {
+			if checkChangeLocalStates(oldLocalState, myLocalState) {
 				errorTimer = time.Now().UnixMilli()
-				oldBehaviour = myLocalState.getElevatorBehaviour()
+				oldLocalState = myLocalState
 			}
 			if myActiveOrders.anyOrder() {
 				if time.Now().UnixMilli()-errorTimer > 7500 {

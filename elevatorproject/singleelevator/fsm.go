@@ -16,11 +16,11 @@ type ElevState struct {
 	IsAvailable bool
 }
 
-func (elev_state *ElevState) InitElevState() {
-	elev_state.Behaviour = "idle"
-	elev_state.Floor = 1
-	elev_state.Direction = "stop"
-	elev_state.IsAvailable = true
+func (elevState *ElevState) InitElevState() {
+	elevState.Behaviour = "idle"
+	elevState.Floor = 1
+	elevState.Direction = "stop"
+	elevState.IsAvailable = true
 }
 
 func stopAfterSensingFloor(floor int, state localElevState, orders activeOrders) bool {

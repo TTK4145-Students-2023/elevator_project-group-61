@@ -18,7 +18,6 @@ func RunSingleElevator(
 	ch_buttons := make(chan elevio.ButtonEvent)
 	ch_floors := make(chan int)
 	ch_door := make(chan int)
-	ch_error := make(chan int)
 
 	// Elevio
 	go elevio.PollButtons(ch_buttons)
@@ -26,14 +25,12 @@ func RunSingleElevator(
 
 	// Elevator timers
 	go elevatortimers.CheckDoorTimer(ch_door)
-	go elevatortimers.CheckErrorTimer(ch_error)
 
 	// Finite state machine
 	fsmElevator(
         ch_buttons, 
         ch_floors, 
         ch_door, 
-        ch_error, 
         ch_hallRequests, 
         ch_cabRequests, 
         ch_singleElevMode, 

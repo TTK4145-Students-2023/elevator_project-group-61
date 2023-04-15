@@ -4,6 +4,7 @@ import (
 	"elevatorproject/config"
 	"elevatorproject/singleelevator/elevatortimers"
 	"elevatorproject/singleelevator/elevio"
+	"time"
 )
 
 const nFloors int = config.NumFloors
@@ -256,26 +257,10 @@ func handleDoorClosing(state localElevState, orders activeOrders) (localElevStat
 	return state, orders, completedOrdersList
 }
 
-func changeInBehaviour(oldState ElevState, currentState localElevState) bool {
-	behaviour_translation := "idle"
-	switch currentState.getElevatorBehaviour() {
-	case Idle:
-		behaviour_translation = "idle"
-	case Moving:
-		behaviour_translation = "moving"
-	case DoorOpen:
-		behaviour_translation = "doorOpen"
-	default:
-		panic("Invalid elevator behaviour")
-	}
-	return oldState.Behaviour != behaviour_translation
-}
-
 func fsmElevator(
 	ch_btn 				<-chan elevio.ButtonEvent,
 	ch_floor 			<-chan int,
 	ch_door 			<-chan int,
-	ch_error            <-chan int,
 	ch_hallRequests     <-chan [nFloors][2]bool,
 	ch_cabRequests      <-chan [nFloors]bool,
 	ch_singleElevMode   <-chan bool,
@@ -288,6 +273,8 @@ func fsmElevator(
 	var myActiveOrders activeOrders
 	isAvailable := false
 	singleElevMode := true
+	errorTimer := time.Now().UnixMilli()
+	oldBehaviour := "Idle"
 
 	// Initiate elevator
 	myActiveOrders.initOrders()
@@ -301,7 +288,6 @@ func fsmElevator(
 		elevio.SetFloorIndicator(elevio.GetFloor())
 		isAvailable = true
 	}
-	elevatortimers.StartErrorTimer()
 	if diffElevStateStructs(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 		oldElevState = localStateToElevState(myLocalState, isAvailable)
 		ch_elevState <- oldElevState
@@ -348,22 +334,6 @@ func fsmElevator(
 					elevio.SetMotorDirection(myLocalState.getLastDirection())
 				}
 
-				// Error handling
-				if elevatortimers.GetErrorCounter() == -1 {
-					if myActiveOrders.anyOrder() && changeInBehaviour(oldElevState, myLocalState) {
-						elevatortimers.StartErrorTimer()
-						isAvailable = true
-					}
-				} else {
-					if !myActiveOrders.anyOrder() {
-						elevatortimers.StopErrorTimer()
-						isAvailable = true
-					} else if changeInBehaviour(oldElevState, myLocalState) {
-						elevatortimers.StartErrorTimer()
-						isAvailable = true
-					}
-				}
-
 				// Distribute state
 				if diffElevStateStructs(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 					oldElevState = localStateToElevState(myLocalState, isAvailable)
@@ -387,22 +357,6 @@ func fsmElevator(
 						myActiveOrders.setOrder(order.Floor, order.Button, false)
 					}
 					ch_completedRequest <- order
-				}
-			}
-
-			// Error handling
-			if elevatortimers.GetErrorCounter() == -1 {
-				if myActiveOrders.anyOrder() && changeInBehaviour(oldElevState, myLocalState) {
-					elevatortimers.StartErrorTimer()
-					isAvailable = true
-				}
-			} else {
-				if !myActiveOrders.anyOrder() {
-					elevatortimers.StopErrorTimer()
-					isAvailable = true
-				} else if changeInBehaviour(oldElevState, myLocalState) {
-					elevatortimers.StartErrorTimer()
-					isAvailable = true
 				}
 			}
 			
@@ -435,32 +389,11 @@ func fsmElevator(
 				}
 			}
 
-			// Error handling
-			if elevatortimers.GetErrorCounter() == -1 {
-				if myActiveOrders.anyOrder() && changeInBehaviour(oldElevState, myLocalState) {
-					elevatortimers.StartErrorTimer()
-					isAvailable = true
-				}
-			} else {
-				if !myActiveOrders.anyOrder() {
-					elevatortimers.StopErrorTimer()
-					isAvailable = true
-				} else if changeInBehaviour(oldElevState, myLocalState) {
-					elevatortimers.StartErrorTimer()
-					isAvailable = true
-				}
-			}
-
 			// Distribute state
 			if diffElevStateStructs(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 				oldElevState = localStateToElevState(myLocalState, isAvailable)
 				ch_elevState <- oldElevState
 			}
-
-		case <-ch_error:
-			isAvailable = false
-			oldElevState = localStateToElevState(myLocalState, isAvailable)
-			ch_elevState <- oldElevState
 
 		case hallRequests := <-ch_hallRequests:
 			var completedOrdersList []elevio.ButtonEvent
@@ -482,22 +415,6 @@ func fsmElevator(
 				}
 			} else if myLocalState.getElevatorBehaviour() == Moving && oldElevState.Direction == "stop" {
 				elevio.SetMotorDirection(myLocalState.getLastDirection())
-			}
-
-			// Error handling
-			if elevatortimers.GetErrorCounter() == -1 {
-				if myActiveOrders.anyOrder() && changeInBehaviour(oldElevState, myLocalState) {
-					elevatortimers.StartErrorTimer()
-					isAvailable = true
-				}
-			} else {
-				if !myActiveOrders.anyOrder() {
-					elevatortimers.StopErrorTimer()
-					isAvailable = true
-				} else if changeInBehaviour(oldElevState, myLocalState) {
-					elevatortimers.StartErrorTimer()
-					isAvailable = true
-				}
 			}
 			
 			// Distribute state
@@ -533,22 +450,6 @@ func fsmElevator(
 				elevio.SetMotorDirection(myLocalState.getLastDirection())
 			}
 
-			// Error handling
-			if elevatortimers.GetErrorCounter() == -1 {
-				if myActiveOrders.anyOrder() && changeInBehaviour(oldElevState, myLocalState) {
-					elevatortimers.StartErrorTimer()
-					isAvailable = true
-				}
-			} else {
-				if !myActiveOrders.anyOrder() {
-					elevatortimers.StopErrorTimer()
-					isAvailable = true
-				} else if changeInBehaviour(oldElevState, myLocalState) {
-					elevatortimers.StartErrorTimer()
-					isAvailable = true
-				}
-			}
-			
 			// Distribute state
 			if diffElevStateStructs(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 				oldElevState = localStateToElevState(myLocalState, isAvailable)
@@ -557,6 +458,24 @@ func fsmElevator(
 		
 		case singleBool := <-ch_singleElevMode:
 			singleElevMode = singleBool
+		case <-time.After(25 * time.Millisecond):
+			if myLocalState.getElevatorBehaviour() != oldBehaviour {
+				errorTimer = time.Now().UnixMilli()
+				oldBehaviour = myLocalState.getElevatorBehaviour()
+			}
+			if myActiveOrders.anyOrder() {
+				if time.Now().UnixMilli()-errorTimer > 7500 {
+					isAvailable = false
+				} else {
+					isAvailable = true
+				}
+			} else {
+				isAvailable = true
+			}
+			if diffElevStateStructs(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
+				oldElevState = localStateToElevState(myLocalState, isAvailable)
+				ch_elevState <- oldElevState
+			}
 		}
 	}
 }

@@ -6,9 +6,14 @@ import (
     "elevatorproject/singleelevator/elevio"
 )
 
-// Har bare lagt til alt som trengs for spam
-
-func RunSingleElevator(ch_hallRequests chan [config.NumFloors][2]bool, ch_cabRequests chan [config.NumFloors]bool, ch_completedRequest chan elevio.ButtonEvent, ch_newRequest chan elevio.ButtonEvent, ch_elevState chan ElevState, ch_singleElevMode chan bool) {
+func RunSingleElevator(
+    ch_hallRequests     <-chan [config.NumFloors][2]bool, 
+    ch_cabRequests      <-chan [config.NumFloors]bool, 
+    ch_singleElevMode   <-chan bool,
+    ch_completedRequest chan<- elevio.ButtonEvent, 
+    ch_newRequest       chan<- elevio.ButtonEvent, 
+    ch_elevState        chan<- ElevState, 
+) {
     // Channels    
     ch_buttons := make(chan elevio.ButtonEvent)
     ch_floors  := make(chan int)   

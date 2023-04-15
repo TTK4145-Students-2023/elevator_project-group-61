@@ -299,9 +299,9 @@ func fsmElevator(
 	} else {
 		myLocalState.setLastFloor(elevio.GetFloor())
 		elevio.SetFloorIndicator(elevio.GetFloor())
-		elevatortimers.StartErrorTimer()
 		isAvailable = true
 	}
+	elevatortimers.StartErrorTimer()
 	if diffElevStateStructs(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 		oldElevState = localStateToElevState(myLocalState, isAvailable)
 		ch_elevState <- oldElevState

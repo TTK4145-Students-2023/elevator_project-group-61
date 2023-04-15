@@ -34,12 +34,14 @@ func main() {
 
 	//worldview
 	ch_myWorldView := make(chan worldview.MyWorldView)
-	ch_hallLamps := make(chan [config.NumFloors][2]bool)
-	ch_cabLamps := make(chan [config.NumFloors]bool)
 	ch_remoteRequestView := make(chan peerview.RemoteRequestViews)
 	ch_singleElevMode := make(chan bool)
 
-	// hra
+	// peerview
+	ch_hallLamps := make(chan [config.NumFloors][2]bool)
+	ch_cabLamps := make(chan [config.NumFloors]bool)
+
+	// requestassigner
 	ch_hallRequests := make(chan [config.NumFloors][2]bool)
 	ch_cabRequests := make(chan [config.NumFloors]bool)
 

@@ -31,10 +31,9 @@ func copyMyWorldView(myWorldView MyWorldView) MyWorldView {
 	return copyWorldView
 }
 
-// Function that returns false if nodeID (input) is not in peersALive
-func (peersAlive PeersAlive) IsPeerAlive(nodeID string) bool {
+func (peersAlive PeersAlive) isPeerAlive(peerID string) bool {
 	for _, peer := range peersAlive {
-		if peer == nodeID {
+		if peer == peerID {
 			return true
 		}
 	}
@@ -55,21 +54,20 @@ func (myWorldView *MyWorldView) initMyWorldView(localID string) {
 	myWorldView.CabRequests[localID] = [config.NumFloors]peerview.RequestState{}
 }
 
-func WorldView(ch_receiveNodeView <-chan peerview.MyPeerView,
+func WorldView(ch_receivePeerView <-chan peerview.MyPeerView,
 	ch_receivePeerUpdate <-chan peers.PeerUpdate,
-	ch_remoteRequestView chan<- peerview.RemoteRequestView,
+	ch_remoteRequestView chan<- peerview.RemoteRequestViews,
 	ch_hraInput chan<- MyWorldView,
 	ch_singleElevMode chan<- bool,
 	localID string) {
 
 	var myWorldView MyWorldView
 	var peersAlive PeersAlive
-	var remoteRequestView peerview.RemoteRequestView
+	var remoteRequestView peerview.RemoteRequestViews
 	var isSingleElevMode bool
 
 	myWorldView.initMyWorldView(localID)
-	remoteRequestView.InitRemoteRequestView()
-	fmt.Println(" ")
+	remoteRequestView.InitRemoteRequestViews()
 
 	for {
 		select {
@@ -83,7 +81,6 @@ func WorldView(ch_receiveNodeView <-chan peerview.MyPeerView,
 			peersLost := peerUpdate.Lost
 
 			for _, lostPeer := range peersLost {
-				// If this node can be found in lostPeer, we should delete it from the systemAwareness
 				if lostPeer != localID {
 					delete(myWorldView.ElevStates, lostPeer)
 					delete(myWorldView.CabRequests, lostPeer)
@@ -92,39 +89,37 @@ func WorldView(ch_receiveNodeView <-chan peerview.MyPeerView,
 					delete(remoteRequestView.RemoteCabRequestViews, lostPeer)
 				}
 			}
-			//TODO: Må undersøke om denne checken er nok, og undersøke om ch_isSingleElevMode kan
-			// tas i bruk av nodeview.
+			
 			if len(peersAlive) <= 1 {
 				ch_singleElevMode <- true
 				isSingleElevMode = true
 				ch_hraInput <- copyMyWorldView(myWorldView)
-				ch_remoteRequestView <- peerview.CopyRemoteRequestView(remoteRequestView)
+				ch_remoteRequestView <- peerview.CopyRemoteRequestViews(remoteRequestView)
+
 			} else {
 				ch_singleElevMode <- false
 				isSingleElevMode = false
 			}
-		case nodeView := <-ch_receiveNodeView:
-			//fmt.Println("worldview: nodeView")
-			fmt.Println("Received from ", nodeView.ID)
+		case peerView := <-ch_receivePeerView:
+			peerID := peerView.ID
 
-			nodeID := nodeView.ID
-
-			// Break out of case if IsPeerAlive returns false
-			if !peersAlive.IsPeerAlive(nodeID) && localID != nodeID {
+			if !peersAlive.isPeerAlive(peerID) && localID != peerID {
 				break
 			}
 
-			myWorldView.ElevStates[nodeID] = nodeView.ElevState
-			myWorldView.CabRequests[nodeID] = nodeView.CabRequests[nodeID]
+			myWorldView.ElevStates[peerID] = peerView.ElevState
+			myWorldView.CabRequests[peerID] = peerView.CabRequests[peerID]
 
-			if nodeID != localID {
-				remoteRequestView.RemoteHallRequestViews[nodeID] = nodeView.HallRequests
-				remoteRequestView.RemoteCabRequestViews[nodeID] = nodeView.CabRequests
+			if peerID != localID {
+				remoteRequestView.RemoteHallRequestViews[peerID] = peerView.HallRequests
+				remoteRequestView.RemoteCabRequestViews[peerID] = peerView.CabRequests
+
 			} else {
-				myWorldView.HallRequestView = nodeView.HallRequests
+				myWorldView.HallRequestView = peerView.HallRequests
 			}
 
-			ch_remoteRequestView <- peerview.CopyRemoteRequestView(remoteRequestView)
+			ch_remoteRequestView <- peerview.CopyRemoteRequestViews(remoteRequestView)
+
 			if !isSingleElevMode {
 				ch_hraInput <- copyMyWorldView(myWorldView)
 			}

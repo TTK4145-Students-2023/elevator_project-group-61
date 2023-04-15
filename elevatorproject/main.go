@@ -43,7 +43,7 @@ func main() {
 	ch_hraInput := make(chan worldview.MyWorldView)
 	ch_hallLamps := make(chan [config.NumFloors][2]bool)
 	ch_cabLamps := make(chan [config.NumFloors]bool)
-	ch_remoteRequestView := make(chan peerview.RemoteRequestView)
+	ch_remoteRequestView := make(chan peerview.RemoteRequestViews)
 	ch_singleElevMode := make(chan bool)
 
 	// hra
@@ -70,7 +70,7 @@ func main() {
 	go singleelevator.LampStateMachine(ch_hallLamps, ch_cabLamps)
 
 	fmt.Println("Starter opp singleelevator")
-	go singleelevator.RunSingleElevator(ch_hallRequests, ch_cabRequests, ch_completedRequest, ch_newRequest, ch_elevState, ch_singleElevMode)
+	go singleelevator.RunSingleElevator(ch_hallRequests, ch_cabRequests, ch_singleElevMode, ch_completedRequest, ch_newRequest, ch_elevState)
 
 	for {
 		select {

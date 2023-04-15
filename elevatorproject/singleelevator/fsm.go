@@ -67,14 +67,12 @@ func localStateToElevState(state localElevState, isAvailable bool) ElevState {
 		Direction:   "stop",
 		IsAvailable: true}
 
-	// Floor
 	if state.getLastFloor() == -1 {
 		elevState.Floor = nFloors / 2
 	} else {
 		elevState.Floor = state.getLastFloor()
 	}
 
-	// Direction
 	switch state.getLastDirection() {
 	case elevio.MD_Up:
 		elevState.Direction = "up"
@@ -82,21 +80,19 @@ func localStateToElevState(state localElevState, isAvailable bool) ElevState {
 		elevState.Direction = "down"
 	}
 
-	// Behaviour
 	switch state.getElevatorBehaviour() {
-	case "Idle":
+	case Idle:
 		elevState.Behaviour = "idle"
 		elevState.Direction = "stop"
-	case "Moving":
+	case Moving:
 		elevState.Behaviour = "moving"
-	case "DoorOpen":
+	case DoorOpen:
 		elevState.Behaviour = "doorOpen"
 		elevState.Direction = "stop"
 	default:
 		panic("Invalid elevator behaviour")
 	}
 
-	// isAvailable
 	elevState.IsAvailable = isAvailable
 
 	return elevState
@@ -126,7 +122,7 @@ func handleFloorSensor(
 	completedOrdersList := make([]elevio.ButtonEvent, 0)
 
 	if stopAfterSensingFloor(floor, state, orders) {
-		state.setElevatorBehaviour("DoorOpen")
+		state.setElevatorBehaviour(DoorOpen)
 		if orders.getSpecificOrder(floor, elevio.BT_Cab) {
 			completedOrdersList = append(completedOrdersList, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab})
 		}
@@ -194,25 +190,25 @@ func handleNewRequests(
 		}
 		if orderInThisFloor {
 			if cabThisFloor {
-				state.setElevatorBehaviour("DoorOpen")
+				state.setElevatorBehaviour(DoorOpen)
 				completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_Cab})
 			}
 			if (upThisFloor && state.getLastDirection() == elevio.MD_Up) ||
 				(upThisFloor && !downThisFloor && !orders.anyOrderPastFloorInDir(state.getLastFloor(), elevio.MD_Down)) ||
 				(state.getLastFloor() == 0 && upThisFloor) {
-				state.setElevatorBehaviour("DoorOpen")
+				state.setElevatorBehaviour(DoorOpen)
 				completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_HallUp})
 			}
 			if (downThisFloor && state.getLastDirection() == elevio.MD_Down) ||
 				(downThisFloor && !upThisFloor && !orders.anyOrderPastFloorInDir(state.getLastFloor(), elevio.MD_Up)) ||
 				(state.getLastFloor() == nFloors-1 && downThisFloor) {
-				state.setElevatorBehaviour("DoorOpen")
+				state.setElevatorBehaviour(DoorOpen)
 				completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_HallDown})
 			}
 
 		}
-		if !orderInThisFloor || state.getElevatorBehaviour() != "DoorOpen" {
-			state.setElevatorBehaviour("Moving")
+		if !orderInThisFloor || state.getElevatorBehaviour() != DoorOpen {
+			state.setElevatorBehaviour(Moving)
 			if (state.getLastDirection() == elevio.MD_Up && orders_above) || !orders_below {
 				state.setDirection(elevio.MD_Up)
 			} else if (state.getLastDirection() == elevio.MD_Down && orders_below) || !orders_above {
@@ -229,7 +225,7 @@ func handleDoorClosing(state localElevState, orders activeOrders) (localElevStat
 	completedOrdersList := make([]elevio.ButtonEvent, 0)
 
 	if !orders.anyOrder() {
-		state.setElevatorBehaviour("Idle")
+		state.setElevatorBehaviour(Idle)
 		return state, orders, completedOrdersList
 	}
 	if orders.getSpecificOrder(state.getLastFloor(), dirToBtnType(state.getLastDirection())) {
@@ -247,7 +243,7 @@ func handleDoorClosing(state localElevState, orders activeOrders) (localElevStat
 		}
 		return state, orders, completedOrdersList
 	}
-	state.setElevatorBehaviour("Moving")
+	state.setElevatorBehaviour(Moving)
 	ordersUpBool := orders.anyOrderPastFloorInDir(state.getLastFloor(), elevio.MD_Up)
 	ordersDownBool := orders.anyOrderPastFloorInDir(state.getLastFloor(), elevio.MD_Down)
 	if (state.getLastDirection() == elevio.MD_Up && ordersUpBool) || !ordersDownBool {
@@ -263,11 +259,11 @@ func handleDoorClosing(state localElevState, orders activeOrders) (localElevStat
 func changeInBehaviour(oldState ElevState, currentState localElevState) bool {
 	behaviour_translation := "idle"
 	switch currentState.getElevatorBehaviour() {
-	case "Idle":
+	case Idle:
 		behaviour_translation = "idle"
-	case "Moving":
+	case Moving:
 		behaviour_translation = "moving"
-	case "DoorOpen":
+	case DoorOpen:
 		behaviour_translation = "doorOpen"
 	default:
 		panic("Invalid elevator behaviour")
@@ -298,7 +294,7 @@ func fsmElevator(
 	myLocalState.initLocalElevState()
 	var oldElevState ElevState = localStateToElevState(myLocalState, isAvailable)
 	if elevio.GetFloor() == -1 {
-		myLocalState.setElevatorBehaviour("Moving")
+		myLocalState.setElevatorBehaviour(Moving)
 		elevio.SetMotorDirection(elevio.MD_Up)
 	} else {
 		myLocalState.setLastFloor(elevio.GetFloor())
@@ -340,14 +336,14 @@ func fsmElevator(
 																						myLocalState, 
 																						myActiveOrders,
 																					)
-				if myLocalState.getElevatorBehaviour() == "DoorOpen" {
+				if myLocalState.getElevatorBehaviour() == DoorOpen {
 					elevio.SetDoorOpenLamp(true)
 					elevatortimers.StartDoorTimer()
 					for _, order := range completedOrdersList {
 						myActiveOrders.setOrder(order.Floor, order.Button, false)
 						ch_completedRequest <- order
 					}
-				} else if myLocalState.getElevatorBehaviour() == "Moving" && oldElevState.Direction == "stop" {
+				} else if myLocalState.getElevatorBehaviour() == Moving && oldElevState.Direction == "stop" {
 					elevio.SetMotorDirection(myLocalState.getLastDirection())
 				}
 
@@ -381,7 +377,7 @@ func fsmElevator(
 			elevio.SetFloorIndicator(floor)
 			var completedOrdersList []elevio.ButtonEvent
 			myLocalState, myActiveOrders, completedOrdersList = handleFloorSensor(floor, myLocalState, myActiveOrders)
-			if myLocalState.getElevatorBehaviour() == "DoorOpen" {
+			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				elevio.SetDoorOpenLamp(true)
 				elevatortimers.StartDoorTimer()
@@ -422,7 +418,7 @@ func fsmElevator(
 			}
 			var completedOrdersList []elevio.ButtonEvent
 			myLocalState, myActiveOrders, completedOrdersList = handleDoorClosing(myLocalState, myActiveOrders)
-			if myLocalState.getElevatorBehaviour() == "DoorOpen" {
+			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetDoorOpenLamp(true)
 				elevatortimers.StartDoorTimer()
 				for _, order := range completedOrdersList {
@@ -433,7 +429,7 @@ func fsmElevator(
 				}
 			} else {
 				elevio.SetDoorOpenLamp(false)
-				if myLocalState.getElevatorBehaviour() == "Moving" {
+				if myLocalState.getElevatorBehaviour() == Moving {
 					elevio.SetMotorDirection(myLocalState.getLastDirection())
 				}
 			}
@@ -474,7 +470,7 @@ func fsmElevator(
 																					myLocalState, 
 																					myActiveOrders,
 																				)
-			if myLocalState.getElevatorBehaviour() == "DoorOpen" {
+			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetDoorOpenLamp(true)
 				elevatortimers.StartDoorTimer()
 				for _, order := range completedOrdersList {
@@ -483,7 +479,7 @@ func fsmElevator(
 					}
 					ch_completedRequest <- order
 				}
-			} else if myLocalState.getElevatorBehaviour() == "Moving" && oldElevState.Direction == "stop" {
+			} else if myLocalState.getElevatorBehaviour() == Moving && oldElevState.Direction == "stop" {
 				elevio.SetMotorDirection(myLocalState.getLastDirection())
 			}
 
@@ -523,7 +519,7 @@ func fsmElevator(
 																					myLocalState, 
 																					myActiveOrders,
 																				)
-			if myLocalState.getElevatorBehaviour() == "DoorOpen" {
+			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetDoorOpenLamp(true)
 				elevatortimers.StartDoorTimer()
 				for _, order := range completedOrdersList {
@@ -532,7 +528,7 @@ func fsmElevator(
 					}
 					ch_completedRequest <- order
 				}
-			} else if myLocalState.getElevatorBehaviour() == "Moving" && oldElevState.Direction == "stop" {
+			} else if myLocalState.getElevatorBehaviour() == Moving && oldElevState.Direction == "stop" {
 				elevio.SetMotorDirection(myLocalState.getLastDirection())
 			}
 

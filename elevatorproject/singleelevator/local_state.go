@@ -1,8 +1,7 @@
 package singleelevator
 
-import (
-	"elevatorproject/singleelevator/elevio"
-)
+import "elevatorproject/singleelevator/elevio"
+
 
 const (
 	Idle     = "Idle"

@@ -7,10 +7,9 @@ import (
 	"fmt"
 )
 
-// Constants
-const n_floors int = config.NumFloors
+const nFloors int = config.NumFloors
 
-// Helper structs
+// Struct to distribute elevator state to other modules
 type ElevState struct {
 	Behaviour   string
 	Floor       int
@@ -26,7 +25,7 @@ func (elev_state *ElevState) InitElevState() {
 }
 
 func stopAfterSensingFloor(floor int, elev_states localElevState, active_orders activeOrders) bool {
-	if floor == 0 || floor == n_floors-1 {
+	if floor == 0 || floor == nFloors-1 {
 		return true
 	}
 	if !active_orders.anyOrder() {
@@ -35,7 +34,7 @@ func stopAfterSensingFloor(floor int, elev_states localElevState, active_orders 
 	if active_orders.getSpecificOrder(floor, elevio.BT_Cab) {
 		return true
 	}
-	switch elev_states.GetLastDirection() {
+	switch elev_states.getLastDirection() {
 	case elevio.MD_Up:
 		if active_orders.getSpecificOrder(floor, elevio.BT_HallUp) || !active_orders.anyOrderPastFloorInDir(floor, elevio.MD_Up) {
 			return true
@@ -68,14 +67,14 @@ func localStateToElevState(states localElevState, isAvailable bool) ElevState {
 		IsAvailable: true}
 
 	// Floor
-	if states.GetLastFloor() == -1 {
-		hra_states.Floor = n_floors / 2
+	if states.getLastFloor() == -1 {
+		hra_states.Floor = nFloors / 2
 	} else {
-		hra_states.Floor = states.GetLastFloor()
+		hra_states.Floor = states.getLastFloor()
 	}
 
 	// Direction
-	switch states.GetLastDirection() {
+	switch states.getLastDirection() {
 	case elevio.MD_Up:
 		hra_states.Direction = "up"
 	case elevio.MD_Down:
@@ -83,7 +82,7 @@ func localStateToElevState(states localElevState, isAvailable bool) ElevState {
 	}
 
 	// Behaviour
-	switch states.GetElevatorBehaviour() {
+	switch states.getElevatorBehaviour() {
 	case "Idle":
 		hra_states.Behaviour = "idle"
 		hra_states.Direction = "stop"
@@ -114,22 +113,22 @@ func diffElevStateStructs(a ElevState, b ElevState) bool {
 
 // Functions for handling events
 func handleFloorSensor(floor int, elev_states localElevState, active_orders activeOrders) (localElevState, activeOrders, []elevio.ButtonEvent) {
-	elev_states.SetLastFloor(floor)
+	elev_states.setLastFloor(floor)
 
 	remove_orders_list := make([]elevio.ButtonEvent, 0)
 
 	if stopAfterSensingFloor(floor, elev_states, active_orders) {
-		elev_states.SetElevatorBehaviour("DoorOpen")
+		elev_states.setElevatorBehaviour("DoorOpen")
 		if active_orders.getSpecificOrder(floor, elevio.BT_Cab) {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab})
 		}
-		if active_orders.getSpecificOrder(floor, dirToBtnType(elev_states.GetLastDirection())) {
-			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: dirToBtnType(elev_states.GetLastDirection())})
+		if active_orders.getSpecificOrder(floor, dirToBtnType(elev_states.getLastDirection())) {
+			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: dirToBtnType(elev_states.getLastDirection())})
 		}
 		if floor == 0 && active_orders.getSpecificOrder(floor, elevio.BT_HallUp) {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallUp})
 		}
-		if floor == n_floors-1 && active_orders.getSpecificOrder(floor, elevio.BT_HallDown) {
+		if floor == nFloors-1 && active_orders.getSpecificOrder(floor, elevio.BT_HallDown) {
 			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallDown})
 		}
 	}
@@ -139,12 +138,12 @@ func handleFloorSensor(floor int, elev_states localElevState, active_orders acti
 func handleNewRequests(hra [config.NumFloors][2]bool, cab_call [config.NumFloors]bool, hra_or_cab string, elev_states localElevState, active_orders activeOrders) (localElevState, activeOrders, []elevio.ButtonEvent) {
 	if hra_or_cab == "cab" {
 		// If cab orders
-		for i := 0; i < n_floors; i++ {
+		for i := 0; i < nFloors; i++ {
 			active_orders.setOrder(i, elevio.BT_Cab, cab_call[i])
 		}
 	} else if hra_or_cab == "hra" {
 		// If HRA orders
-		for i := 0; i < n_floors; i++ {
+		for i := 0; i < nFloors; i++ {
 			active_orders.setOrder(i, elevio.BT_HallUp, hra[i][0]) // First columns is up, second is down
 			active_orders.setOrder(i, elevio.BT_HallDown, hra[i][1])
 		}
@@ -153,54 +152,54 @@ func handleNewRequests(hra [config.NumFloors][2]bool, cab_call [config.NumFloors
 	}
 	remove_orders_list := make([]elevio.ButtonEvent, 0)
 
-	switch elev_states.GetElevatorBehaviour() {
+	switch elev_states.getElevatorBehaviour() {
 	case Moving:
 	case DoorOpen:
-		up_this_floor, down_this_floor, cab_this_floor := active_orders.getOrdersInFloor(elev_states.GetLastFloor())
+		up_this_floor, down_this_floor, cab_this_floor := active_orders.getOrdersInFloor(elev_states.getLastFloor())
 		if cab_this_floor {
-			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_Cab})
+			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.getLastFloor(), Button: elevio.BT_Cab})
 		}
-		if (up_this_floor && elev_states.GetLastDirection() == elevio.MD_Up) ||
-			(elev_states.GetLastFloor() == 0 && up_this_floor) {
-			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallUp})
+		if (up_this_floor && elev_states.getLastDirection() == elevio.MD_Up) ||
+			(elev_states.getLastFloor() == 0 && up_this_floor) {
+			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.getLastFloor(), Button: elevio.BT_HallUp})
 		}
-		if (down_this_floor && elev_states.GetLastDirection() == elevio.MD_Down) ||
-			(elev_states.GetLastFloor() == n_floors-1 && down_this_floor) {
-			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallDown})
+		if (down_this_floor && elev_states.getLastDirection() == elevio.MD_Down) ||
+			(elev_states.getLastFloor() == nFloors-1 && down_this_floor) {
+			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.getLastFloor(), Button: elevio.BT_HallDown})
 		}
 	case Idle:
-		up_this_floor, down_this_floor, cab_this_floor := active_orders.getOrdersInFloor(elev_states.GetLastFloor())
+		up_this_floor, down_this_floor, cab_this_floor := active_orders.getOrdersInFloor(elev_states.getLastFloor())
 		order_in_this_floor := up_this_floor || down_this_floor || cab_this_floor
-		orders_above := active_orders.anyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)
-		orders_below := active_orders.anyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)
+		orders_above := active_orders.anyOrderPastFloorInDir(elev_states.getLastFloor(), elevio.MD_Up)
+		orders_below := active_orders.anyOrderPastFloorInDir(elev_states.getLastFloor(), elevio.MD_Down)
 		if !active_orders.anyOrder() {
 			break
 		} else {
 			if order_in_this_floor {
 				if cab_this_floor {
-					elev_states.SetElevatorBehaviour("DoorOpen")
-					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_Cab})
+					elev_states.setElevatorBehaviour("DoorOpen")
+					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.getLastFloor(), Button: elevio.BT_Cab})
 				}
-				if (up_this_floor && elev_states.GetLastDirection() == elevio.MD_Up) ||
-					(up_this_floor && !down_this_floor && !active_orders.anyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)) ||
-					(elev_states.GetLastFloor() == 0 && up_this_floor) {
-					elev_states.SetElevatorBehaviour("DoorOpen")
-					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallUp})
+				if (up_this_floor && elev_states.getLastDirection() == elevio.MD_Up) ||
+					(up_this_floor && !down_this_floor && !active_orders.anyOrderPastFloorInDir(elev_states.getLastFloor(), elevio.MD_Down)) ||
+					(elev_states.getLastFloor() == 0 && up_this_floor) {
+					elev_states.setElevatorBehaviour("DoorOpen")
+					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.getLastFloor(), Button: elevio.BT_HallUp})
 				}
-				if (down_this_floor && elev_states.GetLastDirection() == elevio.MD_Down) ||
-					(down_this_floor && !up_this_floor && !active_orders.anyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)) ||
-					(elev_states.GetLastFloor() == n_floors-1 && down_this_floor) {
-					elev_states.SetElevatorBehaviour("DoorOpen")
-					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallDown})
+				if (down_this_floor && elev_states.getLastDirection() == elevio.MD_Down) ||
+					(down_this_floor && !up_this_floor && !active_orders.anyOrderPastFloorInDir(elev_states.getLastFloor(), elevio.MD_Up)) ||
+					(elev_states.getLastFloor() == nFloors-1 && down_this_floor) {
+					elev_states.setElevatorBehaviour("DoorOpen")
+					remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.getLastFloor(), Button: elevio.BT_HallDown})
 				}
 
 			}
-			if !order_in_this_floor || elev_states.GetElevatorBehaviour() != "DoorOpen" {
-				elev_states.SetElevatorBehaviour("Moving")
-				if (elev_states.GetLastDirection() == elevio.MD_Up && orders_above) || !orders_below {
-					elev_states.SetDirection(elevio.MD_Up)
-				} else if (elev_states.GetLastDirection() == elevio.MD_Down && orders_below) || !orders_above {
-					elev_states.SetDirection(elevio.MD_Down)
+			if !order_in_this_floor || elev_states.getElevatorBehaviour() != "DoorOpen" {
+				elev_states.setElevatorBehaviour("Moving")
+				if (elev_states.getLastDirection() == elevio.MD_Up && orders_above) || !orders_below {
+					elev_states.setDirection(elevio.MD_Up)
+				} else if (elev_states.getLastDirection() == elevio.MD_Down && orders_below) || !orders_above {
+					elev_states.setDirection(elevio.MD_Down)
 				} else {
 					panic("HandleNewRequests: No direction set")
 				}
@@ -214,31 +213,31 @@ func handleDoorClosing(elev_states localElevState, active_orders activeOrders) (
 	remove_orders_list := make([]elevio.ButtonEvent, 0)
 
 	if !active_orders.anyOrder() {
-		elev_states.SetElevatorBehaviour("Idle")
+		elev_states.setElevatorBehaviour("Idle")
 		return elev_states, active_orders, remove_orders_list
 	}
-	if active_orders.getSpecificOrder(elev_states.GetLastFloor(), dirToBtnType(elev_states.GetLastDirection())) {
-		if elev_states.GetLastDirection() == elevio.MD_Up {
-			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallUp})
+	if active_orders.getSpecificOrder(elev_states.getLastFloor(), dirToBtnType(elev_states.getLastDirection())) {
+		if elev_states.getLastDirection() == elevio.MD_Up {
+			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.getLastFloor(), Button: elevio.BT_HallUp})
 		} else {
-			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallDown})
+			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.getLastFloor(), Button: elevio.BT_HallDown})
 		}
 		return elev_states, active_orders, remove_orders_list
-	} else if active_orders.orderInFloor(elev_states.GetLastFloor()) && !active_orders.anyOrderPastFloorInDir(elev_states.GetLastFloor(), elev_states.GetLastDirection()) {
-		if elev_states.GetLastDirection() == elevio.MD_Up {
-			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallDown})
+	} else if active_orders.orderInFloor(elev_states.getLastFloor()) && !active_orders.anyOrderPastFloorInDir(elev_states.getLastFloor(), elev_states.getLastDirection()) {
+		if elev_states.getLastDirection() == elevio.MD_Up {
+			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.getLastFloor(), Button: elevio.BT_HallDown})
 		} else {
-			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.GetLastFloor(), Button: elevio.BT_HallUp})
+			remove_orders_list = append(remove_orders_list, elevio.ButtonEvent{Floor: elev_states.getLastFloor(), Button: elevio.BT_HallUp})
 		}
 		return elev_states, active_orders, remove_orders_list
 	}
-	elev_states.SetElevatorBehaviour("Moving")
-	orders_up_bool := active_orders.anyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Up)
-	orders_down_bool := active_orders.anyOrderPastFloorInDir(elev_states.GetLastFloor(), elevio.MD_Down)
-	if (elev_states.GetLastDirection() == elevio.MD_Up && orders_up_bool) || !orders_down_bool {
-		elev_states.SetDirection(elevio.MD_Up)
-	} else if (elev_states.GetLastDirection() == elevio.MD_Down && orders_down_bool) || !orders_up_bool {
-		elev_states.SetDirection(elevio.MD_Down)
+	elev_states.setElevatorBehaviour("Moving")
+	orders_up_bool := active_orders.anyOrderPastFloorInDir(elev_states.getLastFloor(), elevio.MD_Up)
+	orders_down_bool := active_orders.anyOrderPastFloorInDir(elev_states.getLastFloor(), elevio.MD_Down)
+	if (elev_states.getLastDirection() == elevio.MD_Up && orders_up_bool) || !orders_down_bool {
+		elev_states.setDirection(elevio.MD_Up)
+	} else if (elev_states.getLastDirection() == elevio.MD_Down && orders_down_bool) || !orders_up_bool {
+		elev_states.setDirection(elevio.MD_Down)
 	} else {
 		panic("HandleDoorClosing: No direction set")
 	}
@@ -247,7 +246,7 @@ func handleDoorClosing(elev_states localElevState, active_orders activeOrders) (
 
 func changeInBehaviour(oldState ElevState, currentState localElevState) bool {
 	behaviour_translation := "idle"
-	switch currentState.GetElevatorBehaviour() {
+	switch currentState.getElevatorBehaviour() {
 	case "Idle":
 		behaviour_translation = "idle"
 	case "Moving":
@@ -295,13 +294,13 @@ func Fsm_elevator(
 
 	// Initiate elevator
 	activeOrders.initOrders()
-	elevState.InitLocalElevState()
+	elevState.initLocalElevState()
 	var oldElevInfo ElevState = localStateToElevState(elevState, isAvailable)
 	if elevio.GetFloor() == -1 {
-		elevState.SetElevatorBehaviour("Moving")
+		elevState.setElevatorBehaviour("Moving")
 		elevio.SetMotorDirection(elevio.MD_Up)
 	} else {
-		elevState.SetLastFloor(elevio.GetFloor())
+		elevState.setLastFloor(elevio.GetFloor())
 		elevio.SetFloorIndicator(elevio.GetFloor())
 		isAvailable = true
 	}
@@ -318,7 +317,7 @@ func Fsm_elevator(
 			var remove_orders_list []elevio.ButtonEvent
 			empty_cab_list := [config.NumFloors]bool{false, false, false, false}
 			elevState, activeOrders, remove_orders_list = handleNewRequests(hra, empty_cab_list, "hra", elevState, activeOrders)
-			if elevState.GetElevatorBehaviour() == "DoorOpen" {
+			if elevState.getElevatorBehaviour() == "DoorOpen" {
 				elevio.SetDoorOpenLamp(true)
 				elevator_timers.StartDoorTimer()
 				for _, v := range remove_orders_list {
@@ -327,8 +326,8 @@ func Fsm_elevator(
 					}
 					ch_completed_request <- v
 				}
-			} else if elevState.GetElevatorBehaviour() == "Moving" && oldElevInfo.Direction == "stop" { // Vil dette forårsake "hakkete" oppførsel? Må sjekkes. (Endret til å sjekke oldElevInfo)
-				elevio.SetMotorDirection(elevState.GetLastDirection())
+			} else if elevState.getElevatorBehaviour() == "Moving" && oldElevInfo.Direction == "stop" { // Vil dette forårsake "hakkete" oppførsel? Må sjekkes. (Endret til å sjekke oldElevInfo)
+				elevio.SetMotorDirection(elevState.getLastDirection())
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
 			// Error handling start
@@ -361,7 +360,7 @@ func Fsm_elevator(
 			elevio.SetFloorIndicator(floor)
 			var remove_orders_list []elevio.ButtonEvent
 			elevState, activeOrders, remove_orders_list = handleFloorSensor(floor, elevState, activeOrders)
-			if elevState.GetElevatorBehaviour() == "DoorOpen" {
+			if elevState.getElevatorBehaviour() == "DoorOpen" {
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				elevio.SetDoorOpenLamp(true)
 				elevator_timers.StartDoorTimer()
@@ -407,7 +406,7 @@ func Fsm_elevator(
 			}
 			var remove_orders_list []elevio.ButtonEvent
 			elevState, activeOrders, remove_orders_list = handleDoorClosing(elevState, activeOrders)
-			if elevState.GetElevatorBehaviour() == "DoorOpen" {
+			if elevState.getElevatorBehaviour() == "DoorOpen" {
 				elevio.SetDoorOpenLamp(true)
 				elevator_timers.StartDoorTimer()
 				for _, v := range remove_orders_list {
@@ -418,8 +417,8 @@ func Fsm_elevator(
 				}
 			} else {
 				elevio.SetDoorOpenLamp(false)
-				if elevState.GetElevatorBehaviour() == "Moving" {
-					elevio.SetMotorDirection(elevState.GetLastDirection())
+				if elevState.getElevatorBehaviour() == "Moving" {
+					elevio.SetMotorDirection(elevState.getLastDirection())
 				}
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
@@ -466,15 +465,15 @@ func Fsm_elevator(
 				}
 				var remove_orders_list []elevio.ButtonEvent
 				elevState, activeOrders, remove_orders_list = handleNewRequests(hall_req_list, cab_req_list, cab_or_hra, elevState, activeOrders)
-				if elevState.GetElevatorBehaviour() == "DoorOpen" {
+				if elevState.getElevatorBehaviour() == "DoorOpen" {
 					elevio.SetDoorOpenLamp(true)
 					elevator_timers.StartDoorTimer()
 					for _, v := range remove_orders_list {
 						activeOrders.setOrder(v.Floor, v.Button, false)
 						ch_completed_request <- v
 					}
-				} else if elevState.GetElevatorBehaviour() == "Moving" && oldElevInfo.Direction == "stop" { // Vil dette forårsake "hakkete" oppførsel? Må sjekkes. (Endret til å sjekke oldElevInfo)
-					elevio.SetMotorDirection(elevState.GetLastDirection())
+				} else if elevState.getElevatorBehaviour() == "Moving" && oldElevInfo.Direction == "stop" { // Vil dette forårsake "hakkete" oppførsel? Må sjekkes. (Endret til å sjekke oldElevInfo)
+					elevio.SetMotorDirection(elevState.getLastDirection())
 				}
 				// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
 				// Error handling start
@@ -517,7 +516,7 @@ func Fsm_elevator(
 			var remove_orders_list []elevio.ButtonEvent
 			empty_hra_list := [config.NumFloors][2]bool{{false, false}, {false, false}, {false, false}, {false, false}}
 			elevState, activeOrders, remove_orders_list = handleNewRequests(empty_hra_list, cab, "cab", elevState, activeOrders)
-			if elevState.GetElevatorBehaviour() == "DoorOpen" {
+			if elevState.getElevatorBehaviour() == "DoorOpen" {
 				elevio.SetDoorOpenLamp(true)
 				elevator_timers.StartDoorTimer()
 				for _, v := range remove_orders_list {
@@ -526,8 +525,8 @@ func Fsm_elevator(
 					}
 					ch_completed_request <- v
 				}
-			} else if elevState.GetElevatorBehaviour() == "Moving" && oldElevInfo.Direction == "stop" {
-				elevio.SetMotorDirection(elevState.GetLastDirection())
+			} else if elevState.getElevatorBehaviour() == "Moving" && oldElevInfo.Direction == "stop" {
+				elevio.SetMotorDirection(elevState.getLastDirection())
 			}
 			// Eventuelt sende full info til Nodeview og sende cabstatus til lampmodul, oppdatere isAvailable
 			// Error handling start

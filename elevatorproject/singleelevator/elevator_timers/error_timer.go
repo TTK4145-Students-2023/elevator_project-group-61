@@ -2,7 +2,6 @@ package elevator_timers
 
 import "time"
 
-
 const standardErrorWait = 12000 // 12 seconds
 
 var errorCounter int64 = -1

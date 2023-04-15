@@ -233,8 +233,6 @@ func PeerView(ch_sendMyPeerView chan<- MyPeerView,
 					myPeerView.CabRequests[remoteID] = [config.NumFloors]RequestState{}
 				}
 			}
-			
-			//fmt.Println("hi")
 			if numRemoteNodes > 0 {
 				if isSingleElevMode {
 					isSingleElevMode = false

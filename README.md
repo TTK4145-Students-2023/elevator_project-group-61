@@ -1,13 +1,17 @@
 # project-group-61
-project-group-61 created by GitHub Classroom
+project-group-61 created by GitHub Classroom.
+This program is designed to control n elevators across m floors. It is based on a pure peer-to-peer architecture, and uses several modules to achieve its functionality.
 
 ## Packages
 The module elevatorproject includes the following main packages
-* worldview
-* peerview
-* requestassigner
-* singleelevtor
-* lamps
+### 'worldview'
+The 'worldview' package is responsible for constructing a understanding of the state of 
+
+### peerview
+The 'peerview' package is responsible for updating a peer's understanding of all other peers hall and cab requests. By using cyclic counters, this package enables a mutual understanding between all peers of all orders placed on the network.
+### requestassigner
+### singleelevtor
+### lamps
 
 
 

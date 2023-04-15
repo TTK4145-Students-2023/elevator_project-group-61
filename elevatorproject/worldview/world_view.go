@@ -8,8 +8,6 @@ import (
 	"fmt"
 )
 
-type PeersAlive []string
-
 type MyWorldView struct {
 	ElevStates      map[string]singleelevator.ElevState
 	HallRequestView [config.NumFloors][2]peerview.RequestState
@@ -31,7 +29,7 @@ func copyMyWorldView(myWorldView MyWorldView) MyWorldView {
 	return copyWorldView
 }
 
-func (peersAlive PeersAlive) isPeerAlive(peerID string) bool {
+func isPeerAlive(peerID string, peersAlive []string) bool {
 	for _, peer := range peersAlive {
 		if peer == peerID {
 			return true
@@ -48,9 +46,7 @@ func (myWorldView *MyWorldView) initMyWorldView(localID string) {
 	elevState.InitElevState()
 	myWorldView.ElevStates[localID] = elevState
 
-	// init cab requests
 	myWorldView.CabRequests = make(map[string][config.NumFloors]peerview.RequestState, config.NumElevators)
-	// TODO: Sjekke om denne er nødvendig
 	myWorldView.CabRequests[localID] = [config.NumFloors]peerview.RequestState{}
 }
 
@@ -62,7 +58,7 @@ func WorldView(ch_receivePeerView <-chan peerview.MyPeerView,
 	localID string) {
 
 	var myWorldView MyWorldView
-	var peersAlive PeersAlive
+	var peersAlive []string
 	var remoteRequestView peerview.RemoteRequestViews
 	var isSingleElevMode bool
 
@@ -103,7 +99,7 @@ func WorldView(ch_receivePeerView <-chan peerview.MyPeerView,
 		case peerView := <-ch_receivePeerView:
 			peerID := peerView.ID
 
-			if !peersAlive.isPeerAlive(peerID) && localID != peerID {
+			if !isPeerAlive(peerID, peersAlive) && localID != peerID {
 				break
 			}
 

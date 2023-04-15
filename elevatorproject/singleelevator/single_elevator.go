@@ -29,5 +29,16 @@ func RunSingleElevator(
 	go elevatortimers.CheckErrorTimer(ch_error)
 
 	// Finite state machine
-	fsmElevator(ch_buttons, ch_floors, ch_door, ch_error, ch_hallRequests, ch_cabRequests, ch_singleElevMode, ch_completedRequest, ch_newRequest, ch_elevState)
+	fsmElevator(
+        ch_buttons, 
+        ch_floors, 
+        ch_door, 
+        ch_error, 
+        ch_hallRequests, 
+        ch_cabRequests, 
+        ch_singleElevMode, 
+        ch_completedRequest, 
+        ch_newRequest, 
+        ch_elevState,
+    )
 }

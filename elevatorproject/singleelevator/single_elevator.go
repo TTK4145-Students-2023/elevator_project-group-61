@@ -7,12 +7,12 @@ import (
 )
 
 func RunSingleElevator(
-	ch_hallRequests <-chan [config.NumFloors][2]bool,
-	ch_cabRequests <-chan [config.NumFloors]bool,
-	ch_singleElevMode <-chan bool,
+	ch_hallRequests     <-chan [config.NumFloors][2]bool,
+	ch_cabRequests      <-chan [config.NumFloors]bool,
+	ch_singleElevMode   <-chan bool,
 	ch_completedRequest chan<- elevio.ButtonEvent,
-	ch_newRequest chan<- elevio.ButtonEvent,
-	ch_elevState chan<- ElevState,
+	ch_newRequest       chan<- elevio.ButtonEvent,
+	ch_elevState        chan<- ElevState,
 ) {
 	// Channels
 	ch_buttons := make(chan elevio.ButtonEvent)

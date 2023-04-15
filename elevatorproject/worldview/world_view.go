@@ -86,6 +86,7 @@ func WorldView(ch_receiveNodeView <-chan peerview.MyPeerView,
 				// If this node can be found in lostPeer, we should delete it from the systemAwareness
 				if lostPeer != localID {
 					delete(myWorldView.ElevStates, lostPeer)
+					delete(myWorldView.CabRequests, lostPeer)
 
 					delete(remoteRequestView.RemoteHallRequestViews, lostPeer)
 					delete(remoteRequestView.RemoteCabRequestViews, lostPeer)

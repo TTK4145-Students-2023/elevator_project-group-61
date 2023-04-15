@@ -484,6 +484,7 @@ func fsmElevator(
 					isAvailable = true
 				}
 			} else {
+				errorTimer = time.Now().UnixMilli()
 				isAvailable = true
 			}
 			if diffElevStateStructs(oldElevState, localStateToElevState(myLocalState, isAvailable)) {

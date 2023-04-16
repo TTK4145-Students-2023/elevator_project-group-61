@@ -30,64 +30,17 @@ type RemoteRequestViews struct {
 	RemoteCabRequestViews  map[string]map[string][config.NumFloors]RequestState
 }
 
-func HasRemoteRequestViewsChanged(remoteRequestViews RemoteRequestViews, prevRemoteRequestViews RemoteRequestViews) bool {
-	for id, requestStates := range remoteRequestViews.RemoteHallRequestViews {
-		for floor := 0; floor < config.NumFloors; floor++ {
-			for button := 0; button < 2; button++ {
-				if requestStates[floor][button] != prevRemoteRequestViews.RemoteHallRequestViews[id][floor][button] {
-					return true
-				}
-			}
-		}
-	}
-
-	for id1, value1 := range remoteRequestViews.RemoteCabRequestViews {
-		for id2, value2 := range value1 {
-			for floor := 0; floor < config.NumFloors; floor++ {
-				if value2[floor] != prevRemoteRequestViews.RemoteCabRequestViews[id1][id2][floor] {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
-func copyMyPeerView(myPeerView MyPeerView) MyPeerView {
-	copyPeerView := MyPeerView{}
-	copyPeerView.ID = myPeerView.ID
-	copyPeerView.ElevState = myPeerView.ElevState
-	copyPeerView.HallRequests = myPeerView.HallRequests
-	copyPeerView.CabRequests = make(map[string][config.NumFloors]RequestState)
-	for key, value := range myPeerView.CabRequests {
-		copyPeerView.CabRequests[key] = value
-	}
-	return copyPeerView
-}
-
-func CopyRemoteRequestViews(remoteRequestViews RemoteRequestViews) RemoteRequestViews {
-	copyRemoteRequestViews := RemoteRequestViews{}
-	copyRemoteRequestViews.RemoteHallRequestViews = make(map[string][config.NumFloors][2]RequestState)
-	for key, value := range remoteRequestViews.RemoteHallRequestViews {
-		copyRemoteRequestViews.RemoteHallRequestViews[key] = value
-	}
-	copyRemoteRequestViews.RemoteCabRequestViews = make(map[string]map[string][config.NumFloors]RequestState)
-
-	for key, value := range remoteRequestViews.RemoteCabRequestViews {
-		copyRemoteRequestViews.RemoteCabRequestViews[key] = make(map[string][config.NumFloors]RequestState)
-		for key2, value2 := range value {
-			copyRemoteRequestViews.RemoteCabRequestViews[key][key2] = value2
-		}
-	}
-	return copyRemoteRequestViews
-}
-
 func (myPeerView *MyPeerView) initMyPeerView(localID string) {
 	myPeerView.ID = localID
 	myPeerView.ElevState.InitElevState()
 	myPeerView.HallRequests = [config.NumFloors][2]RequestState{}
 	myPeerView.CabRequests = make(map[string][config.NumFloors]RequestState)
 	myPeerView.CabRequests[localID] = [config.NumFloors]RequestState{}
+}
+
+func (remoteRequestViews *RemoteRequestViews) InitRemoteRequestViews() {
+	remoteRequestViews.RemoteHallRequestViews = make(map[string][config.NumFloors][2]RequestState)
+	remoteRequestViews.RemoteCabRequestViews = make(map[string]map[string][config.NumFloors]RequestState)
 }
 
 func convertHallRequests(hallrequests [config.NumFloors][2]RequestState, isSingleElevMode bool) [config.NumFloors][2]bool {
@@ -214,17 +167,13 @@ func getAllRemoteCabRequestViewsForSpecificPeer(remoteCabRequestViews map[string
 	return remoteCabRequestViewsSpecificPeer
 }
 
-func (remoteRequestViews *RemoteRequestViews) InitRemoteRequestViews() {
-	remoteRequestViews.RemoteHallRequestViews = make(map[string][config.NumFloors][2]RequestState)
-	remoteRequestViews.RemoteCabRequestViews = make(map[string]map[string][config.NumFloors]RequestState)
-}
 
 func changeNoOrderAndConfirmedToUnknown(myPeerView MyPeerView) MyPeerView {
-	newMyPeerView := myPeerView
-	for floor := 0; floor < len(newMyPeerView.HallRequests); floor++ {
-		for btn := 0; btn < len(newMyPeerView.HallRequests[floor]); btn++ {
-			if newMyPeerView.HallRequests[floor][btn] == RS_NoOrder || newMyPeerView.HallRequests[floor][btn] == RS_Confirmed {
-				newMyPeerView.HallRequests[floor][btn] = RS_Unknown
+	changedMyPeerView := myPeerView
+	for floor := 0; floor < len(changedMyPeerView.HallRequests); floor++ {
+		for btn := 0; btn < len(changedMyPeerView.HallRequests[floor]); btn++ {
+			if changedMyPeerView.HallRequests[floor][btn] == RS_NoOrder || changedMyPeerView.HallRequests[floor][btn] == RS_Confirmed {
+				changedMyPeerView.HallRequests[floor][btn] = RS_Unknown
 			}
 		}
 	}
@@ -234,11 +183,64 @@ func changeNoOrderAndConfirmedToUnknown(myPeerView MyPeerView) MyPeerView {
 			if cabRequests[floor] == RS_NoOrder || cabRequests[floor] == RS_Confirmed {
 				newCabRequests[floor] = RS_Unknown
 			}
-			newMyPeerView.CabRequests[id] = newCabRequests
+			changedMyPeerView.CabRequests[id] = newCabRequests
 		}
 	}
-	return newMyPeerView
+	return changedMyPeerView
 }
+
+func HasRemoteRequestViewsChanged(remoteRequestViews RemoteRequestViews, prevRemoteRequestViews RemoteRequestViews) bool {
+	for id, requestStates := range remoteRequestViews.RemoteHallRequestViews {
+		for floor := 0; floor < config.NumFloors; floor++ {
+			for button := 0; button < 2; button++ {
+				if requestStates[floor][button] != prevRemoteRequestViews.RemoteHallRequestViews[id][floor][button] {
+					return true
+				}
+			}
+		}
+	}
+	
+	for id1, value1 := range remoteRequestViews.RemoteCabRequestViews {
+		for id2, value2 := range value1 {
+			for floor := 0; floor < config.NumFloors; floor++ {
+				if value2[floor] != prevRemoteRequestViews.RemoteCabRequestViews[id1][id2][floor] {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func copyMyPeerView(myPeerView MyPeerView) MyPeerView {
+	copyPeerView := MyPeerView{}
+	copyPeerView.ID = myPeerView.ID
+	copyPeerView.ElevState = myPeerView.ElevState
+	copyPeerView.HallRequests = myPeerView.HallRequests
+	copyPeerView.CabRequests = make(map[string][config.NumFloors]RequestState)
+	for key, value := range myPeerView.CabRequests {
+		copyPeerView.CabRequests[key] = value
+	}
+	return copyPeerView
+}
+
+func CopyRemoteRequestViews(remoteRequestViews RemoteRequestViews) RemoteRequestViews {
+	copyRemoteRequestViews := RemoteRequestViews{}
+	copyRemoteRequestViews.RemoteHallRequestViews = make(map[string][config.NumFloors][2]RequestState)
+	for key, value := range remoteRequestViews.RemoteHallRequestViews {
+		copyRemoteRequestViews.RemoteHallRequestViews[key] = value
+	}
+	copyRemoteRequestViews.RemoteCabRequestViews = make(map[string]map[string][config.NumFloors]RequestState)
+
+	for key, value := range remoteRequestViews.RemoteCabRequestViews {
+		copyRemoteRequestViews.RemoteCabRequestViews[key] = make(map[string][config.NumFloors]RequestState)
+		for key2, value2 := range value {
+			copyRemoteRequestViews.RemoteCabRequestViews[key][key2] = value2
+		}
+	}
+	return copyRemoteRequestViews
+}
+
 
 func PeerView(ch_transmit chan<- MyPeerView,
 	ch_newRequest <-chan elevio.ButtonEvent,

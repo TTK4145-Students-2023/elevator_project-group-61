@@ -14,6 +14,18 @@ type MyWorldView struct {
 	CabRequests     map[string][config.NumFloors]peerview.RequestState
 }
 
+func (myWorldView *MyWorldView) initMyWorldView(localID string) {
+	myWorldView.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
+	myWorldView.HallRequestView = [config.NumFloors][2]peerview.RequestState{}
+
+	var elevState singleelevator.ElevState
+	elevState.InitElevState()
+	myWorldView.ElevStates[localID] = elevState
+
+	myWorldView.CabRequests = make(map[string][config.NumFloors]peerview.RequestState, config.NumElevators)
+	myWorldView.CabRequests[localID] = [config.NumFloors]peerview.RequestState{}
+}
+
 func copyMyWorldView(myWorldView MyWorldView) MyWorldView {
 	var copyWorldView MyWorldView
 	copyWorldView.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
@@ -36,18 +48,6 @@ func isPeerAlive(peerID string, peersAlive []string) bool {
 		}
 	}
 	return false
-}
-
-func (myWorldView *MyWorldView) initMyWorldView(localID string) {
-	myWorldView.ElevStates = make(map[string]singleelevator.ElevState, config.NumElevators)
-	myWorldView.HallRequestView = [config.NumFloors][2]peerview.RequestState{}
-
-	var elevState singleelevator.ElevState
-	elevState.InitElevState()
-	myWorldView.ElevStates[localID] = elevState
-
-	myWorldView.CabRequests = make(map[string][config.NumFloors]peerview.RequestState, config.NumElevators)
-	myWorldView.CabRequests[localID] = [config.NumFloors]peerview.RequestState{}
 }
 
 func hasMyWorldViewChanged(myWorldView MyWorldView, prevMyWorldView MyWorldView) bool {

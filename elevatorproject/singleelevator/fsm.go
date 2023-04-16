@@ -281,13 +281,14 @@ func fsmElevator(
 	ch_newRequest chan<- elevio.ButtonEvent,
 	ch_elevState chan<- ElevState,
 ) {
-
+	// Elevator variables
 	var myLocalState localElevState
 	var myActiveRequests activeRequests
 	isAvailable := false
 	singleElevMode := true
 	isObstructed := false
 
+	// For error handling
 	errorTimer := time.Now().UnixMilli()
 	var oldLocalState localElevState
 	oldLocalState.initLocalElevState()
@@ -337,17 +338,17 @@ func fsmElevator(
 				}
 				var completedRequestsList []elevio.ButtonEvent
 				myLocalState, myActiveRequests, completedRequestsList = handleNewRequests(hallReqList,
-					cabReqList,
-					cabOrHall,
-					myLocalState,
-					myActiveRequests,
-				)
+																							cabReqList,
+																							cabOrHall,
+																							myLocalState,
+																							myActiveRequests,
+																						)
 				if myLocalState.getElevatorBehaviour() == DoorOpen {
 					elevio.SetDoorOpenLamp(true)
 					doorTimer.Reset(standardDoorWait)
-					for _, order := range completedRequestsList {
-						myActiveRequests.setRequest(order.Floor, order.Button, false)
-						ch_completedRequest <- order
+					for _, request := range completedRequestsList {
+						myActiveRequests.setRequest(request.Floor, request.Button, false)
+						ch_completedRequest <- request
 					}
 				} else if myLocalState.getElevatorBehaviour() == Moving && oldElevState.Direction == "stop" {
 					elevio.SetMotorDirection(myLocalState.getLastDirection())
@@ -358,9 +359,6 @@ func fsmElevator(
 					oldElevState = localStateToElevState(myLocalState, isAvailable)
 					ch_elevState <- oldElevState
 				}
-
-			} else {
-				ch_newRequest <- elevio.ButtonEvent{Floor: btnPress.Floor, Button: btnPress.Button}
 			}
 
 		case floor := <-ch_floor:
@@ -371,11 +369,11 @@ func fsmElevator(
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				elevio.SetDoorOpenLamp(true)
 				doorTimer.Reset(standardDoorWait)
-				for _, order := range completedRequestsList {
+				for _, request := range completedRequestsList {
 					if singleElevMode {
-						myActiveRequests.setRequest(order.Floor, order.Button, false)
+						myActiveRequests.setRequest(request.Floor, request.Button, false)
 					}
-					ch_completedRequest <- order
+					ch_completedRequest <- request
 				}
 			}
 
@@ -397,11 +395,11 @@ func fsmElevator(
 			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetDoorOpenLamp(true)
 				doorTimer.Reset(standardDoorWait)
-				for _, order := range completedRequestsList {
+				for _, request := range completedRequestsList {
 					if singleElevMode {
-						myActiveRequests.setRequest(order.Floor, order.Button, false)
+						myActiveRequests.setRequest(request.Floor, request.Button, false)
 					}
-					ch_completedRequest <- order
+					ch_completedRequest <- request
 				}
 			} else {
 				elevio.SetDoorOpenLamp(false)
@@ -428,11 +426,11 @@ func fsmElevator(
 			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetDoorOpenLamp(true)
 				doorTimer.Reset(standardDoorWait)
-				for _, order := range completedRequestsList {
+				for _, request := range completedRequestsList {
 					if singleElevMode {
-						myActiveRequests.setRequest(order.Floor, order.Button, false)
+						myActiveRequests.setRequest(request.Floor, request.Button, false)
 					}
-					ch_completedRequest <- order
+					ch_completedRequest <- request
 				}
 			} else if myLocalState.getElevatorBehaviour() == Moving && oldElevState.Direction == "stop" {
 				elevio.SetMotorDirection(myLocalState.getLastDirection())
@@ -461,11 +459,11 @@ func fsmElevator(
 			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetDoorOpenLamp(true)
 				doorTimer.Reset(standardDoorWait)
-				for _, order := range completedRequestsList {
+				for _, request := range completedRequestsList {
 					if singleElevMode {
-						myActiveRequests.setRequest(order.Floor, order.Button, false)
+						myActiveRequests.setRequest(request.Floor, request.Button, false)
 					}
-					ch_completedRequest <- order
+					ch_completedRequest <- request
 				}
 			} else if myLocalState.getElevatorBehaviour() == Moving && oldElevState.Direction == "stop" {
 				elevio.SetMotorDirection(myLocalState.getLastDirection())

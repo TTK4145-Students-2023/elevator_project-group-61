@@ -17,7 +17,7 @@ The peerview package is a module responsible for managing and synchronizing elev
 The peerview package is responsible for updating a peer's understanding of all other peer’s hall and cab requests. The package represents what this peer knows about all other peers and uses this information to create a mutual understanding between all peers of all requests placed on the network. This module distributes all requests placed on the network using cyclic counters.
 -->
 ### requestassigner
-The requestassigner package uses information from the worldview package to calculate which elevator is best suited to handle which requests. All requests placed on the system is reassigned every time a new request enters the system.
+The requestassigner package uses information from the worldview package to calculate which elevator is best suited to handle which requests. All requests placed on the system are reassigned every time a there is a change of state in the system.
 ### singleelevtor
 The singleelevator package is responsible for controlling the physical elevator, executing the assigned orders and handling logic for updating what orders are new, what orders are finished, and what state the elevator is in.
 ### lamps

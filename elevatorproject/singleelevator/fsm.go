@@ -25,6 +25,7 @@ func (elevState *ElevState) InitElevState() {
 	elevState.IsAvailable = true
 }
 
+// Helper functions
 func stopAfterSensingFloor(floor int, state localElevState, requests activeRequests) bool {
 	if floor == 0 || floor == nFloors-1 {
 		return true
@@ -100,11 +101,24 @@ func localStateToElevState(state localElevState, isAvailable bool) ElevState {
 	return elevState
 }
 
-func DiffElevState(a ElevState, b ElevState) bool {
+func hasElevStateChanged(a ElevState, b ElevState) bool {
 	if a.Behaviour != b.Behaviour ||
 		a.Floor != b.Floor ||
 		a.Direction != b.Direction ||
 		a.IsAvailable != b.IsAvailable {
+		return true
+	}
+	return false
+}
+
+func hasLocalElevStateChanged(a localElevState, b localElevState) bool {
+	if a.getLastFloor() != b.getLastFloor() {
+		return true
+	}
+	if a.getLastDirection() != b.getLastDirection() {
+		return true
+	}
+	if a.getElevatorBehaviour() != b.getElevatorBehaviour() {
 		return true
 	}
 	return false
@@ -258,19 +272,6 @@ func handleDoorClosing(state localElevState, requests activeRequests) (localElev
 	return state, requests, completedRequestsList
 }
 
-func checkChangeLocalStates(a localElevState, b localElevState) bool {
-	if a.getLastFloor() != b.getLastFloor() {
-		return true
-	}
-	if a.getLastDirection() != b.getLastDirection() {
-		return true
-	}
-	if a.getElevatorBehaviour() != b.getElevatorBehaviour() {
-		return true
-	}
-	return false
-}
-
 func fsmElevator(
 	ch_btn <-chan elevio.ButtonEvent,
 	ch_floor <-chan int,
@@ -308,7 +309,7 @@ func fsmElevator(
 		elevio.SetFloorIndicator(elevio.GetFloor())
 		isAvailable = true
 	}
-	if DiffElevState(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
+	if hasElevStateChanged(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 		oldElevState = localStateToElevState(myLocalState, isAvailable)
 		ch_elevState <- oldElevState
 	}
@@ -355,7 +356,7 @@ func fsmElevator(
 				}
 
 				// Distribute state
-				if DiffElevState(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
+				if hasElevStateChanged(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 					oldElevState = localStateToElevState(myLocalState, isAvailable)
 					ch_elevState <- oldElevState
 				}
@@ -378,7 +379,7 @@ func fsmElevator(
 			}
 
 			// Distribute state
-			if DiffElevState(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
+			if hasElevStateChanged(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 				oldElevState = localStateToElevState(myLocalState, isAvailable)
 				ch_elevState <- oldElevState
 			}
@@ -409,7 +410,7 @@ func fsmElevator(
 			}
 
 			// Distribute state
-			if DiffElevState(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
+			if hasElevStateChanged(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 				oldElevState = localStateToElevState(myLocalState, isAvailable)
 				ch_elevState <- oldElevState
 			}
@@ -437,7 +438,7 @@ func fsmElevator(
 			}
 
 			// Distribute state
-			if DiffElevState(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
+			if hasElevStateChanged(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 				oldElevState = localStateToElevState(myLocalState, isAvailable)
 				ch_elevState <- oldElevState
 			}
@@ -470,7 +471,7 @@ func fsmElevator(
 			}
 
 			// Distribute state
-			if DiffElevState(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
+			if hasElevStateChanged(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 				oldElevState = localStateToElevState(myLocalState, isAvailable)
 				ch_elevState <- oldElevState
 			}
@@ -479,7 +480,7 @@ func fsmElevator(
 			singleElevMode = singleBool
 		case <-time.After(25 * time.Millisecond):
 			// Error handling
-			if checkChangeLocalStates(oldLocalState, myLocalState) {
+			if hasLocalElevStateChanged(oldLocalState, myLocalState) {
 				// Reset timer if local state has changed
 				errorTimer = time.Now().UnixMilli()
 				oldLocalState = myLocalState
@@ -497,7 +498,7 @@ func fsmElevator(
 			}
 
 			// Distribute state
-			if DiffElevState(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
+			if hasElevStateChanged(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 				oldElevState = localStateToElevState(myLocalState, isAvailable)
 				ch_elevState <- oldElevState
 			}

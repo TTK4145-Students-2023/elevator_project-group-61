@@ -64,7 +64,6 @@ func main() {
 	go requestassigner.AssignRequests(ch_myWorldView, ch_hallRequests, ch_cabRequests, localID)
 	go lamps.LampStateMachine(ch_hallLamps, ch_cabLamps)
 
-	fmt.Println("Starter opp singleelevator")
 	go singleelevator.RunSingleElevator(ch_hallRequests, ch_cabRequests, ch_singleElevMode, ch_completedRequest, ch_newRequest, ch_elevState)
 
 	for {

@@ -4,8 +4,8 @@ import (
 	"elevatorproject/config"
 	"elevatorproject/singleelevator"
 	"elevatorproject/singleelevator/elevio"
-	"time"
 	"fmt"
+	"time"
 )
 
 type RequestState int
@@ -226,11 +226,13 @@ func changeNoOrderAndConfirmedToUnknown(myPeerView MyPeerView) MyPeerView {
 			}
 		}
 	}
-	for _, cabRequests := range newMyPeerView.CabRequests {
+	for id, cabRequests := range myPeerView.CabRequests {
+		newCabRequests := cabRequests
 		for floor := 0; floor < config.NumFloors; floor++ {
 			if cabRequests[floor] == RS_NoOrder || cabRequests[floor] == RS_Confirmed {
-				cabRequests[floor] = RS_Unknown
+				newCabRequests[floor] = RS_Unknown
 			}
+			newMyPeerView.CabRequests[id] = newCabRequests
 		}
 	}
 	return newMyPeerView
@@ -278,7 +280,7 @@ func PeerView(ch_sendMyPeerView chan<- MyPeerView,
 			} else {
 				isSingleElevMode = true
 			}
-		
+
 			ch_hallLamps <- convertHallRequests(myPeerView.HallRequests, isSingleElevMode)
 			ch_cabLamps <- convertCabRequests(myPeerView.CabRequests[localID], isSingleElevMode)
 
@@ -322,8 +324,7 @@ func PeerView(ch_sendMyPeerView chan<- MyPeerView,
 			myPeerView.ElevState = elevState
 			fmt.Println(localID, ": ", elevState.IsAvailable)
 
-
-		case <-time.After(25 * time.Millisecond):
+		case <-time.After(50 * time.Millisecond):
 			ch_sendMyPeerView <- copyMyPeerView(myPeerView)
 		}
 	}

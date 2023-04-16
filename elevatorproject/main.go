@@ -10,17 +10,19 @@ import (
 	"elevatorproject/singleelevator/elevio"
 	"elevatorproject/worldview"
 	"elevatorproject/lamps"
-	"flag"
+	// "flag"
 	"fmt"
 )
 
 func main() {
-	var localID string
-	var elevPort string
+	localID := "elev2"
+	elevPort := "15657"
+	// var localID string
+	// var elevPort string
 
-	flag.StringVar(&localID, "id", "", "id of this peer")
-	flag.StringVar(&elevPort, "port", "", "port of this peer")
-	flag.Parse()	
+	// flag.StringVar(&localID, "id", "", "id of this peer")
+	// flag.StringVar(&elevPort, "port", "", "port of this peer")
+	// flag.Parse()	
 
 	localIP := "localhost:" + elevPort
 

@@ -3,6 +3,20 @@ project-group-61 created by GitHub Classroom.
 
 This program is designed to control n elevators across m floors. It is based on a peer-to-peer architecture, and uses several modules to achieve its functionality.
 
+## Usage
+
+To run the program, you can either run the executable file or run the `main.go` file directly. The program requires two command line arguments:
+
+- `id`: The ID of the elevator you want to control (an integer value).
+- `port`: The port number to use for the network connection (an integer value).
+
+To run the program using the executable file, use the following command:
+`./main -id=<elevatorID> -port=<portNumber>`
+ 
+To run the program using the `main.go` file, use the following command:
+`go run main.go -id=<elevatorID> -port=<portNumber>`
+Replace `<elevatorID>` and `<portNumber>` with the values you want to use for the elevator ID and port number, respectively.
+
 ## Program architecture
 This image is a illustartion of how the modules in the program interact.
 ![alt text](https://github.com/TTK4145-Students-2023/project-group-61/blob/code-quality/ProgramArchitecture.jpeg)

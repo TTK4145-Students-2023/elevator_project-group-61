@@ -1,1 +1,0 @@
-{"hallRequests":[[false,false],[false,false],[false,false],[false,false]],"states":{"elev1":{"behaviour":"idle","floor":2,"direction":"stop","cabRequests":[false,false,false,false]},"elev2":{"behaviour":"idle","floor":1,"direction":"stop","cabRequests":[false,false,false,false]},"elev3":{"behaviour":"idle","floor":3,"direction":"stop","cabRequests":[false,false,false,false]}}}

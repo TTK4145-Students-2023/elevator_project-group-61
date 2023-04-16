@@ -2,7 +2,6 @@ package singleelevator
 
 import (
 	"elevatorproject/config"
-	"elevatorproject/singleelevator/elevatortimers"
 	"elevatorproject/singleelevator/elevio"
 )
 
@@ -17,20 +16,15 @@ func RunSingleElevator(
 	// Channels
 	ch_buttons := make(chan elevio.ButtonEvent)
 	ch_floors := make(chan int)
-	ch_door := make(chan int)
 
 	// Elevio
 	go elevio.PollButtons(ch_buttons)
 	go elevio.PollFloorSensor(ch_floors)
 
-	// Elevator timers
-	go elevatortimers.CheckDoorTimer(ch_door)
-
 	// Finite state machine
 	fsmElevator(
         ch_buttons, 
         ch_floors, 
-        ch_door, 
         ch_hallRequests, 
         ch_cabRequests, 
         ch_singleElevMode, 

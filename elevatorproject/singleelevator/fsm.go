@@ -2,12 +2,12 @@ package singleelevator
 
 import (
 	"elevatorproject/config"
-	"elevatorproject/singleelevator/elevatortimers"
 	"elevatorproject/singleelevator/elevio"
 	"time"
 )
 
 const nFloors int = config.NumFloors
+const standardDoorWait = 3 * time.Second
 
 // Struct to distribute elevator state to other modules
 type ElevState struct {
@@ -273,7 +273,6 @@ func checkChangeLocalStates(a localElevState, b localElevState) bool {
 func fsmElevator(
 	ch_btn 				<-chan elevio.ButtonEvent,
 	ch_floor 			<-chan int,
-	ch_door 			<-chan int,
 	ch_hallRequests     <-chan [nFloors][2]bool,
 	ch_cabRequests      <-chan [nFloors]bool,
 	ch_singleElevMode   <-chan bool,
@@ -286,9 +285,14 @@ func fsmElevator(
 	var myActiveOrders activeOrders
 	isAvailable := false
 	singleElevMode := true
+	isObstructed := false
+
 	errorTimer := time.Now().UnixMilli()
 	var oldLocalState localElevState
 	oldLocalState.initLocalElevState()
+
+	// Door timer
+	doorTimer := time.NewTimer(0)
 
 	// Initiate elevator
 	myActiveOrders.initOrders()
@@ -339,7 +343,7 @@ func fsmElevator(
 																					)
 				if myLocalState.getElevatorBehaviour() == DoorOpen {
 					elevio.SetDoorOpenLamp(true)
-					elevatortimers.StartDoorTimer()
+					doorTimer.Reset(standardDoorWait)
 					for _, order := range completedOrdersList {
 						myActiveOrders.setOrder(order.Floor, order.Button, false)
 						ch_completedRequest <- order
@@ -365,7 +369,7 @@ func fsmElevator(
 			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				elevio.SetDoorOpenLamp(true)
-				elevatortimers.StartDoorTimer()
+				doorTimer.Reset(standardDoorWait)
 				for _, order := range completedOrdersList {
 					if singleElevMode {
 						myActiveOrders.setOrder(order.Floor, order.Button, false)
@@ -380,16 +384,18 @@ func fsmElevator(
 				ch_elevState <- oldElevState
 			}
 
-		case <-ch_door:
+		case <-doorTimer.C:
 			if elevio.GetObstruction() {
-				elevatortimers.StartDoorTimer()
+				doorTimer.Reset(standardDoorWait)
+				isObstructed = true
 				break
 			}
+			isObstructed = false
 			var completedOrdersList []elevio.ButtonEvent
 			myLocalState, myActiveOrders, completedOrdersList = handleDoorClosing(myLocalState, myActiveOrders)
 			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetDoorOpenLamp(true)
-				elevatortimers.StartDoorTimer()
+				doorTimer.Reset(standardDoorWait)
 				for _, order := range completedOrdersList {
 					if singleElevMode {
 						myActiveOrders.setOrder(order.Floor, order.Button, false)
@@ -420,7 +426,7 @@ func fsmElevator(
 																				)
 			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetDoorOpenLamp(true)
-				elevatortimers.StartDoorTimer()
+				doorTimer.Reset(standardDoorWait)
 				for _, order := range completedOrdersList {
 					if singleElevMode {
 						myActiveOrders.setOrder(order.Floor, order.Button, false)
@@ -453,7 +459,7 @@ func fsmElevator(
 																				)
 			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetDoorOpenLamp(true)
-				elevatortimers.StartDoorTimer()
+				doorTimer.Reset(standardDoorWait)
 				for _, order := range completedOrdersList {
 					if singleElevMode {
 						myActiveOrders.setOrder(order.Floor, order.Button, false)
@@ -481,11 +487,11 @@ func fsmElevator(
 				if time.Now().UnixMilli()-errorTimer > 7500 {
 					isAvailable = false
 				} else {
-					isAvailable = true
+					isAvailable = true && !isObstructed
 				}
 			} else {
 				errorTimer = time.Now().UnixMilli()
-				isAvailable = true
+				isAvailable = true && !isObstructed
 			}
 			if diffElevStateStructs(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 				oldElevState = localStateToElevState(myLocalState, isAvailable)

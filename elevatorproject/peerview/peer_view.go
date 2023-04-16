@@ -326,7 +326,6 @@ func PeerView(ch_transmit chan<- MyPeerView,
 
 		case elevState := <-ch_elevState:
 			myPeerView.ElevState = elevState
-			fmt.Println(localID, ": ", elevState.IsAvailable)
 
 		case <-time.After(50 * time.Millisecond):
 			ch_transmit <- copyMyPeerView(myPeerView)

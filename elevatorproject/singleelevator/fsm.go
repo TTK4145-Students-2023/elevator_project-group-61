@@ -25,6 +25,7 @@ func (elevState *ElevState) InitElevState() {
 	elevState.IsAvailable = true
 }
 
+// Helper functions
 func stopAfterSensingFloor(floor int, state localElevState, requests activeRequests) bool {
 	if floor == 0 || floor == nFloors-1 {
 		return true
@@ -105,6 +106,19 @@ func hasElevStateChanged(a ElevState, b ElevState) bool {
 		a.Floor != b.Floor ||
 		a.Direction != b.Direction ||
 		a.IsAvailable != b.IsAvailable {
+		return true
+	}
+	return false
+}
+
+func hasLocalElevStateChanged(a localElevState, b localElevState) bool {
+	if a.getLastFloor() != b.getLastFloor() {
+		return true
+	}
+	if a.getLastDirection() != b.getLastDirection() {
+		return true
+	}
+	if a.getElevatorBehaviour() != b.getElevatorBehaviour() {
 		return true
 	}
 	return false
@@ -256,19 +270,6 @@ func handleDoorClosing(state localElevState, requests activeRequests) (localElev
 		panic("handleDoorClosing: No direction set")
 	}
 	return state, requests, completedRequestsList
-}
-
-func hasLocalElevStateChanged(a localElevState, b localElevState) bool {
-	if a.getLastFloor() != b.getLastFloor() {
-		return true
-	}
-	if a.getLastDirection() != b.getLastDirection() {
-		return true
-	}
-	if a.getElevatorBehaviour() != b.getElevatorBehaviour() {
-		return true
-	}
-	return false
 }
 
 func fsmElevator(

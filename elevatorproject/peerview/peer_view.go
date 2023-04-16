@@ -191,27 +191,6 @@ func getAllRemoteCabRequestViewsForSpecificPeer(remoteCabRequestViews map[string
 	return remoteCabRequestViewsSpecificPeer
 }
 
-/*
-func (myNodeView *MyPeerView) changeNoOrderAndConfirmedToUnknown() {
-	for floor := 0; floor < len(myNodeView.HallRequests); floor++ {
-		for btn := 0; btn < len(myNodeView.HallRequests[floor]); btn++ {
-			if myNodeView.HallRequests[floor][btn] == RS_NoOrder || myNodeView.HallRequests[floor][btn] == RS_Confirmed {
-				myNodeView.HallRequests[floor][btn] = RS_Unknown
-			}
-		}
-	}
-
-	for _, cabRequests := range myNodeView.CabRequests {
-		for floor := 0; floor < config.NumFloors; floor++ {
-			if cabRequests[floor] == RS_NoOrder || cabRequests[floor] == RS_Confirmed {
-				cabRequests[floor] = RS_Unknown
-			}
-		}
-	}
-
-}
-*/
-
 func (remoteRequestViews *RemoteRequestViews) InitRemoteRequestViews() {
 	remoteRequestViews.RemoteHallRequestViews = make(map[string][config.NumFloors][2]RequestState)
 	remoteRequestViews.RemoteCabRequestViews = make(map[string]map[string][config.NumFloors]RequestState)

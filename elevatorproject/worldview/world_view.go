@@ -50,19 +50,34 @@ func (myWorldView *MyWorldView) initMyWorldView(localID string) {
 	myWorldView.CabRequests[localID] = [config.NumFloors]peerview.RequestState{}
 }
 
+func hasMyWorldViewChanged(myWorldView MyWorldView, prevMyWorldView MyWorldView) bool {
+	if myWorldView.ElevStates != prevMyWorldView.ElevStates {
+		return true
+	}
+	if myWorldView.HallRequestView != prevMyWorldView.HallRequestView {
+		return true
+	}
+	if myWorldView.CabRequests != prevMyWorldView.CabRequests {
+		return true
+	}
+	return false
+}
+
 func WorldView(ch_receivePeerView <-chan peerview.MyPeerView,
 	ch_receivePeerUpdate <-chan peers.PeerUpdate,
 	ch_remoteRequestView chan<- peerview.RemoteRequestViews,
-	ch_hraInput chan<- MyWorldView,
+	ch_myWorldView chan<- MyWorldView,
 	ch_singleElevMode chan<- bool,
 	localID string) {
 
 	var myWorldView MyWorldView
+	var prevMyWorldView MyWorldView
 	var peersAlive []string
 	var remoteRequestView peerview.RemoteRequestViews
 	var isSingleElevMode bool
 
 	myWorldView.initMyWorldView(localID)
+	prevMyWorldView = copyMyWorldView(myWorldView)
 	remoteRequestView.InitRemoteRequestViews()
 
 	for {
@@ -87,14 +102,14 @@ func WorldView(ch_receivePeerView <-chan peerview.MyPeerView,
 			}
 			
 			if len(peersAlive) <= 1 {
-				ch_singleElevMode <- true
 				isSingleElevMode = true
-				ch_hraInput <- copyMyWorldView(myWorldView)
+				ch_singleElevMode <- true
+				ch_myWorldView <- copyMyWorldView(myWorldView)
 				ch_remoteRequestView <- peerview.CopyRemoteRequestViews(remoteRequestView)
 
 			} else {
-				ch_singleElevMode <- false
 				isSingleElevMode = false
+				ch_singleElevMode <- isSingleElevMode
 			}
 		case peerView := <-ch_receivePeerView:
 			peerID := peerView.ID
@@ -114,11 +129,10 @@ func WorldView(ch_receivePeerView <-chan peerview.MyPeerView,
 				myWorldView.HallRequestView = peerView.HallRequests
 			}
 
+			
 			ch_remoteRequestView <- peerview.CopyRemoteRequestViews(remoteRequestView)
-
-			if !isSingleElevMode {
-				ch_hraInput <- copyMyWorldView(myWorldView)
-			}
+			ch_myWorldView <- copyMyWorldView(myWorldView)
+			prevMyWorldView = copyMyWorldView(myWorldView)
 		}
 	}
 }

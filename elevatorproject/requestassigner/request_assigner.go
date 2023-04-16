@@ -143,7 +143,7 @@ func AssignRequests(ch_myWorldView <-chan worldview.MyWorldView, ch_hallRequest 
 				oldCabRequests = cabRequests
 			}
 		default:
-			time.Sleep(50 * time.Millisecond)
+			time.Sleep(15 * time.Millisecond)
 		}
 	}
 }

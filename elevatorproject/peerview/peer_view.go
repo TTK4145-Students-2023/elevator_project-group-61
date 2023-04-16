@@ -181,6 +181,16 @@ func updateMyCabRequestView(myCabRequestView [config.NumFloors]RequestState, rem
 	return myCabRequestView
 }
 
+func getAllRemoteCabRequestViewsForSpecificPeer(remoteCabRequestViews map[string]map[string][config.NumFloors]RequestState, id string) map[string][config.NumFloors]RequestState {
+	remoteCabRequestViewsSpecificPeer := make(map[string][config.NumFloors]RequestState)
+	for remoteID, remoteCabRequestViews := range remoteCabRequestViews {
+		if remoteCabRequestView, ok := remoteCabRequestViews[id]; ok {
+			remoteCabRequestViewsSpecificPeer[remoteID] = remoteCabRequestView
+		}
+	}
+	return remoteCabRequestViewsSpecificPeer
+}
+
 func (myNodeView *MyPeerView) changeNoOrderAndConfirmedToUnknown() {
 	for floor := 0; floor < len(myNodeView.HallRequests); floor++ {
 		for btn := 0; btn < len(myNodeView.HallRequests[floor]); btn++ {
@@ -238,16 +248,9 @@ func PeerView(ch_sendMyPeerView chan<- MyPeerView,
 					myPeerView.changeNoOrderAndConfirmedToUnknown()
 				}
 				// Update cab requests for all alive peers
-				for id, myCabRequestView := range myPeerView.CabRequests {
-		
-					remoteCabRequestViewsSpecificPeer := make(map[string][config.NumFloors]RequestState)
-
-					for remoteID, remoteCabRequestViews := range remoteRequestViews.RemoteCabRequestViews {
-						if remoteCabRequestView, ok := remoteCabRequestViews[id]; ok {
-							remoteCabRequestViewsSpecificPeer[remoteID] = remoteCabRequestView
-						}
-					}
-					myPeerView.CabRequests[id] = updateMyCabRequestView(myCabRequestView, remoteCabRequestViewsSpecificPeer)
+				for id, myCabRequestViewSpecificPeer := range myPeerView.CabRequests {
+					remoteCabRequestViewsSpecificPeer := getAllRemoteCabRequestViewsForSpecificPeer(remoteRequestViews.RemoteCabRequestViews, id)
+					myPeerView.CabRequests[id] = updateMyCabRequestView(myCabRequestViewSpecificPeer, remoteCabRequestViewsSpecificPeer)
 				}
 				myPeerView.HallRequests = updateMyHallRequestView(myPeerView.HallRequests, remoteRequestViews.RemoteHallRequestViews)
 

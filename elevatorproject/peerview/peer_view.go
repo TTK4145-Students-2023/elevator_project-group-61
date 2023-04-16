@@ -191,6 +191,7 @@ func getAllRemoteCabRequestViewsForSpecificPeer(remoteCabRequestViews map[string
 	return remoteCabRequestViewsSpecificPeer
 }
 
+/*
 func (myNodeView *MyPeerView) changeNoOrderAndConfirmedToUnknown() {
 	for floor := 0; floor < len(myNodeView.HallRequests); floor++ {
 		for btn := 0; btn < len(myNodeView.HallRequests[floor]); btn++ {
@@ -209,10 +210,30 @@ func (myNodeView *MyPeerView) changeNoOrderAndConfirmedToUnknown() {
 	}
 
 }
+*/
 
 func (remoteRequestViews *RemoteRequestViews) InitRemoteRequestViews() {
 	remoteRequestViews.RemoteHallRequestViews = make(map[string][config.NumFloors][2]RequestState)
 	remoteRequestViews.RemoteCabRequestViews = make(map[string]map[string][config.NumFloors]RequestState)
+}
+
+func changeNoOrderAndConfirmedToUnknown(myPeerView MyPeerView) MyPeerView {
+	newMyPeerView := myPeerView
+	for floor := 0; floor < len(newMyPeerView.HallRequests); floor++ {
+		for btn := 0; btn < len(newMyPeerView.HallRequests[floor]); btn++ {
+			if newMyPeerView.HallRequests[floor][btn] == RS_NoOrder || newMyPeerView.HallRequests[floor][btn] == RS_Confirmed {
+				newMyPeerView.HallRequests[floor][btn] = RS_Unknown
+			}
+		}
+	}
+	for _, cabRequests := range newMyPeerView.CabRequests {
+		for floor := 0; floor < config.NumFloors; floor++ {
+			if cabRequests[floor] == RS_NoOrder || cabRequests[floor] == RS_Confirmed {
+				cabRequests[floor] = RS_Unknown
+			}
+		}
+	}
+	return newMyPeerView
 }
 
 func PeerView(ch_sendMyPeerView chan<- MyPeerView,
@@ -245,7 +266,7 @@ func PeerView(ch_sendMyPeerView chan<- MyPeerView,
 			if numRemotePeers > 0 {
 				if isSingleElevMode {
 					isSingleElevMode = false
-					myPeerView.changeNoOrderAndConfirmedToUnknown()
+					myPeerView = changeNoOrderAndConfirmedToUnknown(myPeerView)
 				}
 				// Update cab requests for all alive peers
 				for id, myCabRequestViewSpecificPeer := range myPeerView.CabRequests {

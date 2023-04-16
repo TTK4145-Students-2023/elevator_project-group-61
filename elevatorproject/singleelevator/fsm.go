@@ -478,12 +478,15 @@ func fsmElevator(
 		case singleBool := <-ch_singleElevMode:
 			singleElevMode = singleBool
 		case <-time.After(25 * time.Millisecond):
+			// Error handling
 			if checkChangeLocalStates(oldLocalState, myLocalState) {
+				// Reset timer if local state has changed
 				errorTimer = time.Now().UnixMilli()
 				oldLocalState = myLocalState
 			}
 			if myActiveRequests.anyRequest() {
 				if time.Now().UnixMilli()-errorTimer > 7500 {
+					// If there are requests and timer has run out, make elevator unavailable
 					isAvailable = false
 				} else {
 					isAvailable = true && !isObstructed
@@ -492,6 +495,8 @@ func fsmElevator(
 				errorTimer = time.Now().UnixMilli()
 				isAvailable = true && !isObstructed
 			}
+
+			// Distribute state
 			if DiffElevState(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 				oldElevState = localStateToElevState(myLocalState, isAvailable)
 				ch_elevState <- oldElevState

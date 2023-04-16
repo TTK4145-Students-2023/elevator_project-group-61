@@ -71,7 +71,7 @@ func transformToHRAInput(myWorldView worldview.MyWorldView, localID string) HRAI
 	return hraInput
 }
 
-func hallRequestsChanged(oldHallRequests [config.NumFloors][2]bool, newHallRequests [config.NumFloors][2]bool) bool {
+func diffHallRequests(oldHallRequests [config.NumFloors][2]bool, newHallRequests [config.NumFloors][2]bool) bool {
 	for i := 0; i < config.NumFloors; i++ {
 		for j := 0; j < 2; j++ {
 			if oldHallRequests[i][j] != newHallRequests[i][j] {
@@ -82,7 +82,7 @@ func hallRequestsChanged(oldHallRequests [config.NumFloors][2]bool, newHallReque
 	return false
 }
 
-func cabRequestsChanged(oldCabRequests [config.NumFloors]bool, newCabRequests [config.NumFloors]bool) bool {
+func diffCabRequests(oldCabRequests [config.NumFloors]bool, newCabRequests [config.NumFloors]bool) bool {
 	for i := 0; i < config.NumFloors; i++ {
 		if oldCabRequests[i] != newCabRequests[i] {
 			return true
@@ -134,11 +134,11 @@ func AssignRequests(ch_myWorldView <-chan worldview.MyWorldView, ch_hallRequest 
 			hallRequests := (*hraOutput)[localID]
 			cabRequests := hraInput.States[localID].CabRequests
 
-			if hallRequestsChanged(oldHallRequests, hallRequests) {
+			if diffHallRequests(oldHallRequests, hallRequests) {
 				ch_hallRequest <- hallRequests
 				oldHallRequests = hallRequests
 			}
-			if cabRequestsChanged(oldCabRequests, cabRequests) {
+			if diffCabRequests(oldCabRequests, cabRequests) {
 				ch_cabRequests <- cabRequests
 				oldCabRequests = cabRequests
 			}

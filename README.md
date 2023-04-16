@@ -20,7 +20,7 @@ The singleelevator package is responsible for controlling the physical elevator,
 The lamps package is responsible for turning on and off all lamps on this elevator. 
 
 ## Program architecture
-
+This image is a illustartion of how the modules in the program interact.
 ![alt text](https://github.com/TTK4145-Students-2023/project-group-61/blob/code-quality/ProgramArchitecture.jpeg)
 
 

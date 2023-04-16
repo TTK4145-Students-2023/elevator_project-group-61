@@ -8,6 +8,7 @@ import (
 
 const nFloors int = config.NumFloors
 const standardDoorWait = 3 * time.Second
+const initiateTime = 9999 * time.Second
 
 // Struct to distribute elevator state to other modules
 type ElevState struct {
@@ -111,12 +112,12 @@ func diffElevStateStructs(a ElevState, b ElevState) bool {
 
 // Functions for handling events
 func handleFloorSensor(
-	floor int, 
-	state localElevState, 
+	floor int,
+	state localElevState,
 	orders activeOrders,
 ) (
-	localElevState, 
-	activeOrders, 
+	localElevState,
+	activeOrders,
 	[]elevio.ButtonEvent,
 ) {
 	state.setLastFloor(floor)
@@ -141,14 +142,14 @@ func handleFloorSensor(
 }
 
 func handleNewRequests(
-	hallRequests [nFloors][2]bool, 
-	cabRequests [nFloors]bool, 
-	cabOrHall string, 
-	state localElevState, 
+	hallRequests [nFloors][2]bool,
+	cabRequests [nFloors]bool,
+	cabOrHall string,
+	state localElevState,
 	orders activeOrders,
 ) (
-	localElevState, 
-	activeOrders, 
+	localElevState,
+	activeOrders,
 	[]elevio.ButtonEvent,
 ) {
 	if cabOrHall == "cab" {
@@ -271,14 +272,14 @@ func checkChangeLocalStates(a localElevState, b localElevState) bool {
 }
 
 func fsmElevator(
-	ch_btn 				<-chan elevio.ButtonEvent,
-	ch_floor 			<-chan int,
-	ch_hallRequests     <-chan [nFloors][2]bool,
-	ch_cabRequests      <-chan [nFloors]bool,
-	ch_singleElevMode   <-chan bool,
+	ch_btn <-chan elevio.ButtonEvent,
+	ch_floor <-chan int,
+	ch_hallRequests <-chan [nFloors][2]bool,
+	ch_cabRequests <-chan [nFloors]bool,
+	ch_singleElevMode <-chan bool,
 	ch_completedRequest chan<- elevio.ButtonEvent,
-	ch_newRequest       chan<- elevio.ButtonEvent,
-	ch_elevState        chan<- ElevState,
+	ch_newRequest chan<- elevio.ButtonEvent,
+	ch_elevState chan<- ElevState,
 ) {
 
 	var myLocalState localElevState
@@ -292,7 +293,7 @@ func fsmElevator(
 	oldLocalState.initLocalElevState()
 
 	// Door timer
-	doorTimer := time.NewTimer(0)
+	doorTimer := time.NewTimer(initiateTime)
 
 	// Initiate elevator
 	myActiveOrders.initOrders()
@@ -321,11 +322,11 @@ func fsmElevator(
 
 				cabReqList := [nFloors]bool{false, false, false, false}
 				hallReqList := [nFloors][2]bool{
-										{false, false}, 
-										{false, false}, 
-										{false, false}, 
-										{false, false},
-									}
+					{false, false},
+					{false, false},
+					{false, false},
+					{false, false},
+				}
 				cabOrHall := "cab"
 
 				if btnPress.Button != elevio.BT_Cab {
@@ -335,12 +336,12 @@ func fsmElevator(
 					cabReqList = myActiveOrders.getCabRequests()
 				}
 				var completedOrdersList []elevio.ButtonEvent
-				myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(hallReqList, 
-																						cabReqList, 
-																						cabOrHall, 
-																						myLocalState, 
-																						myActiveOrders,
-																					)
+				myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(hallReqList,
+					cabReqList,
+					cabOrHall,
+					myLocalState,
+					myActiveOrders,
+				)
 				if myLocalState.getElevatorBehaviour() == DoorOpen {
 					elevio.SetDoorOpenLamp(true)
 					doorTimer.Reset(standardDoorWait)
@@ -377,7 +378,7 @@ func fsmElevator(
 					ch_completedRequest <- order
 				}
 			}
-			
+
 			// Distribute state
 			if diffElevStateStructs(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 				oldElevState = localStateToElevState(myLocalState, isAvailable)
@@ -418,12 +419,12 @@ func fsmElevator(
 		case hallRequests := <-ch_hallRequests:
 			var completedOrdersList []elevio.ButtonEvent
 			emtpyCabList := [nFloors]bool{false, false, false, false}
-			myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(hallRequests, 
-																					emtpyCabList, 
-																					"hall", 
-																					myLocalState, 
-																					myActiveOrders,
-																				)
+			myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(hallRequests,
+				emtpyCabList,
+				"hall",
+				myLocalState,
+				myActiveOrders,
+			)
 			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetDoorOpenLamp(true)
 				doorTimer.Reset(standardDoorWait)
@@ -436,7 +437,7 @@ func fsmElevator(
 			} else if myLocalState.getElevatorBehaviour() == Moving && oldElevState.Direction == "stop" {
 				elevio.SetMotorDirection(myLocalState.getLastDirection())
 			}
-			
+
 			// Distribute state
 			if diffElevStateStructs(oldElevState, localStateToElevState(myLocalState, isAvailable)) {
 				oldElevState = localStateToElevState(myLocalState, isAvailable)
@@ -446,17 +447,17 @@ func fsmElevator(
 		case cab := <-ch_cabRequests:
 			var completedOrdersList []elevio.ButtonEvent
 			emptyHallList := [nFloors][2]bool{
-										{false, false}, 
-										{false, false}, 
-										{false, false}, 
-										{false, false},
-									}
-			myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(emptyHallList, 
-																					cab, 
-																					"cab", 
-																					myLocalState, 
-																					myActiveOrders,
-																				)
+				{false, false},
+				{false, false},
+				{false, false},
+				{false, false},
+			}
+			myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(emptyHallList,
+				cab,
+				"cab",
+				myLocalState,
+				myActiveOrders,
+			)
 			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetDoorOpenLamp(true)
 				doorTimer.Reset(standardDoorWait)
@@ -475,7 +476,7 @@ func fsmElevator(
 				oldElevState = localStateToElevState(myLocalState, isAvailable)
 				ch_elevState <- oldElevState
 			}
-		
+
 		case singleBool := <-ch_singleElevMode:
 			singleElevMode = singleBool
 		case <-time.After(25 * time.Millisecond):

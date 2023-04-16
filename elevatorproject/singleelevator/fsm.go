@@ -25,26 +25,26 @@ func (elevState *ElevState) InitElevState() {
 	elevState.IsAvailable = true
 }
 
-func stopAfterSensingFloor(floor int, state localElevState, orders activeOrders) bool {
+func stopAfterSensingFloor(floor int, state localElevState, requests activeRequests) bool {
 	if floor == 0 || floor == nFloors-1 {
 		return true
 	}
-	if !orders.anyOrder() {
+	if !requests.anyRequest() {
 		return true
 	}
-	if orders.getSpecificOrder(floor, elevio.BT_Cab) {
+	if requests.getSpecificRequest(floor, elevio.BT_Cab) {
 		return true
 	}
 	switch state.getLastDirection() {
 	case elevio.MD_Up:
-		if orders.getSpecificOrder(floor, elevio.BT_HallUp) ||
-			!orders.anyOrderPastFloorInDir(floor, elevio.MD_Up) {
+		if requests.getSpecificRequest(floor, elevio.BT_HallUp) ||
+			!requests.anyRequestPastFloorInDir(floor, elevio.MD_Up) {
 			return true
 		}
 		return false
 	case elevio.MD_Down:
-		if orders.getSpecificOrder(floor, elevio.BT_HallDown) ||
-			!orders.anyOrderPastFloorInDir(floor, elevio.MD_Down) {
+		if requests.getSpecificRequest(floor, elevio.BT_HallDown) ||
+			!requests.anyRequestPastFloorInDir(floor, elevio.MD_Down) {
 			return true
 		}
 		return false
@@ -114,31 +114,31 @@ func DiffElevState(a ElevState, b ElevState) bool {
 func handleFloorSensor(
 	floor int,
 	state localElevState,
-	orders activeOrders,
+	requests activeRequests,
 ) (
 	localElevState,
-	activeOrders,
+	activeRequests,
 	[]elevio.ButtonEvent,
 ) {
 	state.setLastFloor(floor)
-	completedOrdersList := make([]elevio.ButtonEvent, 0)
+	completedRequestsList := make([]elevio.ButtonEvent, 0)
 
-	if stopAfterSensingFloor(floor, state, orders) {
+	if stopAfterSensingFloor(floor, state, requests) {
 		state.setElevatorBehaviour(DoorOpen)
-		if orders.getSpecificOrder(floor, elevio.BT_Cab) {
-			completedOrdersList = append(completedOrdersList, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab})
+		if requests.getSpecificRequest(floor, elevio.BT_Cab) {
+			completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_Cab})
 		}
-		if orders.getSpecificOrder(floor, dirToBtnType(state.getLastDirection())) {
-			completedOrdersList = append(completedOrdersList, elevio.ButtonEvent{Floor: floor, Button: dirToBtnType(state.getLastDirection())})
+		if requests.getSpecificRequest(floor, dirToBtnType(state.getLastDirection())) {
+			completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: floor, Button: dirToBtnType(state.getLastDirection())})
 		}
-		if floor == 0 && orders.getSpecificOrder(floor, elevio.BT_HallUp) {
-			completedOrdersList = append(completedOrdersList, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallUp})
+		if floor == 0 && requests.getSpecificRequest(floor, elevio.BT_HallUp) {
+			completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallUp})
 		}
-		if floor == nFloors-1 && orders.getSpecificOrder(floor, elevio.BT_HallDown) {
-			completedOrdersList = append(completedOrdersList, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallDown})
+		if floor == nFloors-1 && requests.getSpecificRequest(floor, elevio.BT_HallDown) {
+			completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: floor, Button: elevio.BT_HallDown})
 		}
 	}
-	return state, orders, completedOrdersList
+	return state, requests, completedRequestsList
 }
 
 func handleNewRequests(
@@ -146,20 +146,20 @@ func handleNewRequests(
 	cabRequests [nFloors]bool,
 	cabOrHall string,
 	state localElevState,
-	orders activeOrders,
+	requests activeRequests,
 ) (
 	localElevState,
-	activeOrders,
+	activeRequests,
 	[]elevio.ButtonEvent,
 ) {
 	if cabOrHall == "cab" {
 		for i := 0; i < nFloors; i++ {
-			orders.setOrder(i, elevio.BT_Cab, cabRequests[i])
+			requests.setRequest(i, elevio.BT_Cab, cabRequests[i])
 		}
 	} else if cabOrHall == "hall" {
 		for i := 0; i < nFloors; i++ {
-			orders.setOrder(i, elevio.BT_HallUp, hallRequests[i][0])
-			orders.setOrder(i, elevio.BT_HallDown, hallRequests[i][1])
+			requests.setRequest(i, elevio.BT_HallUp, hallRequests[i][0])
+			requests.setRequest(i, elevio.BT_HallDown, hallRequests[i][1])
 		}
 	} else {
 		panic("handleNewRequests: hallOrCab must be 'cab' or 'hall'")
@@ -170,7 +170,7 @@ func handleNewRequests(
 	switch state.getElevatorBehaviour() {
 	case Moving:
 	case DoorOpen:
-		upThisFloor, downThisFloor, cabThisFloor := orders.getOrdersInFloor(state.getLastFloor())
+		upThisFloor, downThisFloor, cabThisFloor := requests.getRequestsInFloor(state.getLastFloor())
 		if cabThisFloor {
 			completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_Cab})
 		}
@@ -183,11 +183,11 @@ func handleNewRequests(
 			completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_HallDown})
 		}
 	case Idle:
-		upThisFloor, downThisFloor, cabThisFloor := orders.getOrdersInFloor(state.getLastFloor())
+		upThisFloor, downThisFloor, cabThisFloor := requests.getRequestsInFloor(state.getLastFloor())
 		orderInThisFloor := upThisFloor || downThisFloor || cabThisFloor
-		orders_above := orders.anyOrderPastFloorInDir(state.getLastFloor(), elevio.MD_Up)
-		orders_below := orders.anyOrderPastFloorInDir(state.getLastFloor(), elevio.MD_Down)
-		if !orders.anyOrder() {
+		orders_above := requests.anyRequestPastFloorInDir(state.getLastFloor(), elevio.MD_Up)
+		orders_below := requests.anyRequestPastFloorInDir(state.getLastFloor(), elevio.MD_Down)
+		if !requests.anyRequest() {
 			break
 		}
 		if orderInThisFloor {
@@ -196,13 +196,13 @@ func handleNewRequests(
 				completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_Cab})
 			}
 			if (upThisFloor && state.getLastDirection() == elevio.MD_Up) ||
-				(upThisFloor && !downThisFloor && !orders.anyOrderPastFloorInDir(state.getLastFloor(), elevio.MD_Down)) ||
+				(upThisFloor && !downThisFloor && !requests.anyRequestPastFloorInDir(state.getLastFloor(), elevio.MD_Down)) ||
 				(state.getLastFloor() == 0 && upThisFloor) {
 				state.setElevatorBehaviour(DoorOpen)
 				completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_HallUp})
 			}
 			if (downThisFloor && state.getLastDirection() == elevio.MD_Down) ||
-				(downThisFloor && !upThisFloor && !orders.anyOrderPastFloorInDir(state.getLastFloor(), elevio.MD_Up)) ||
+				(downThisFloor && !upThisFloor && !requests.anyRequestPastFloorInDir(state.getLastFloor(), elevio.MD_Up)) ||
 				(state.getLastFloor() == nFloors-1 && downThisFloor) {
 				state.setElevatorBehaviour(DoorOpen)
 				completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_HallDown})
@@ -220,34 +220,34 @@ func handleNewRequests(
 			}
 		}
 	}
-	return state, orders, completedRequestsList
+	return state, requests, completedRequestsList
 }
 
-func handleDoorClosing(state localElevState, orders activeOrders) (localElevState, activeOrders, []elevio.ButtonEvent) {
-	completedOrdersList := make([]elevio.ButtonEvent, 0)
+func handleDoorClosing(state localElevState, requests activeRequests) (localElevState, activeRequests, []elevio.ButtonEvent) {
+	completedRequestsList := make([]elevio.ButtonEvent, 0)
 
-	if !orders.anyOrder() {
+	if !requests.anyRequest() {
 		state.setElevatorBehaviour(Idle)
-		return state, orders, completedOrdersList
+		return state, requests, completedRequestsList
 	}
-	if orders.getSpecificOrder(state.getLastFloor(), dirToBtnType(state.getLastDirection())) {
+	if requests.getSpecificRequest(state.getLastFloor(), dirToBtnType(state.getLastDirection())) {
 		if state.getLastDirection() == elevio.MD_Up {
-			completedOrdersList = append(completedOrdersList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_HallUp})
+			completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_HallUp})
 		} else {
-			completedOrdersList = append(completedOrdersList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_HallDown})
+			completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_HallDown})
 		}
-		return state, orders, completedOrdersList
-	} else if orders.orderInFloor(state.getLastFloor()) && !orders.anyOrderPastFloorInDir(state.getLastFloor(), state.getLastDirection()) {
+		return state, requests, completedRequestsList
+	} else if requests.requestInFloor(state.getLastFloor()) && !requests.anyRequestPastFloorInDir(state.getLastFloor(), state.getLastDirection()) {
 		if state.getLastDirection() == elevio.MD_Up {
-			completedOrdersList = append(completedOrdersList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_HallDown})
+			completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_HallDown})
 		} else {
-			completedOrdersList = append(completedOrdersList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_HallUp})
+			completedRequestsList = append(completedRequestsList, elevio.ButtonEvent{Floor: state.getLastFloor(), Button: elevio.BT_HallUp})
 		}
-		return state, orders, completedOrdersList
+		return state, requests, completedRequestsList
 	}
 	state.setElevatorBehaviour(Moving)
-	ordersUpBool := orders.anyOrderPastFloorInDir(state.getLastFloor(), elevio.MD_Up)
-	ordersDownBool := orders.anyOrderPastFloorInDir(state.getLastFloor(), elevio.MD_Down)
+	ordersUpBool := requests.anyRequestPastFloorInDir(state.getLastFloor(), elevio.MD_Up)
+	ordersDownBool := requests.anyRequestPastFloorInDir(state.getLastFloor(), elevio.MD_Down)
 	if (state.getLastDirection() == elevio.MD_Up && ordersUpBool) || !ordersDownBool {
 		state.setDirection(elevio.MD_Up)
 	} else if (state.getLastDirection() == elevio.MD_Down && ordersDownBool) || !ordersUpBool {
@@ -255,7 +255,7 @@ func handleDoorClosing(state localElevState, orders activeOrders) (localElevStat
 	} else {
 		panic("handleDoorClosing: No direction set")
 	}
-	return state, orders, completedOrdersList
+	return state, requests, completedRequestsList
 }
 
 func checkChangeLocalStates(a localElevState, b localElevState) bool {
@@ -283,7 +283,7 @@ func fsmElevator(
 ) {
 
 	var myLocalState localElevState
-	var myActiveOrders activeOrders
+	var myActiveRequests activeRequests
 	isAvailable := false
 	singleElevMode := true
 	isObstructed := false
@@ -296,7 +296,7 @@ func fsmElevator(
 	doorTimer := time.NewTimer(initiateTime)
 
 	// Initiate elevator
-	myActiveOrders.initOrders()
+	myActiveRequests.initRequests()
 	myLocalState.initLocalElevState()
 	var oldElevState ElevState = localStateToElevState(myLocalState, isAvailable)
 	if elevio.GetFloor() == -1 {
@@ -318,7 +318,7 @@ func fsmElevator(
 		case btnPress := <-ch_btn:
 			ch_newRequest <- elevio.ButtonEvent{Floor: btnPress.Floor, Button: btnPress.Button}
 			if singleElevMode {
-				myActiveOrders.setOrder(btnPress.Floor, btnPress.Button, true)
+				myActiveRequests.setRequest(btnPress.Floor, btnPress.Button, true)
 
 				cabReqList := [nFloors]bool{false, false, false, false}
 				hallReqList := [nFloors][2]bool{
@@ -331,22 +331,22 @@ func fsmElevator(
 
 				if btnPress.Button != elevio.BT_Cab {
 					cabOrHall = "hall"
-					hallReqList = myActiveOrders.getHallRequests()
+					hallReqList = myActiveRequests.getHallRequests()
 				} else {
-					cabReqList = myActiveOrders.getCabRequests()
+					cabReqList = myActiveRequests.getCabRequests()
 				}
-				var completedOrdersList []elevio.ButtonEvent
-				myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(hallReqList,
+				var completedRequestsList []elevio.ButtonEvent
+				myLocalState, myActiveRequests, completedRequestsList = handleNewRequests(hallReqList,
 					cabReqList,
 					cabOrHall,
 					myLocalState,
-					myActiveOrders,
+					myActiveRequests,
 				)
 				if myLocalState.getElevatorBehaviour() == DoorOpen {
 					elevio.SetDoorOpenLamp(true)
 					doorTimer.Reset(standardDoorWait)
-					for _, order := range completedOrdersList {
-						myActiveOrders.setOrder(order.Floor, order.Button, false)
+					for _, order := range completedRequestsList {
+						myActiveRequests.setRequest(order.Floor, order.Button, false)
 						ch_completedRequest <- order
 					}
 				} else if myLocalState.getElevatorBehaviour() == Moving && oldElevState.Direction == "stop" {
@@ -365,15 +365,15 @@ func fsmElevator(
 
 		case floor := <-ch_floor:
 			elevio.SetFloorIndicator(floor)
-			var completedOrdersList []elevio.ButtonEvent
-			myLocalState, myActiveOrders, completedOrdersList = handleFloorSensor(floor, myLocalState, myActiveOrders)
+			var completedRequestsList []elevio.ButtonEvent
+			myLocalState, myActiveRequests, completedRequestsList = handleFloorSensor(floor, myLocalState, myActiveRequests)
 			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetMotorDirection(elevio.MD_Stop)
 				elevio.SetDoorOpenLamp(true)
 				doorTimer.Reset(standardDoorWait)
-				for _, order := range completedOrdersList {
+				for _, order := range completedRequestsList {
 					if singleElevMode {
-						myActiveOrders.setOrder(order.Floor, order.Button, false)
+						myActiveRequests.setRequest(order.Floor, order.Button, false)
 					}
 					ch_completedRequest <- order
 				}
@@ -392,14 +392,14 @@ func fsmElevator(
 				break
 			}
 			isObstructed = false
-			var completedOrdersList []elevio.ButtonEvent
-			myLocalState, myActiveOrders, completedOrdersList = handleDoorClosing(myLocalState, myActiveOrders)
+			var completedRequestsList []elevio.ButtonEvent
+			myLocalState, myActiveRequests, completedRequestsList = handleDoorClosing(myLocalState, myActiveRequests)
 			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetDoorOpenLamp(true)
 				doorTimer.Reset(standardDoorWait)
-				for _, order := range completedOrdersList {
+				for _, order := range completedRequestsList {
 					if singleElevMode {
-						myActiveOrders.setOrder(order.Floor, order.Button, false)
+						myActiveRequests.setRequest(order.Floor, order.Button, false)
 					}
 					ch_completedRequest <- order
 				}
@@ -417,20 +417,20 @@ func fsmElevator(
 			}
 
 		case hallRequests := <-ch_hallRequests:
-			var completedOrdersList []elevio.ButtonEvent
+			var completedRequestsList []elevio.ButtonEvent
 			emtpyCabList := [nFloors]bool{false, false, false, false}
-			myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(hallRequests,
+			myLocalState, myActiveRequests, completedRequestsList = handleNewRequests(hallRequests,
 				emtpyCabList,
 				"hall",
 				myLocalState,
-				myActiveOrders,
+				myActiveRequests,
 			)
 			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetDoorOpenLamp(true)
 				doorTimer.Reset(standardDoorWait)
-				for _, order := range completedOrdersList {
+				for _, order := range completedRequestsList {
 					if singleElevMode {
-						myActiveOrders.setOrder(order.Floor, order.Button, false)
+						myActiveRequests.setRequest(order.Floor, order.Button, false)
 					}
 					ch_completedRequest <- order
 				}
@@ -445,25 +445,25 @@ func fsmElevator(
 			}
 
 		case cab := <-ch_cabRequests:
-			var completedOrdersList []elevio.ButtonEvent
+			var completedRequestsList []elevio.ButtonEvent
 			emptyHallList := [nFloors][2]bool{
 				{false, false},
 				{false, false},
 				{false, false},
 				{false, false},
 			}
-			myLocalState, myActiveOrders, completedOrdersList = handleNewRequests(emptyHallList,
+			myLocalState, myActiveRequests, completedRequestsList = handleNewRequests(emptyHallList,
 				cab,
 				"cab",
 				myLocalState,
-				myActiveOrders,
+				myActiveRequests,
 			)
 			if myLocalState.getElevatorBehaviour() == DoorOpen {
 				elevio.SetDoorOpenLamp(true)
 				doorTimer.Reset(standardDoorWait)
-				for _, order := range completedOrdersList {
+				for _, order := range completedRequestsList {
 					if singleElevMode {
-						myActiveOrders.setOrder(order.Floor, order.Button, false)
+						myActiveRequests.setRequest(order.Floor, order.Button, false)
 					}
 					ch_completedRequest <- order
 				}
@@ -484,7 +484,7 @@ func fsmElevator(
 				errorTimer = time.Now().UnixMilli()
 				oldLocalState = myLocalState
 			}
-			if myActiveOrders.anyOrder() {
+			if myActiveRequests.anyRequest() {
 				if time.Now().UnixMilli()-errorTimer > 7500 {
 					isAvailable = false
 				} else {

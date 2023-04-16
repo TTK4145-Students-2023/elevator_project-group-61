@@ -14,7 +14,7 @@ To run the program using the executable file, use the following command:
 `./main -id=<elevatorID> -port=<portNumber>`
  
 To run the program using the `main.go` file, use the following command:
-go run main.go -id=<elevatorID> -port=<portNumber>
+`go run main.go -id=<elevatorID> -port=<portNumber>`
 Replace `<elevatorID>` and `<portNumber>` with the values you want to use for the elevator ID and port number, respectively.
 
 ## Program architecture

@@ -4,7 +4,6 @@ import (
 	"elevatorproject/config"
 	"elevatorproject/singleelevator"
 	"elevatorproject/singleelevator/elevio"
-	"fmt"
 	"time"
 )
 

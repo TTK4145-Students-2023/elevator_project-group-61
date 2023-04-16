@@ -3,6 +3,10 @@ project-group-61 created by GitHub Classroom.
 
 This program is designed to control n elevators across m floors. It is based on a peer-to-peer architecture, and uses several modules to achieve its functionality.
 
+## Program architecture
+This image is a illustartion of how the modules in the program interact.
+![alt text](https://github.com/TTK4145-Students-2023/project-group-61/blob/code-quality/ProgramArchitecture.jpeg)
+
 ## Packages
 The module elevatorproject includes the following main packages
 ### worldview
@@ -18,10 +22,6 @@ The requestassigner package uses information from the worldview package to calcu
 The singleelevator package is responsible for controlling the physical elevator, executing the assigned orders and handling logic for updating what orders are new, what orders are finished, and what state the elevator is in.
 ### lamps
 The lamps package is responsible for turning on and off all lamps on this elevator. 
-
-## Program architecture
-This image is a illustartion of how the modules in the program interact.
-![alt text](https://github.com/TTK4145-Students-2023/project-group-61/blob/code-quality/ProgramArchitecture.jpeg)
 
 
 

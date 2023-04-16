@@ -21,7 +21,7 @@ The lamps package is responsible for turning on and off all lamps on this elevat
 
 ## Program architecture
 
-![alt text](image-url)
+![alt text](https://github.com/TTK4145-Students-2023/project-group-61/blob/code-quality/ProgramArchitecture.jpeg)
 
 
 

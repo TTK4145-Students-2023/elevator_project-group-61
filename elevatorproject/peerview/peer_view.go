@@ -217,7 +217,7 @@ func changeNoOrderAndConfirmedToUnknown(myPeerView MyPeerView) MyPeerView {
 	return newMyPeerView
 }
 
-func PeerView(ch_sendMyPeerView chan<- MyPeerView,
+func PeerView(ch_transmit chan<- MyPeerView,
 	ch_newRequest <-chan elevio.ButtonEvent,
 	ch_completedRequest <-chan elevio.ButtonEvent,
 	ch_elevState <-chan singleelevator.ElevState,
@@ -304,7 +304,7 @@ func PeerView(ch_sendMyPeerView chan<- MyPeerView,
 			fmt.Println(localID, ": ", elevState.IsAvailable)
 
 		case <-time.After(50 * time.Millisecond):
-			ch_sendMyPeerView <- copyMyPeerView(myPeerView)
+			ch_transmit <- copyMyPeerView(myPeerView)
 		}
 	}
 

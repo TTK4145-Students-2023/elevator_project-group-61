@@ -68,8 +68,8 @@ func hasMyWorldViewChanged(myWorldView MyWorldView, prevMyWorldView MyWorldView)
 	return false
 }
 
-func WorldView(ch_receivePeerView <-chan peerview.MyPeerView,
-	ch_receivePeerUpdate <-chan peers.PeerUpdate,
+func WorldView(ch_receive <-chan peerview.MyPeerView,
+	ch_peerUpdate <-chan peers.PeerUpdate,
 	ch_remoteRequestView chan<- peerview.RemoteRequestViews,
 	ch_myWorldView chan<- MyWorldView,
 	ch_singleElevMode chan<- bool,
@@ -87,7 +87,7 @@ func WorldView(ch_receivePeerView <-chan peerview.MyPeerView,
 
 	for {
 		select {
-		case peerUpdate := <-ch_receivePeerUpdate:
+		case peerUpdate := <-ch_peerUpdate:
 			fmt.Println("worldview: peerUpdate")
 			fmt.Printf("  Peers:    %q\n", peerUpdate.Peers)
 			fmt.Printf("  New:      %q\n", peerUpdate.New)
@@ -116,7 +116,7 @@ func WorldView(ch_receivePeerView <-chan peerview.MyPeerView,
 				isSingleElevMode = false
 				ch_singleElevMode <- isSingleElevMode
 			}
-		case peerView := <-ch_receivePeerView:
+		case peerView := <-ch_receive:
 			peerID := peerView.ID
 
 			if !isPeerAlive(peerID, peersAlive) && localID != peerID {

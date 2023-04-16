@@ -11,7 +11,7 @@ To run the program, you can either run the executable file or run the `main.go` 
 - `port`: The port number to use for the network connection (an integer value).
 
 To run the program using the executable file, use the following command:
-./main -id=<elevatorID> -port=<portNumber>
+`./main -id=<elevatorID> -port=<portNumber>`
  
 To run the program using the `main.go` file, use the following command:
 go run main.go -id=<elevatorID> -port=<portNumber>

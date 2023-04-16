@@ -14,7 +14,7 @@ The peerview package is responsible for updating a peer's understanding of all o
 ### requestassigner
 The requestassigner package uses information from the worldview package to calculate which elevator is best suited to handle which requests. All requests placed on the system is reassigned every time a new request enters the system.
 ### singleelevtor
-The singleelevator package is responsible for controlling the physical elevator.
+The singleelevator package is responsible for controlling the physical elevator, executing the assigned orders and handling logic for updating what orders are new, what orders are finished, and what state the elevator is in.
 ### lamps
 The lamps package is responsible for turning on and off all lamps on this elevator. 
 

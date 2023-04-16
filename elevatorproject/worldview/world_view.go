@@ -51,14 +51,19 @@ func (myWorldView *MyWorldView) initMyWorldView(localID string) {
 }
 
 func hasMyWorldViewChanged(myWorldView MyWorldView, prevMyWorldView MyWorldView) bool {
-	if myWorldView.ElevStates != prevMyWorldView.ElevStates {
-		return true
+	for id, elevstate := range myWorldView.ElevStates {
+		if elevstate != prevMyWorldView.ElevStates[id] {
+			return true
+		}
 	}
+
 	if myWorldView.HallRequestView != prevMyWorldView.HallRequestView {
 		return true
 	}
-	if myWorldView.CabRequests != prevMyWorldView.CabRequests {
-		return true
+	for key, value := range myWorldView.CabRequests {
+		if value != prevMyWorldView.CabRequests[key] {
+			return true
+		}
 	}
 	return false
 }
@@ -130,9 +135,11 @@ func WorldView(ch_receivePeerView <-chan peerview.MyPeerView,
 			}
 
 			
-			ch_remoteRequestView <- peerview.CopyRemoteRequestViews(remoteRequestView)
-			ch_myWorldView <- copyMyWorldView(myWorldView)
-			prevMyWorldView = copyMyWorldView(myWorldView)
+			if hasMyWorldViewChanged(myWorldView, prevMyWorldView) {
+				ch_remoteRequestView <- peerview.CopyRemoteRequestViews(remoteRequestView)
+				ch_myWorldView <- copyMyWorldView(myWorldView)
+				prevMyWorldView = copyMyWorldView(myWorldView)	
+			}
 		}
 	}
 }

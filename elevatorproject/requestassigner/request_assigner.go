@@ -2,8 +2,8 @@ package requestassigner
 
 import (
 	"elevatorproject/config"
-	"elevatorproject/worldview"
 	"elevatorproject/peerview"
+	"elevatorproject/worldview"
 	"encoding/json"
 	"fmt"
 	"os/exec"
@@ -15,7 +15,7 @@ type HRAElevState struct {
 	Behaviour   string                 `json:"behaviour"`
 	Floor       int                    `json:"floor"`
 	Direction   string                 `json:"direction"`
-	CabRequests [config.NumFloors]bool `json:"cabRequests"` 
+	CabRequests [config.NumFloors]bool `json:"cabRequests"`
 }
 
 type HRAInput struct {
@@ -98,7 +98,7 @@ func AssignRequests(ch_myWorldView <-chan worldview.MyWorldView, ch_hallRequest 
 	for {
 		select {
 		case myWorldView := <-ch_myWorldView:
-			
+
 			hraInput := transformToHRAInput(myWorldView, localID)
 
 			hraExecutable := ""

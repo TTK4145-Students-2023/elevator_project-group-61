@@ -30,6 +30,29 @@ type RemoteRequestViews struct {
 	RemoteCabRequestViews  map[string]map[string][config.NumFloors]RequestState
 }
 
+func HasRemoteRequestViewsChanged(remoteRequestViews RemoteRequestViews, prevRemoteRequestViews RemoteRequestViews) bool {
+	for id, requestStates := range remoteRequestViews.RemoteHallRequestViews {
+		for floor := 0; floor < config.NumFloors; floor++ {
+			for button := 0; button < 2; button++ {
+				if requestStates[floor][button] != prevRemoteRequestViews.RemoteHallRequestViews[id][floor][button] {
+					return true
+				}
+			}
+		}
+	}
+
+	for id1, value1 := range remoteRequestViews.RemoteCabRequestViews {
+		for id2, value2 := range value1 {
+			for floor := 0; floor < config.NumFloors; floor++ {
+				if value2[floor] != prevRemoteRequestViews.RemoteCabRequestViews[id1][id2][floor] {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 func copyMyPeerView(myPeerView MyPeerView) MyPeerView {
 	copyPeerView := MyPeerView{}
 	copyPeerView.ID = myPeerView.ID

@@ -57,12 +57,19 @@ func hasMyWorldViewChanged(myWorldView MyWorldView, prevMyWorldView MyWorldView)
 		}
 	}
 
-	if myWorldView.HallRequestView != prevMyWorldView.HallRequestView {
-		return true
+	for floor := 0; floor < config.NumFloors; floor++ {
+		for button := 0; button < 2; button++ {
+			if myWorldView.HallRequestView[floor][button] != prevMyWorldView.HallRequestView[floor][button] {
+				return true
+			}
+		}
 	}
-	for key, value := range myWorldView.CabRequests {
-		if value != prevMyWorldView.CabRequests[key] {
-			return true
+
+	for id, requestStates := range myWorldView.CabRequests {
+		for floor := 0; floor < config.NumFloors; floor++ {
+			if requestStates[floor] != prevMyWorldView.CabRequests[id][floor] {
+				return true
+			}
 		}
 	}
 	return false
@@ -79,11 +86,13 @@ func WorldView(ch_receive <-chan peerview.MyPeerView,
 	var prevMyWorldView MyWorldView
 	var peersAlive []string
 	var remoteRequestView peerview.RemoteRequestViews
+	var prevRemoteRequestView peerview.RemoteRequestViews
 	var isSingleElevMode bool
 
 	myWorldView.initMyWorldView(localID)
-	prevMyWorldView = copyMyWorldView(myWorldView)
+	prevMyWorldView.initMyWorldView(localID)
 	remoteRequestView.InitRemoteRequestViews()
+	prevRemoteRequestView.InitRemoteRequestViews()
 
 	for {
 		select {
@@ -134,9 +143,12 @@ func WorldView(ch_receive <-chan peerview.MyPeerView,
 				myWorldView.HallRequestView = peerView.HallRequests
 			}
 
-			
-			if hasMyWorldViewChanged(myWorldView, prevMyWorldView) {
+			if peerview.HasRemoteRequestViewsChanged(remoteRequestView, prevRemoteRequestView) {
 				ch_remoteRequestView <- peerview.CopyRemoteRequestViews(remoteRequestView)
+				prevRemoteRequestView = peerview.CopyRemoteRequestViews(remoteRequestView)
+			}
+
+			if hasMyWorldViewChanged(myWorldView, prevMyWorldView) {
 				ch_myWorldView <- copyMyWorldView(myWorldView)
 				prevMyWorldView = copyMyWorldView(myWorldView)	
 			}
